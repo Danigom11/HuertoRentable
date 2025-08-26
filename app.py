@@ -43,12 +43,14 @@ def crear_app():
     else:
         app.config['DEBUG'] = True
         print("🔧 Ejecutándose en modo DESARROLLO")
-        # En desarrollo usar archivo local (crear serviceAccountKey.json)
+        # En desarrollo usar archivo local
         try:
             cred = credentials.Certificate('serviceAccountKey.json')
+            print("✅ Credenciales Firebase cargadas desde serviceAccountKey.json")
         except FileNotFoundError:
             print("⚠️  IMPORTANTE: Falta el archivo 'serviceAccountKey.json'")
             print("   Descárgalo desde Firebase Console > Project Settings > Service Accounts")
+            print("   Ejecutándose en MODO DEMO mientras tanto...")
             return app, None
     
     # Inicializar Firebase una sola vez - previene errores de duplicación
@@ -233,6 +235,178 @@ def generar_datos_chart_demo(cultivos_demo):
     }
 
 # =====================================
+# FUNCIONES FIREBASE FIRESTORE
+# =====================================
+
+def obtener_cultivos_firebase():
+    """
+    Obtiene todos los cultivos activos desde Firebase Firestore
+    Incluye cálculos de estadísticas y validación de datos
+    """
+    if db is None:
+        return None
+    
+    try:
+        # Obtener cultivos activos ordenados por fecha de siembra
+        cultivos_ref = db.collection('cultivos')\
+                        .where('activo', '==', True)\
+                        .order_by('fecha_siembra', direction=firestore.Query.DESCENDING)
+        
+        cultivos_docs = cultivos_ref.stream()
+        cultivos_lista = []
+        
+        for doc in cultivos_docs:
+            cultivo = doc.to_dict()
+            cultivo['id'] = doc.id
+            
+            # Calcular estadísticas del cultivo
+            produccion_diaria = cultivo.get('produccion_diaria', [])
+            kilos_totales = sum(prod.get('kilos', 0) for prod in produccion_diaria)
+            precio_por_kilo = cultivo.get('precio_por_kilo', 0)
+            beneficio_total = kilos_totales * precio_por_kilo
+            
+            # Añadir campos calculados
+            cultivo['kilos_totales'] = round(kilos_totales, 2)
+            cultivo['beneficio_total'] = round(beneficio_total, 2)
+            cultivo['unidades_recolectadas'] = len(produccion_diaria)
+            
+            # Formatear fecha de siembra si existe
+            if 'fecha_siembra' in cultivo:
+                fecha_siembra = cultivo['fecha_siembra']
+                if hasattr(fecha_siembra, 'date'):
+                    cultivo['fecha_siembra_legible'] = fecha_siembra.strftime('%d/%m/%Y')
+                    # Calcular días desde siembra
+                    dias_siembra = (datetime.now() - fecha_siembra).days
+                    cultivo['dias_desde_siembra'] = dias_siembra
+            
+            cultivos_lista.append(cultivo)
+            
+        return cultivos_lista
+        
+    except Exception as e:
+        print(f"❌ Error al obtener cultivos desde Firebase: {e}")
+        return None
+
+def crear_cultivo_firebase(datos_cultivo):
+    """
+    Crea un nuevo cultivo en Firebase Firestore
+    Valida los datos antes de guardar
+    """
+    if db is None:
+        return False, "Base de datos no disponible"
+    
+    try:
+        # Validar datos obligatorios
+        if not datos_cultivo.get('nombre'):
+            return False, "El nombre del cultivo es obligatorio"
+        
+        # Preparar estructura del cultivo
+        cultivo_nuevo = {
+            'nombre': datos_cultivo['nombre'].lower().strip(),
+            'fecha_siembra': firestore.SERVER_TIMESTAMP,
+            'fecha_cosecha': None,
+            'precio_por_kilo': float(datos_cultivo.get('precio_por_kilo', 0)),
+            'plantas_sembradas': int(datos_cultivo.get('plantas_sembradas', 0)),
+            'abonos': [],
+            'produccion_diaria': [],
+            'activo': True,
+            'fecha_creacion': firestore.SERVER_TIMESTAMP
+        }
+        
+        # Guardar en Firestore
+        doc_ref = db.collection('cultivos').add(cultivo_nuevo)
+        print(f"✅ Cultivo '{datos_cultivo['nombre']}' creado con ID: {doc_ref[1].id}")
+        return True, "Cultivo creado exitosamente"
+        
+    except Exception as e:
+        print(f"❌ Error al crear cultivo: {e}")
+        return False, f"Error al crear cultivo: {str(e)}"
+
+def actualizar_produccion_firebase(cultivo_id, kilos):
+    """
+    Añade una nueva entrada de producción diaria a un cultivo
+    """
+    if db is None:
+        return False, "Base de datos no disponible"
+    
+    try:
+        # Referencia al documento del cultivo
+        cultivo_ref = db.collection('cultivos').document(cultivo_id)
+        
+        # Nueva entrada de producción
+        nueva_produccion = {
+            'fecha': firestore.SERVER_TIMESTAMP,
+            'kilos': float(kilos)
+        }
+        
+        # Actualizar usando arrayUnion para añadir al array
+        cultivo_ref.update({
+            'produccion_diaria': firestore.ArrayUnion([nueva_produccion])
+        })
+        
+        print(f"✅ Producción actualizada: {kilos}kg añadidos al cultivo {cultivo_id}")
+        return True, "Producción registrada exitosamente"
+        
+    except Exception as e:
+        print(f"❌ Error al actualizar producción: {e}")
+        return False, f"Error al registrar producción: {str(e)}"
+
+def obtener_datos_analytics_firebase():
+    """
+    Obtiene datos para gráficas desde Firebase
+    Procesa la información para Chart.js
+    """
+    if db is None:
+        return None
+    
+    try:
+        # Obtener todos los cultivos (activos e inactivos para histórico)
+        cultivos_ref = db.collection('cultivos')
+        cultivos_docs = cultivos_ref.stream()
+        
+        datos_por_ano = {}
+        beneficios_por_ano = {}
+        produccion_por_cultivo = {}
+        
+        for doc in cultivos_docs:
+            cultivo = doc.to_dict()
+            nombre = cultivo.get('nombre', 'sin_nombre')
+            precio_por_kilo = cultivo.get('precio_por_kilo', 0)
+            
+            # Procesar producción diaria
+            for produccion in cultivo.get('produccion_diaria', []):
+                fecha = produccion.get('fecha')
+                kilos = produccion.get('kilos', 0)
+                
+                if fecha and hasattr(fecha, 'year'):
+                    ano = fecha.year
+                    
+                    # Agrupar por año
+                    if ano not in datos_por_ano:
+                        datos_por_ano[ano] = 0
+                        beneficios_por_ano[ano] = 0
+                    
+                    datos_por_ano[ano] += kilos
+                    beneficios_por_ano[ano] += kilos * precio_por_kilo
+                    
+                    # Agrupar por cultivo
+                    if nombre not in produccion_por_cultivo:
+                        produccion_por_cultivo[nombre] = 0
+                    produccion_por_cultivo[nombre] += kilos
+        
+        return {
+            'anos': sorted(datos_por_ano.keys()),
+            'produccion_anual': [datos_por_ano[ano] for ano in sorted(datos_por_ano.keys())],
+            'beneficios_anuales': [beneficios_por_ano[ano] for ano in sorted(beneficios_por_ano.keys())],
+            'cultivos': list(produccion_por_cultivo.keys()),
+            'produccion_por_cultivo': list(produccion_por_cultivo.values())
+        }
+        
+    except Exception as e:
+        print(f"❌ Error al obtener datos de analytics: {e}")
+        return None
+
+# =====================================
 # RUTAS PRINCIPALES DE LA APLICACIÓN
 # =====================================
 
@@ -245,6 +419,7 @@ def dashboard():
     try:
         # Verificar si Firebase está disponible
         if db is None:
+            print("⚠️  Modo DEMO activo - Firebase no disponible")
             # Modo demo: mostrar datos de ejemplo sin Firebase
             datos_demo = obtener_datos_demo()
             
@@ -266,48 +441,41 @@ def dashboard():
                                  estadisticas=datos_demo.get('estadisticas', {}),
                                  modo_demo=True)
         
-        # Obtener todos los cultivos activos desde Firebase
-        cultivos_ref = db.collection('cultivos').where('activo', '==', True)
-        cultivos_docs = cultivos_ref.stream()
+        # MODO FIREBASE: Obtener datos reales desde Firestore
+        print("🔥 Obteniendo datos desde Firebase Firestore...")
+        cultivos_firebase = obtener_cultivos_firebase()
         
-        cultivos_resumen = []
-        beneficio_total = 0
-        kilos_totales = 0
+        if cultivos_firebase is None:
+            # Si falla Firebase, usar modo demo como fallback
+            print("⚠️  Firebase falló, usando datos demo como respaldo")
+            datos_demo = obtener_datos_demo()
+            return render_template('dashboard.html', 
+                                 cultivos=datos_demo.get('cultivos', []), 
+                                 estadisticas=datos_demo.get('estadisticas', {}),
+                                 modo_demo=True)
         
-        for doc in cultivos_docs:
-            cultivo = doc.to_dict()
-            cultivo['id'] = doc.id
-            
-            # Calcular kilos totales del cultivo
-            kilos_cultivo = sum(prod['kilos'] for prod in cultivo.get('produccion_diaria', []))
-            
-            # Calcular beneficio del cultivo (kilos × precio por kilo)
-            precio = cultivo.get('precio_por_kilo', 0)
-            beneficio_cultivo = kilos_cultivo * precio
-            
-            # Agregar datos calculados
-            cultivo['kilos_totales'] = kilos_cultivo
-            cultivo['beneficio_total'] = beneficio_cultivo
-            
-            cultivos_resumen.append(cultivo)
-            beneficio_total += beneficio_cultivo
-            kilos_totales += kilos_cultivo
+        # Calcular estadísticas de los cultivos de Firebase
+        kilos_totales = sum(c.get('kilos_totales', 0) for c in cultivos_firebase)
+        beneficio_total = sum(c.get('beneficio_total', 0) for c in cultivos_firebase)
+        total_cultivos = len(cultivos_firebase)
+        promedio_beneficio = beneficio_total / total_cultivos if total_cultivos > 0 else 0
         
-        # Estadísticas generales para mostrar en el dashboard
         estadisticas = {
-            'total_cultivos': len(cultivos_resumen),
-            'kilos_totales': kilos_totales,
-            'beneficio_total': beneficio_total,
-            'promedio_beneficio': beneficio_total / len(cultivos_resumen) if cultivos_resumen else 0
+            'total_cultivos': total_cultivos,
+            'kilos_totales': round(kilos_totales, 2),
+            'beneficio_total': round(beneficio_total, 2),
+            'promedio_beneficio': round(promedio_beneficio, 2)
         }
         
+        print(f"✅ Dashboard cargado: {total_cultivos} cultivos, {kilos_totales}kg, €{beneficio_total}")
         return render_template('dashboard.html', 
-                             cultivos=cultivos_resumen, 
+                             cultivos=cultivos_firebase, 
                              estadisticas=estadisticas,
                              modo_demo=False)
         
+        
     except Exception as error:
-        print(f"Error en dashboard: {error}")
+        print(f"❌ Error en dashboard: {error}")
         flash(f'Error al cargar el dashboard: {str(error)}', 'error')
         # En caso de error, mostrar datos demo como fallback
         datos_demo = obtener_datos_demo()
@@ -356,8 +524,11 @@ def gestionar_cultivos():
         ]
         return render_template('crops.html', cultivos=todos_cultivos_demo, modo_demo=True)
     
+    # MODO FIREBASE
     if request.method == 'POST':
-        # Validar datos del formulario antes de guardar - buena práctica
+        print("🌱 Creando nuevo cultivo...")
+        
+        # Validar datos del formulario antes de guardar
         nombre_cultivo = request.form.get('nombre', '').strip()
         precio_str = request.form.get('precio', '0')
         numero_plantas_str = request.form.get('numero_plantas', '1')
@@ -381,54 +552,35 @@ def gestionar_cultivos():
                 flash('❌ El número de plantas debe ser al menos 1', 'error')
                 return redirect(url_for('gestionar_cultivos'))
         except ValueError:
-            flash('❌ El número de plantas debe ser un número entero válido', 'error')
+            flash('❌ El número de plantas debe ser un número entero', 'error')
             return redirect(url_for('gestionar_cultivos'))
         
-        try:
-            # Crear estructura de datos del cultivo - bien documentada
-            datos_cultivo = {
-                'nombre': nombre_cultivo.lower(),  # Normalizar para consistencia
-                'fecha_siembra': firestore.SERVER_TIMESTAMP,
-                'fecha_cosecha': None,  # Se actualizará cuando termine el cultivo
-                'precio_por_kilo': precio,
-                'numero_plantas': numero_plantas,  # Nuevo campo
-                'abonos': [],  # Array de objetos {fecha, descripcion}
-                'produccion_diaria': [],  # Array de objetos {fecha, kilos}
-                'activo': True,  # Para implementar soft delete
-                'creado_en': firestore.SERVER_TIMESTAMP
-            }
-            
-            # Guardar en Firestore con manejo de errores
-            doc_ref = db.collection('cultivos').add(datos_cultivo)
-            flash(f'✅ Cultivo "{nombre_cultivo}" añadido exitosamente', 'success')
-            print(f"Cultivo creado con ID: {doc_ref[1].id}")
-            
-        except Exception as error:
-            # Manejo de errores educativo - mostrar qué pasó
-            flash(f'❌ Error al guardar cultivo: {str(error)}', 'error')
-            print(f"Error Firebase: {error}")
+        # Crear cultivo usando la función de Firebase
+        datos_cultivo = {
+            'nombre': nombre_cultivo,
+            'precio_por_kilo': precio,
+            'plantas_sembradas': numero_plantas
+        }
+        
+        exito, mensaje = crear_cultivo_firebase(datos_cultivo)
+        if exito:
+            flash(f'✅ {mensaje}', 'success')
+        else:
+            flash(f'❌ {mensaje}', 'error')
+        
+        return redirect(url_for('gestionar_cultivos'))
     
-    # Obtener todos los cultivos ordenados por fecha - query educativa
-    try:
-        cultivos_query = db.collection('cultivos')\
-                          .order_by('fecha_siembra', direction=firestore.Query.DESCENDING)
-        cultivos = []
-        for doc in cultivos_query.stream():
-            cultivo = doc.to_dict()
-            cultivo['id'] = doc.id
-            
-            # Formatear fecha para mostrar de forma legible
-            if cultivo.get('fecha_siembra'):
-                cultivo['fecha_siembra_legible'] = cultivo['fecha_siembra'].strftime('%d/%m/%Y')
-            
-            cultivos.append(cultivo)
-            
-    except Exception as error:
-        cultivos = []
-        flash(f'❌ Error al cargar cultivos: {str(error)}', 'error')
-        print(f"Error query Firestore: {error}")
+    # GET request: Mostrar lista de cultivos
+    print("📋 Obteniendo lista de cultivos desde Firebase...")
+    cultivos_firebase = obtener_cultivos_firebase()
     
-    return render_template('crops.html', cultivos=cultivos, modo_demo=False)
+    if cultivos_firebase is None:
+        flash('⚠️ Error al conectar con la base de datos', 'warning')
+        # Fallback a datos demo
+        datos_demo = obtener_datos_demo()
+        return render_template('crops.html', cultivos=datos_demo['cultivos'], modo_demo=True)
+    
+    return render_template('crops.html', cultivos=cultivos_firebase, modo_demo=False)
 
 @app.route('/analytics')
 def analytics():
@@ -609,7 +761,7 @@ def crear_datos_ejemplo():
 @app.route('/cultivo/<cultivo_id>/recolectar', methods=['POST'])
 def añadir_recoleccion(cultivo_id):
     """
-    Añade unidades recolectadas a un cultivo específico
+    Añade kilos recolectados a un cultivo específico
     Actualiza automáticamente las estadísticas del cultivo
     """
     try:
@@ -621,63 +773,34 @@ def añadir_recoleccion(cultivo_id):
             }), 400
         
         # Obtener datos del formulario
-        unidades = request.form.get('unidades', type=int)
-        peso_estimado = request.form.get('peso_estimado', type=float, default=0.0)
+        kilos = request.form.get('kilos', type=float)
         
-        if not unidades or unidades <= 0:
+        if not kilos or kilos <= 0:
             return jsonify({
                 'success': False, 
-                'error': 'Debe especificar un número válido de unidades'
+                'error': 'Debe especificar un peso válido en kilos'
             }), 400
         
-        # Obtener referencia del cultivo
-        cultivo_ref = db.collection('cultivos').document(cultivo_id)
-        cultivo_doc = cultivo_ref.get()
+        # Usar la función de Firebase para actualizar producción
+        exito, mensaje = actualizar_produccion_firebase(cultivo_id, kilos)
         
-        if not cultivo_doc.exists:
+        if exito:
             return jsonify({
-                'success': False, 
-                'error': 'Cultivo no encontrado'
-            }), 404
-        
-        cultivo_data = cultivo_doc.to_dict()
-        
-        # Actualizar unidades recolectadas
-        nuevas_unidades = cultivo_data.get('unidades_recolectadas', 0) + unidades
-        
-        # Añadir entrada a producción diaria si se especifica peso
-        if peso_estimado > 0:
-            from datetime import datetime
-            nueva_produccion = {
-                'fecha': datetime.now(),
-                'kilos': peso_estimado,
-                'unidades': unidades
-            }
-            
-            produccion_actual = cultivo_data.get('produccion_diaria', [])
-            produccion_actual.append(nueva_produccion)
-            
-            # Actualizar documento en Firebase
-            cultivo_ref.update({
-                'unidades_recolectadas': nuevas_unidades,
-                'produccion_diaria': produccion_actual
+                'success': True,
+                'message': mensaje,
+                'kilos_añadidos': kilos
             })
         else:
-            # Solo actualizar unidades sin peso
-            cultivo_ref.update({
-                'unidades_recolectadas': nuevas_unidades
-            })
-        
-        return jsonify({
-            'success': True,
-            'nuevas_unidades': nuevas_unidades,
-            'message': f'Se añadieron {unidades} unidades al cultivo'
-        })
+            return jsonify({
+                'success': False,
+                'error': mensaje
+            }), 400
         
     except Exception as error:
+        print(f"❌ Error en recolección: {error}")
         return jsonify({
-            'success': False, 
-            'error': str(error)
+            'success': False,
+            'error': f'Error interno: {str(error)}'
         }), 500
 
 @app.route('/demo/cultivo/<cultivo_id>/recolectar', methods=['POST'])
@@ -686,15 +809,26 @@ def añadir_recoleccion_demo(cultivo_id):
     Versión demo de añadir recolección (solo simula la operación)
     """
     try:
-        unidades = request.form.get('unidades', type=int)
+        kilos = request.form.get('kilos', type=float)
         
-        if not unidades or unidades <= 0:
+        if not kilos or kilos <= 0:
             return jsonify({
                 'success': False, 
-                'error': 'Debe especificar un número válido de unidades'
+                'error': 'Debe especificar un peso válido en kilos'
             }), 400
         
-        # En modo demo, simular actualización
+        # En modo demo, simular actualización exitosa
+        return jsonify({
+            'success': True,
+            'message': f'✅ (DEMO) Se registraron {kilos}kg',
+            'kilos_añadidos': kilos
+        })
+        
+    except Exception as error:
+        return jsonify({
+            'success': False, 
+            'error': str(error)
+        }), 500
         return jsonify({
             'success': True,
             'nuevas_unidades': unidades,  # Simular nuevas unidades

@@ -247,10 +247,9 @@ def obtener_cultivos_firebase():
         return None
     
     try:
-        # Obtener cultivos activos ordenados por fecha de siembra
+        # Obtener cultivos activos (temporalmente sin order_by hasta que el índice esté listo)
         cultivos_ref = db.collection('cultivos')\
-                        .where('activo', '==', True)\
-                        .order_by('fecha_siembra', direction=firestore.Query.DESCENDING)
+                        .where('activo', '==', True)
         
         cultivos_docs = cultivos_ref.stream()
         cultivos_lista = []
@@ -273,13 +272,15 @@ def obtener_cultivos_firebase():
             # Formatear fecha de siembra si existe
             if 'fecha_siembra' in cultivo:
                 fecha_siembra = cultivo['fecha_siembra']
-                if hasattr(fecha_siembra, 'date'):
+                if hasattr(fecha_siembra, 'strftime'):
                     cultivo['fecha_siembra_legible'] = fecha_siembra.strftime('%d/%m/%Y')
-                    # Calcular días desde siembra
-                    dias_siembra = (datetime.now() - fecha_siembra).days
-                    cultivo['dias_desde_siembra'] = dias_siembra
+                    # Por ahora no calcular días hasta resolver timezone
+                    cultivo['dias_desde_siembra'] = 0
             
             cultivos_lista.append(cultivo)
+        
+        # Por ahora sin ordenamiento hasta resolver timezone
+        # cultivos_lista.sort(key=lambda c: c.get('fecha_siembra', datetime.min.replace(tzinfo=timezone.utc)), reverse=True)
             
         return cultivos_lista
         

@@ -1,0 +1,213 @@
+{% extends "base.html" %} {% block title %}Iniciar Sesión - HuertoRentable{%
+endblock %} {% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-4">
+    <div class="card shadow-lg border-0">
+      <div class="card-body p-5">
+        <div class="text-center mb-4">
+          <i class="bi bi-flower2 text-success" style="font-size: 3rem"></i>
+          <h2 class="text-success mt-2">HuertoRentable</h2>
+          <p class="text-muted">Gestión inteligente de cultivos</p>
+        </div>
+
+        <!-- Formulario de login básico -->
+        <form id="loginForm">
+          <div class="mb-3">
+            <label for="email" class="form-label">
+              <i class="bi bi-envelope me-1"></i>
+              Correo Electrónico
+            </label>
+            <input
+              type="email"
+              class="form-control form-control-lg"
+              id="email"
+              placeholder="tu@email.com"
+              required
+            />
+          </div>
+
+          <div class="mb-4">
+            <label for="password" class="form-label">
+              <i class="bi bi-lock me-1"></i>
+              Contraseña
+            </label>
+            <input
+              type="password"
+              class="form-control form-control-lg"
+              id="password"
+              placeholder="Tu contraseña"
+              required
+            />
+          </div>
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-success btn-lg">
+              <i class="bi bi-box-arrow-in-right me-2"></i>
+              Iniciar Sesión
+            </button>
+          </div>
+        </form>
+
+        <hr class="my-4" />
+
+        <!-- Opción de demo para testing -->
+        <div class="text-center">
+          <p class="text-muted small mb-3">¿Solo quieres probar la app?</p>
+          <button
+            type="button"
+            class="btn btn-outline-success"
+            onclick="entrarDemo()"
+          >
+            <i class="bi bi-play-circle me-1"></i>
+            Entrar en Modo Demo
+          </button>
+        </div>
+
+        <!-- Información educativa -->
+        <div class="alert alert-info mt-4">
+          <i class="bi bi-info-circle me-2"></i>
+          <strong>Desarrollo:</strong> Esta es una versión de desarrollo. En
+          producción se integraría Firebase Authentication.
+        </div>
+      </div>
+    </div>
+
+    <!-- Características de la app -->
+    <div class="card border-0 bg-light mt-4">
+      <div class="card-body">
+        <h6 class="text-center text-muted mb-3">Características Principales</h6>
+        <div class="row text-center">
+          <div class="col-4">
+            <i class="bi bi-seedling text-success fs-4"></i>
+            <p class="small mt-1 text-muted">Gestión de Cultivos</p>
+          </div>
+          <div class="col-4">
+            <i class="bi bi-graph-up text-success fs-4"></i>
+            <p class="small mt-1 text-muted">Análisis Detallado</p>
+          </div>
+          <div class="col-4">
+            <i class="bi bi-phone text-success fs-4"></i>
+            <p class="small mt-1 text-muted">App Móvil (PWA)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block page_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Verificar si ya está autenticado (simulado)
+    const estaAutenticado = localStorage.getItem("huerto_auth") === "true";
+    if (estaAutenticado) {
+      // Redirigir al dashboard si ya está autenticado
+      window.location.href = '{{ url_for("dashboard") }}';
+      return;
+    }
+
+    // Manejar envío del formulario
+    document
+      .getElementById("loginForm")
+      .addEventListener("submit", function (e) {
+        e.preventDefault();
+        manejarLogin();
+      });
+
+    console.log("✅ Página de login cargada");
+  });
+
+  function manejarLogin() {
+    // Obtener datos del formulario
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    // Validación básica
+    if (!email || !password) {
+      mostrarMensaje("error", "Por favor, completa todos los campos");
+      return;
+    }
+
+    // Simulación de autenticación (en desarrollo)
+    // En producción aquí iría Firebase Authentication
+    mostrarMensaje("info", "Iniciando sesión...");
+
+    // Simular delay de autenticación
+    setTimeout(() => {
+      // Simular login exitoso
+      localStorage.setItem("huerto_auth", "true");
+      localStorage.setItem(
+        "huerto_user",
+        JSON.stringify({
+          email: email,
+          nombre: email.split("@")[0],
+          fechaLogin: new Date().toISOString(),
+        })
+      );
+
+      mostrarMensaje("success", "¡Inicio de sesión exitoso!");
+
+      // Redirigir al dashboard
+      setTimeout(() => {
+        window.location.href = '{{ url_for("dashboard") }}';
+      }, 1000);
+    }, 1500);
+  }
+
+  function entrarDemo() {
+    // Entrada directa en modo demo
+    mostrarMensaje("info", "Entrando en modo demo...");
+
+    // Configurar datos de demo
+    localStorage.setItem("huerto_auth", "true");
+    localStorage.setItem(
+      "huerto_user",
+      JSON.stringify({
+        email: "demo@huertorentable.com",
+        nombre: "Usuario Demo",
+        esDemo: true,
+        fechaLogin: new Date().toISOString(),
+      })
+    );
+
+    // Redirigir después de un momento
+    setTimeout(() => {
+      window.location.href = '{{ url_for("dashboard") }}';
+    }, 1000);
+  }
+
+  function mostrarMensaje(tipo, mensaje) {
+    // Remover mensajes anteriores
+    const mensajeAnterior = document.querySelector(".mensaje-login");
+    if (mensajeAnterior) {
+      mensajeAnterior.remove();
+    }
+
+    // Crear nuevo mensaje
+    const alertaDiv = document.createElement("div");
+    alertaDiv.className = `alert alert-${
+      tipo === "error" ? "danger" : tipo
+    } mensaje-login`;
+    alertaDiv.innerHTML = mensaje;
+
+    // Insertar en el formulario
+    const form = document.getElementById("loginForm");
+    form.parentNode.insertBefore(alertaDiv, form);
+
+    // Auto-remover mensajes de error o info después de unos segundos
+    if (tipo !== "success") {
+      setTimeout(() => {
+        if (alertaDiv.parentNode) {
+          alertaDiv.remove();
+        }
+      }, 4000);
+    }
+  }
+
+  // Función para logout (usar desde otros templates)
+  function cerrarSesion() {
+    localStorage.removeItem("huerto_auth");
+    localStorage.removeItem("huerto_user");
+    window.location.href = '{{ url_for("login") }}';
+  }
+</script>
+{% endblock %}

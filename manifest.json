@@ -1,0 +1,81 @@
+{
+  "name": "HuertoRentable - Gestión de Cultivos",
+  "short_name": "HuertoRentable",
+  "description": "Aplicación web progresiva para la gestión inteligente y rentable de huertos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#198754",
+  "theme_color": "#198754",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "es",
+  "categories": ["agriculture", "productivity", "business"],
+  "icons": [
+    {
+      "src": "static/img/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "static/img/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "static/img/screenshot1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "static/img/screenshot2.png", 
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Inicio",
+      "description": "Ver resumen de cultivos y beneficios",
+      "url": "/",
+      "icons": [
+        {
+          "src": "static/img/icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Cultivos",
+      "short_name": "Cultivos", 
+      "description": "Gestionar cultivos del huerto",
+      "url": "/crops",
+      "icons": [
+        {
+          "src": "static/img/icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Análisis",
+      "short_name": "Análisis",
+      "description": "Ver gráficas y estadísticas",
+      "url": "/analytics",
+      "icons": [
+        {
+          "src": "static/img/icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

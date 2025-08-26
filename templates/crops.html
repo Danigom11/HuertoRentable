@@ -1,0 +1,629 @@
+{% extends "base.html" %} {% block title %}Gestión de Cultivos -
+HuertoRentable{% endblock %} {% block content %}
+
+<!-- Banner de modo demo -->
+{% if modo_demo %}
+<div class="alert alert-info alert-dismissible fade show" role="alert">
+  <i class="bi bi-info-circle me-2"></i>
+  <strong>Modo Demo</strong> - Estás viendo datos de ejemplo.
+  <a href="/FIREBASE_SETUP.md" target="_blank" class="alert-link"
+    >Configura Firebase</a
+  >
+  para guardar datos reales.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="row">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="text-success">
+        <i class="bi bi-seedling me-2"></i>
+        Gestión de Cultivos
+      </h1>
+      <button
+        class="btn btn-success"
+        data-bs-toggle="modal"
+        data-bs-target="#modalNuevoCultivo"
+      >
+        <i class="bi bi-plus-circle me-1"></i>
+        Nuevo Cultivo
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Lista de cultivos existentes -->
+<div class="row">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0">
+          <i class="bi bi-list-ul me-2"></i>
+          Cultivos Registrados ({{ cultivos|length }})
+        </h5>
+      </div>
+      <div class="card-body">
+        {% if cultivos %}
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-dark">
+              <tr>
+                <th><i class="bi bi-seedling me-1"></i>Cultivo</th>
+                <th><i class="bi bi-calendar-check me-1"></i>Siembra</th>
+                <th><i class="bi bi-collection me-1"></i>Plantas</th>
+                <th><i class="bi bi-currency-euro me-1"></i>Precio/Kilo</th>
+                <th><i class="bi bi-basket me-1"></i>Producción</th>
+                <th><i class="bi bi-droplet me-1"></i>Abonos</th>
+                <th><i class="bi bi-gear me-1"></i>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cultivo in cultivos %}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="bg-success rounded-circle p-2 me-2">
+                      <i class="bi bi-seedling text-white"></i>
+                    </div>
+                    <div>
+                      <strong class="text-capitalize"
+                        >{{ cultivo.nombre }}</strong
+                      >
+                      {% if cultivo.activo %}
+                      <span class="badge bg-success ms-2">Activo</span>
+                      {% else %}
+                      <span class="badge bg-secondary ms-2">Inactivo</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  {% if cultivo.fecha_siembra %} {% if
+                  cultivo.fecha_siembra_legible %} {{
+                  cultivo.fecha_siembra_legible }} {% else %} {{
+                  cultivo.fecha_siembra.strftime('%d/%m/%Y') }} {% endif %}
+                  <br />
+                  <small class="text-muted">
+                    {% if cultivo.dias_desde_siembra %} hace {{
+                    cultivo.dias_desde_siembra }} días {% endif %}
+                  </small>
+                  {% else %}
+                  <span class="text-muted">No registrada</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="fw-bold text-primary"
+                    >{{ cultivo.numero_plantas or 0 }}</span
+                  >
+                  <br />
+                  <small class="text-muted">plantas</small>
+                </td>
+                <td>
+                  <span class="fw-bold text-success"
+                    >€{{ "%.2f"|format(cultivo.precio_por_kilo) }}</span
+                  >
+                </td>
+                <td>
+                  {% set total_kilos =
+                  cultivo.produccion_diaria|sum(attribute='kilos') if
+                  cultivo.produccion_diaria else 0 %}
+                  <div class="mb-2">
+                    <span class="badge bg-primary me-2"
+                      >{{ "%.1f"|format(total_kilos) }} kg</span
+                    >
+                    <button
+                      class="btn btn-sm btn-outline-primary"
+                      onclick="mostrarProduccion('{{ cultivo.id }}', '{{ cultivo.nombre }}')"
+                      title="Ver detalle de producción"
+                    >
+                      <i class="bi bi-eye"></i>
+                    </button>
+                  </div>
+
+                  <!-- Controles para añadir producción diaria -->
+                  {% if modo_demo %}
+                  <div class="text-muted small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Disponible con Firebase
+                  </div>
+                  {% else %}
+                  <div class="input-group input-group-sm">
+                    <button
+                      class="btn btn-outline-secondary"
+                      type="button"
+                      onclick="cambiarCantidad('{{ cultivo.id }}', -0.1)"
+                    >
+                      <i class="bi bi-dash"></i>
+                    </button>
+                    <input
+                      type="number"
+                      class="form-control text-center"
+                      id="kilos_{{ cultivo.id }}"
+                      value="0.0"
+                      step="0.1"
+                      min="0"
+                      style="max-width: 80px"
+                    />
+                    <button
+                      class="btn btn-outline-secondary"
+                      type="button"
+                      onclick="cambiarCantidad('{{ cultivo.id }}', 0.1)"
+                    >
+                      <i class="bi bi-plus"></i>
+                    </button>
+                    <button
+                      class="btn btn-success btn-sm"
+                      type="button"
+                      onclick="agregarProduccionRapida('{{ cultivo.id }}')"
+                    >
+                      <i class="bi bi-check"></i>
+                    </button>
+                  </div>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="badge bg-info"
+                    >{{ cultivo.abonos|length }} abonos</span
+                  >
+                  {% if cultivo.abonos|length > 0 %}
+                  <button
+                    class="btn btn-sm btn-outline-info ms-1"
+                    onclick="mostrarAbonos('{{ cultivo.id }}', '{{ cultivo.nombre }}')"
+                    title="Ver historial de abonos"
+                  >
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="btn-group" role="group">
+                    <button
+                      class="btn btn-sm btn-outline-success"
+                      onclick="agregarProduccion('{{ cultivo.id }}', '{{ cultivo.nombre }}')"
+                      title="Añadir producción"
+                    >
+                      <i class="bi bi-plus"></i>
+                    </button>
+                    <button
+                      class="btn btn-sm btn-outline-info"
+                      onclick="agregarAbono('{{ cultivo.id }}', '{{ cultivo.nombre }}')"
+                      title="Añadir abono"
+                    >
+                      <i class="bi bi-droplet"></i>
+                    </button>
+                    <button
+                      class="btn btn-sm btn-outline-warning"
+                      onclick="editarCultivo('{{ cultivo.id }}')"
+                      title="Editar cultivo"
+                    >
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <!-- Estado vacío -->
+        <div class="text-center py-5">
+          <i class="bi bi-seedling text-muted" style="font-size: 4rem"></i>
+          <h4 class="text-muted mt-3">¡Empieza tu primer cultivo!</h4>
+          <p class="text-muted mb-4">
+            No tienes cultivos registrados aún. <br />
+            Haz clic en "Nuevo Cultivo" para comenzar.
+          </p>
+          <button
+            class="btn btn-success btn-lg"
+            data-bs-toggle="modal"
+            data-bs-target="#modalNuevoCultivo"
+          >
+            <i class="bi bi-plus-circle me-2"></i>
+            Crear Primer Cultivo
+          </button>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para nuevo cultivo -->
+<div class="modal fade" id="modalNuevoCultivo" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-plus-circle me-2"></i>
+          Nuevo Cultivo
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <form action="{{ url_for('gestionar_cultivos') }}" method="POST">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="nombre" class="form-label">
+              <i class="bi bi-seedling me-1"></i>
+              Nombre del Cultivo
+            </label>
+            <input
+              type="text"
+              class="form-control"
+              id="nombre"
+              name="nombre"
+              placeholder="ej: tomates, lechugas, zanahorias..."
+              required
+            />
+            <div class="form-text">
+              Escribe en minúsculas para mejor organización
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="precio" class="form-label">
+              <i class="bi bi-currency-euro me-1"></i>
+              Precio por Kilo (€)
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="precio"
+              name="precio"
+              step="0.01"
+              min="0"
+              placeholder="ej: 3.50"
+              required
+            />
+            <div class="form-text">Precio estimado de venta por kilogramo</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="numero_plantas" class="form-label">
+              <i class="bi bi-collection me-1"></i>
+              Número de Plantas
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="numero_plantas"
+              name="numero_plantas"
+              min="1"
+              placeholder="ej: 12"
+              required
+            />
+            <div class="form-text">
+              Cantidad de plantas sembradas en este cultivo
+            </div>
+          </div>
+
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Información:</strong> La fecha de siembra se registrará
+            automáticamente como hoy. Podrás añadir producción diaria y abonos
+            desde la lista de cultivos.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-plus-circle me-1"></i>
+            Crear Cultivo
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para añadir producción -->
+<div class="modal fade" id="modalProduccion" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-basket me-2"></i>
+          Añadir Producción
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form id="formProduccion">
+          <input type="hidden" id="cultivoIdProduccion" />
+
+          <div class="mb-3">
+            <label class="form-label">Cultivo:</label>
+            <p class="fw-bold text-capitalize" id="cultivoNombreProduccion"></p>
+          </div>
+
+          <div class="mb-3">
+            <label for="fechaProduccion" class="form-label">
+              <i class="bi bi-calendar3 me-1"></i>
+              Fecha de Recolección
+            </label>
+            <input
+              type="date"
+              class="form-control"
+              id="fechaProduccion"
+              required
+            />
+          </div>
+
+          <div class="mb-3">
+            <label for="kilosProduccion" class="form-label">
+              <i class="bi bi-basket me-1"></i>
+              Kilogramos Recolectados
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="kilosProduccion"
+              step="0.1"
+              min="0.1"
+              placeholder="ej: 2.5"
+              required
+            />
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          onclick="guardarProduccion()"
+        >
+          <i class="bi bi-check-circle me-1"></i>
+          Guardar Producción
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para añadir abono -->
+<div class="modal fade" id="modalAbono" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-droplet me-2"></i>
+          Añadir Abono
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form id="formAbono">
+          <input type="hidden" id="cultivoIdAbono" />
+
+          <div class="mb-3">
+            <label class="form-label">Cultivo:</label>
+            <p class="fw-bold text-capitalize" id="cultivoNombreAbono"></p>
+          </div>
+
+          <div class="mb-3">
+            <label for="fechaAbono" class="form-label">
+              <i class="bi bi-calendar3 me-1"></i>
+              Fecha de Aplicación
+            </label>
+            <input type="date" class="form-control" id="fechaAbono" required />
+          </div>
+
+          <div class="mb-3">
+            <label for="descripcionAbono" class="form-label">
+              <i class="bi bi-droplet me-1"></i>
+              Descripción del Abono
+            </label>
+            <textarea
+              class="form-control"
+              id="descripcionAbono"
+              rows="3"
+              placeholder="ej: Compost orgánico, Fertilizante líquido NPK..."
+              required
+            ></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-info" onclick="guardarAbono()">
+          <i class="bi bi-check-circle me-1"></i>
+          Guardar Abono
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block page_js %}
+<script>
+  // Variables globales para el manejo de modales
+  let modalProduccion, modalAbono, modalNuevoCultivo;
+
+  document.addEventListener("DOMContentLoaded", function () {
+    // Inicializar modales
+    modalProduccion = new bootstrap.Modal(
+      document.getElementById("modalProduccion")
+    );
+    modalAbono = new bootstrap.Modal(document.getElementById("modalAbono"));
+    modalNuevoCultivo = new bootstrap.Modal(
+      document.getElementById("modalNuevoCultivo")
+    );
+
+    // Establecer fecha de hoy por defecto
+    const hoy = new Date().toISOString().split("T")[0];
+    document.getElementById("fechaProduccion").value = hoy;
+    document.getElementById("fechaAbono").value = hoy;
+
+    console.log("✅ Gestión de cultivos cargada");
+  });
+
+  // Función para mostrar modal de añadir producción
+  function agregarProduccion(cultivoId, cultivoNombre) {
+    document.getElementById("cultivoIdProduccion").value = cultivoId;
+    document.getElementById("cultivoNombreProduccion").textContent =
+      cultivoNombre;
+    document.getElementById("formProduccion").reset();
+
+    // Establecer fecha de hoy
+    const hoy = new Date().toISOString().split("T")[0];
+    document.getElementById("fechaProduccion").value = hoy;
+
+    modalProduccion.show();
+  }
+
+  // Función para mostrar modal de añadir abono
+  function agregarAbono(cultivoId, cultivoNombre) {
+    document.getElementById("cultivoIdAbono").value = cultivoId;
+    document.getElementById("cultivoNombreAbono").textContent = cultivoNombre;
+    document.getElementById("formAbono").reset();
+
+    // Establecer fecha de hoy
+    const hoy = new Date().toISOString().split("T")[0];
+    document.getElementById("fechaAbono").value = hoy;
+
+    modalAbono.show();
+  }
+
+  // Función para guardar producción mediante API
+  async function guardarProduccion() {
+    const formData = {
+      cultivo_id: document.getElementById("cultivoIdProduccion").value,
+      fecha: document.getElementById("fechaProduccion").value,
+      kilos: parseFloat(document.getElementById("kilosProduccion").value),
+    };
+
+    if (!formData.fecha || !formData.kilos || formData.kilos <= 0) {
+      alert("Por favor, completa todos los campos correctamente");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/agregar-produccion", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Mostrar mensaje de éxito
+        mostrarAlerta("success", "✅ Producción añadida correctamente");
+        modalProduccion.hide();
+        // Recargar página para mostrar cambios
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        mostrarAlerta("danger", "❌ Error: " + result.error);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      mostrarAlerta("danger", "❌ Error de conexión");
+    }
+  }
+
+  // Función para guardar abono (similar estructura)
+  async function guardarAbono() {
+    // Implementación similar a guardarProduccion
+    // Por ahora mostrar mensaje temporal
+    mostrarAlerta("info", "🚧 Función de abonos en desarrollo");
+    modalAbono.hide();
+  }
+
+  // Función para mostrar alertas dinámicas
+  function mostrarAlerta(tipo, mensaje) {
+    const alertaDiv = document.createElement("div");
+    alertaDiv.className = `alert alert-${tipo} alert-dismissible fade show`;
+    alertaDiv.innerHTML = `
+        ${mensaje}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    // Insertar al inicio del contenido principal
+    const mainContent = document.querySelector("main .container");
+    mainContent.insertBefore(alertaDiv, mainContent.firstChild);
+
+    // Auto-remover después de 5 segundos
+    setTimeout(() => {
+      if (alertaDiv.parentNode) {
+        alertaDiv.remove();
+      }
+    }, 5000);
+  }
+
+  // Funciones para controles de producción diaria
+  function cambiarCantidad(cultivoId, incremento) {
+    const input = document.getElementById(`kilos_${cultivoId}`);
+    if (input) {
+      let valor = parseFloat(input.value) || 0;
+      valor = Math.max(0, valor + incremento); // No permitir valores negativos
+      input.value = valor.toFixed(1);
+    }
+  }
+
+  function agregarProduccionRapida(cultivoId) {
+    const input = document.getElementById(`kilos_${cultivoId}`);
+    const kilos = parseFloat(input.value) || 0;
+
+    if (kilos <= 0) {
+      mostrarAlerta("warning", "⚠️ Ingresa una cantidad mayor a 0");
+      return;
+    }
+
+    // En modo demo, solo mostrar mensaje
+    mostrarAlerta(
+      "success",
+      `✅ Añadidos ${kilos} kg - Funcionalidad completa disponible con Firebase`
+    );
+
+    // Resetear el input
+    input.value = "0.0";
+
+    // Aquí iría la llamada AJAX para guardar en Firebase cuando esté configurado
+    // fetch('/api/agregar-produccion', { ... })
+  }
+
+  // Funciones placeholder para futuras funcionalidades
+  function mostrarProduccion(cultivoId, cultivoNombre) {
+    mostrarAlerta(
+      "info",
+      `🔍 Mostrando producción de ${cultivoNombre} - En desarrollo`
+    );
+  }
+
+  function mostrarAbonos(cultivoId, cultivoNombre) {
+    mostrarAlerta(
+      "info",
+      `🔍 Mostrando abonos de ${cultivoNombre} - En desarrollo`
+    );
+  }
+
+  function editarCultivo(cultivoId) {
+    mostrarAlerta("info", "✏️ Función de editar cultivo - En desarrollo");
+  }
+</script>
+{% endblock %}

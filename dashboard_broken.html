@@ -1,0 +1,679 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - HuertoRentable{% endblock %}
+
+{% block content %}
+
+<!-- Banner de modo demo -->
+{% if modo_demo %}
+<div class="alert alert-info alert-dismissible fade show" role="alert">
+  <i class="bi bi-info-circle me-2"></i>
+  <strong>Modo Demo</strong> - Estás viendo datos de ejemplo.
+  <a href="/FIREBASE_SETUP.md" target="_blank" class="alert-link"
+    >Configura Firebase</a
+  >
+  para guardar datos reales.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="row">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="text-success">
+        <i class="bi bi-house-door me-2"></i>
+        Dashboard del Huerto
+      </h1>
+      <a href="{{ url_for('gestionar_cultivos') }}" class="btn btn-success">
+        <i class="bi bi-plus-circle me-1"></i>
+        Nuevo Cultivo
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Tarjetas de estadísticas generales -->
+<div class="row mb-4">
+  <div class="col-lg-4 col-md-6 mb-3">
+    <div class="card bg-success text-white h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="card-title text-uppercase">Kilos Totales</h6>
+            <h2 class="mb-0">73.9 kg</h2>
+          </div>
+          <div class="align-self-center">
+            <i class="bi bi-basket fs-1"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4 col-md-6 mb-3">
+    <div class="card bg-warning text-white h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="card-title text-uppercase">Beneficio Total</h6>
+            <h2 class="mb-0">€238.56</h2>
+          </div>
+          <div class="align-self-center">
+            <i class="bi bi-currency-euro fs-1"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4 col-md-6 mb-3">
+    <div class="card bg-info text-white h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="card-title text-uppercase">Promedio/Cultivo</h6>
+            <h2 class="mb-0">€119.28</h2>
+          </div>
+          <div class="align-self-center">
+            <i class="bi bi-graph-up fs-1"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sección principal de cultivos -->
+<div class="row">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0">
+          <i class="bi bi-grid-3x3-gap me-2"></i>
+          Mis Cultivos Activos
+        </h5>
+      </div>
+      <div class="card-body p-4">
+        {% if cultivos %}
+        <!-- Grid responsive de tarjetas de cultivos -->
+        <div class="row g-4">
+          {% for cultivo in cultivos %}
+          <div class="col-12 col-md-6 col-lg-4 col-xl-3">
+            <div class="card h-100 shadow-sm border-0 cultivo-card {% if not cultivo.fecha_cosecha %}cultivo-activo{% else %}cultivo-finalizado{% endif %}">
+              
+              <!-- Cabecera de la tarjeta con icono del cultivo -->
+              <div class="card-header text-center py-3 {% if not cultivo.fecha_cosecha %}bg-success{% else %}bg-secondary{% endif %} text-white position-relative">
+                <!-- Icono del cultivo -->
+                <div class="cultivo-icon mb-2">
+                  {% if 'tomate' in cultivo.nombre.lower() %}
+                    <i class="bi bi-circle-fill text-danger" style="font-size: 2.5rem;"></i>
+                    <div class="icon-overlay">🍅</div>
+                  {% elif 'lechuga' in cultivo.nombre.lower() %}
+                    <i class="bi bi-circle-fill text-success" style="font-size: 2.5rem;"></i>
+                    <div class="icon-overlay">🥬</div>
+                  {% elif 'zanahoria' in cultivo.nombre.lower() %}
+                    <i class="bi bi-circle-fill text-warning" style="font-size: 2.5rem;"></i>
+                    <div class="icon-overlay">🥕</div>
+                  {% elif 'pimiento' in cultivo.nombre.lower() %}
+                    <i class="bi bi-circle-fill text-danger" style="font-size: 2.5rem;"></i>
+                    <div class="icon-overlay">🌶️</div>
+                  {% elif 'calabacin' in cultivo.nombre.lower() %}
+                    <i class="bi bi-circle-fill text-success" style="font-size: 2.5rem;"></i>
+                    <div class="icon-overlay">🥒</div>
+                  {% else %}
+                    <i class="bi bi-circle-fill text-info" style="font-size: 2.5rem;"></i>
+                    <div class="icon-overlay">🌱</div>
+                  {% endif %}
+                </div>
+                <h6 class="mb-0 text-uppercase fw-bold">{{ cultivo.nombre }}</h6>
+                
+                <!-- Estado del cultivo -->
+                <div class="position-absolute top-0 end-0 m-2">
+                  {% if cultivo.fecha_cosecha %}
+                  <span class="badge bg-light text-dark">
+                    <i class="bi bi-check-circle me-1"></i>Finalizado
+                  </span>
+                  {% else %}
+                  <span class="badge bg-warning text-dark">
+                    <i class="bi bi-clock me-1"></i>Activo
+                  </span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- Cuerpo de la tarjeta con información -->
+              <div class="card-body p-3">
+                
+                <!-- Información principal en grid -->
+                <div class="row g-2 mb-3">
+                  <div class="col-6">
+                    <div class="info-item text-center">
+                      <i class="bi bi-flower1 text-info mb-1"></i>
+                      <div class="fw-bold text-primary">{{ cultivo.plantas_sembradas or 0 }}</div>
+                      <small class="text-muted">Plantas</small>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="info-item text-center">
+                      <i class="bi bi-basket2 text-warning mb-1"></i>
+                      <div class="fw-bold text-warning">{{ cultivo.unidades_recolectadas or 0 }}</div>
+                      <small class="text-muted">Unidades</small>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Métricas de producción -->
+                <div class="row g-2 mb-3">
+                  <div class="col-6">
+                    <div class="info-item text-center">
+                      <i class="bi bi-weight text-success mb-1"></i>
+                      <div class="fw-bold text-success">{{ "%.1f"|format(cultivo.kilos_totales) }}</div>
+                      <small class="text-muted">Kilos</small>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="info-item text-center">
+                      <i class="bi bi-currency-euro text-success mb-1"></i>
+                      <div class="fw-bold text-success">{{ "%.0f"|format(cultivo.beneficio_total) }}</div>
+                      <small class="text-muted">Beneficio</small>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Información adicional -->
+                <div class="mb-3">
+                  <div class="d-flex justify-content-between align-items-center small text-muted">
+                    <span>
+                      <i class="bi bi-calendar3 me-1"></i>
+                      {% if cultivo.fecha_siembra %}
+                        {{ cultivo.fecha_siembra.strftime('%d/%m/%Y') }}
+                      {% else %}
+                        Sin fecha
+                      {% endif %}
+                    </span>
+                    <span>
+                      <i class="bi bi-tag me-1"></i>
+                      €{{ "%.2f"|format(cultivo.precio_por_kilo) }}/kg
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Sección de recolección (solo para cultivos activos) -->
+                {% if not cultivo.fecha_cosecha %}
+                <div class="border-top pt-3">
+                  <div class="text-center mb-2">
+                    <small class="text-muted fw-bold">
+                      <i class="bi bi-basket3 me-1"></i>RECOLECTAR HOY
+                    </small>
+                  </div>
+                  
+                  <!-- Controles de recolección -->
+                  <div class="input-group input-group-sm">
+                    <button class="btn btn-outline-secondary" type="button" 
+                            onclick="decrementarUnidades('{{ cultivo.id }}')">
+                      <i class="bi bi-dash"></i>
+                    </button>
+                    <input type="number" class="form-control text-center fw-bold" 
+                           id="unidades_{{ cultivo.id }}" 
+                           value="1" min="1" max="999"
+                           style="background-color: #f8f9fa;">
+                    <button class="btn btn-outline-secondary" type="button" 
+                            onclick="incrementarUnidades('{{ cultivo.id }}')">
+                      <i class="bi bi-plus"></i>
+                    </button>
+                  </div>
+                  
+                  <!-- Botón de añadir -->
+                  <button class="btn btn-success btn-sm w-100 mt-2 fw-bold" 
+                          onclick="añadirRecoleccion('{{ cultivo.id }}')">
+                    <i class="bi bi-check-lg me-1"></i>AÑADIR RECOLECCIÓN
+                  </button>
+                </div>
+                {% else %}
+                <!-- Cultivo finalizado -->
+                <div class="border-top pt-3 text-center">
+                  <small class="text-muted">
+                    <i class="bi bi-calendar-check me-1"></i>
+                    Cosechado el {{ cultivo.fecha_cosecha.strftime('%d/%m/%Y') }}
+                  </small>
+                </div>
+                {% endif %}
+
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <!-- Estado vacío - primera experiencia del usuario -->
+        <div class="text-center py-5">
+          <i class="bi bi-seedling text-muted" style="font-size: 4rem"></i>
+                <th><i class="bi bi-calendar3 me-1"></i>Fecha Siembra</th>
+                <th><i class="bi bi-flower1 me-1"></i>Plantas</th>
+                <th><i class="bi bi-basket2 me-1"></i>Unidades Recog.</th>
+                <th><i class="bi bi-basket me-1"></i>Kilos Totales</th>
+                <th><i class="bi bi-currency-euro me-1"></i>Precio/Kilo</th>
+                <th><i class="bi bi-graph-up me-1"></i>Beneficio</th>
+                <th>Estado</th>
+                <th>Recolectar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cultivo in cultivos %}
+              <tr>
+                <td>
+                  <strong class="text-capitalize">{{ cultivo.nombre }}</strong>
+                </td>
+                <td>
+                  {% if cultivo.fecha_siembra %} {{
+                  cultivo.fecha_siembra.strftime('%d/%m/%Y') }} {% else %}
+                  <span class="text-muted">No registrada</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="badge bg-info rounded-pill">
+                    {{ cultivo.plantas_sembradas or 0 }} plantas
+                  </span>
+                </td>
+                <td>
+                  <span class="badge bg-warning rounded-pill">
+                    {{ cultivo.unidades_recolectadas or 0 }} unidades
+                  </span>
+                </td>
+                <td>
+                  <span class="badge bg-success rounded-pill">
+                    {{ "%.1f"|format(cultivo.kilos_totales) }} kg
+                  </span>
+                </td>
+                <td>€{{ "%.2f"|format(cultivo.precio_por_kilo) }}</td>
+                <td>
+                  <strong class="text-success">
+                    €{{ "%.2f"|format(cultivo.beneficio_total) }}
+                  </strong>
+                </td>
+                <td>
+                  {% if cultivo.fecha_cosecha %}
+                  <span class="badge bg-secondary">Cosechado</span>
+                  {% else %}
+                  <span class="badge bg-success">Activo</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if not cultivo.fecha_cosecha %}
+                  <!-- Interfaz de recolección -->
+                  <div class="input-group input-group-sm" style="width: 200px">
+                    <button
+                      class="btn btn-outline-secondary btn-sm"
+                      type="button"
+                      onclick="decrementarUnidades('{{ cultivo.id }}')"
+                    >
+                      <i class="bi bi-dash"></i>
+                    </button>
+                    <input
+                      type="number"
+                      class="form-control text-center"
+                      id="unidades_{{ cultivo.id }}"
+                      value="1"
+                      min="1"
+                      max="999"
+                    />
+                    <button
+                      class="btn btn-outline-secondary btn-sm"
+                      type="button"
+                      onclick="incrementarUnidades('{{ cultivo.id }}')"
+                    >
+                      <i class="bi bi-plus"></i>
+                    </button>
+                    <button
+                      class="btn btn-success btn-sm"
+                      type="button"
+                      onclick="añadirRecoleccion('{{ cultivo.id }}')"
+                    >
+                      <i class="bi bi-check-lg"></i>
+                    </button>
+                  </div>
+                  {% else %}
+                  <span class="text-muted">Finalizado</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Vista de tarjetas para móviles -->
+        <div class="d-md-none">
+          {% for cultivo in cultivos %}
+          <div class="card mb-3">
+            <div class="card-body">
+              <div
+                class="d-flex justify-content-between align-items-start mb-2"
+              >
+                <h6 class="card-title text-capitalize mb-0">
+                  <i class="bi bi-seedling text-success me-1"></i>
+                  {{ cultivo.nombre }}
+                </h6>
+                {% if cultivo.fecha_cosecha %}
+                <span class="badge bg-secondary">Cosechado</span>
+                {% else %}
+                <span class="badge bg-success">Activo</span>
+                {% endif %}
+              </div>
+
+              <div class="row text-sm mb-2">
+                <div class="col-6">
+                  <small class="text-muted">Siembra:</small><br />
+                  {% if cultivo.fecha_siembra %} {{
+                  cultivo.fecha_siembra.strftime('%d/%m/%Y') }} {% else %}
+                  <span class="text-muted">No registrada</span>
+                  {% endif %}
+                </div>
+                <div class="col-6">
+                  <small class="text-muted">Plantas:</small><br />
+                  <span class="badge bg-info"
+                    >{{ cultivo.plantas_sembradas or 0 }} plantas</span
+                  >
+                </div>
+              </div>
+
+              <div class="row text-sm mb-2">
+                <div class="col-6">
+                  <small class="text-muted">Unidades Recog.:</small><br />
+                  <span class="badge bg-warning"
+                    >{{ cultivo.unidades_recolectadas or 0 }} unidades</span
+                  >
+                </div>
+                <div class="col-6">
+                  <small class="text-muted">Producción:</small><br />
+                  <span class="badge bg-success"
+                    >{{ "%.1f"|format(cultivo.kilos_totales) }} kg</span
+                  >
+                </div>
+              </div>
+
+              <hr class="my-2" />
+
+              <div class="d-flex justify-content-between mb-3">
+                <span>
+                  <small class="text-muted">Precio:</small><br />
+                  €{{ "%.2f"|format(cultivo.precio_por_kilo) }}/kg
+                </span>
+                <span>
+                  <small class="text-muted">Beneficio:</small><br />
+                  <strong class="text-success"
+                    >€{{ "%.2f"|format(cultivo.beneficio_total) }}</strong
+                  >
+                </span>
+              </div>
+
+              <!-- Interfaz de recolección para móviles -->
+              {% if not cultivo.fecha_cosecha %}
+              <div class="border-top pt-2">
+                <small class="text-muted">Recolectar unidades:</small>
+                <div class="input-group mt-1">
+                  <button
+                    class="btn btn-outline-secondary btn-sm"
+                    type="button"
+                    onclick="decrementarUnidades('{{ cultivo.id }}')"
+                  >
+                    <i class="bi bi-dash"></i>
+                  </button>
+                  <input
+                    type="number"
+                    class="form-control form-control-sm text-center"
+                    id="unidades_mobile_{{ cultivo.id }}"
+                    value="1"
+                    min="1"
+                    max="999"
+                  />
+                  <button
+                    class="btn btn-outline-secondary btn-sm"
+                    type="button"
+                    onclick="incrementarUnidades('{{ cultivo.id }}')"
+                  >
+                    <i class="bi bi-plus"></i>
+                  </button>
+                  <button
+                    class="btn btn-success btn-sm"
+                    type="button"
+                    onclick="añadirRecoleccion('{{ cultivo.id }}')"
+                  >
+                    <i class="bi bi-check-lg me-1"></i>Añadir
+                  </button>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <!-- Estado vacío - primera experiencia del usuario -->
+        <div class="text-center py-5">
+          <i class="bi bi-seedling text-muted" style="font-size: 4rem"></i>
+          <h4 class="text-muted mt-3">¡Comienza tu huerto rentable!</h4>
+          <p class="text-muted mb-4">
+            Aún no tienes cultivos registrados. <br />
+            Añade tu primer cultivo para comenzar a gestionar tu huerto.
+          </p>
+          <a
+            href="{{ url_for('gestionar_cultivos') }}"
+            class="btn btn-success btn-lg"
+          >
+            <i class="bi bi-plus-circle me-2"></i>
+            Añadir Primer Cultivo
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Enlace a analytics si hay datos -->
+{% if cultivos %}
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="card bg-light border-0">
+      <div class="card-body text-center">
+        <h5 class="text-muted mb-3">
+          <i class="bi bi-graph-up me-2"></i>
+          ¿Quieres ver análisis detallados?
+        </h5>
+        <p class="text-muted mb-3">
+          Explora gráficas de producción, beneficios por año y comparativas
+          entre cultivos
+        </p>
+        <a href="{{ url_for('analytics') }}" class="btn btn-outline-success">
+          <i class="bi bi-bar-chart me-2"></i>
+          Ver Análisis Completo
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block page_css %}
+<style>
+  /* Estilos para las tarjetas de cultivos */
+  .cultivo-card {
+    transition: all 0.3s ease;
+    border-radius: 15px !important;
+  }
+  
+  .cultivo-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+  }
+  
+  .cultivo-activo {
+    border-left: 4px solid #198754 !important;
+  }
+  
+  .cultivo-finalizado {
+    border-left: 4px solid #6c757d !important;
+    opacity: 0.8;
+  }
+  
+  .cultivo-icon {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .icon-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.2rem;
+    pointer-events: none;
+  }
+  
+  .info-item {
+    padding: 8px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+  
+  .info-item:hover {
+    background: rgba(255,255,255,0.2);
+  }
+  
+  .cultivo-card .card-header {
+    border-radius: 15px 15px 0 0 !important;
+    background: linear-gradient(135deg, var(--bs-success) 0%, #157347 100%) !important;
+  }
+  
+  .cultivo-finalizado .card-header {
+    background: linear-gradient(135deg, var(--bs-secondary) 0%, #495057 100%) !important;
+  }
+  
+  /* Animaciones de entrada */
+  .cultivo-card {
+    animation: fadeInUp 0.6s ease-out;
+  }
+  
+  .cultivo-card:nth-child(1) { animation-delay: 0.1s; }
+  .cultivo-card:nth-child(2) { animation-delay: 0.2s; }
+  .cultivo-card:nth-child(3) { animation-delay: 0.3s; }
+  .cultivo-card:nth-child(4) { animation-delay: 0.4s; }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Responsive mejoras */
+  @media (max-width: 768px) {
+    .cultivo-icon {
+      font-size: 2rem !important;
+    }
+    
+    .icon-overlay {
+      font-size: 1rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block page_js %}
+<script>
+  // Funcionalidad específica del dashboard
+  document.addEventListener("DOMContentLoaded", function () {
+    // Actualizar timestamp de última sincronización
+    const lastSync = document.getElementById("last-sync");
+    if (lastSync && navigator.onLine) {
+      lastSync.textContent = `Actualizado: ${new Date().toLocaleTimeString(
+        "es-ES"
+      )}`;
+    }
+
+    // Animación sutil para las tarjetas de estadísticas
+    const statCards = document.querySelectorAll(".card");
+    statCards.forEach((card, index) => {
+      card.style.animationDelay = `${index * 0.1}s`;
+      card.classList.add("animate__animated", "animate__fadeInUp");
+    });
+
+    console.log("✅ Dashboard cargado correctamente");
+  });
+
+  // =====================================
+  // FUNCIONES DE RECOLECCIÓN
+  // =====================================
+
+  function incrementarUnidades(cultivoId) {
+    const input = document.getElementById(`unidades_${cultivoId}`);
+    if (input) {
+      input.value = parseInt(input.value) + 1;
+    }
+  }
+
+  function decrementarUnidades(cultivoId) {
+    const input = document.getElementById(`unidades_${cultivoId}`);
+    if (input && parseInt(input.value) > 1) {
+      input.value = parseInt(input.value) - 1;
+    }
+  }
+
+  function añadirRecoleccion(cultivoId) {
+    const input = document.getElementById(`unidades_${cultivoId}`);
+    
+    if (!input) {
+      alert('Error: No se encontró el campo de unidades');
+      return;
+    }
+
+    const unidades = parseInt(input.value);
+
+    if (!unidades || unidades <= 0) {
+      alert("Por favor, especifica un número válido de unidades");
+      return;
+    }    // Mostrar confirmación
+    if (!confirm(`¿Añadir ${unidades} unidades recolectadas?`)) {
+      return;
+    }
+
+    // Determinar la URL según el modo (demo o Firebase)
+    const baseUrl = "{% if modo_demo %}/demo{% endif %}/cultivo";
+    const url = `${baseUrl}/${cultivoId}/recolectar`;
+
+    // Crear formulario para envío
+    const formData = new FormData();
+    formData.append("unidades", unidades);
+
+    // Realizar petición POST
+    fetch(url, {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          // Mostrar mensaje de éxito
+          alert(data.message);
+
+          // Recargar página para mostrar datos actualizados
+          location.reload();
+        } else {
+          alert(`Error: ${data.error}`);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        alert("Error al procesar la recolección");
+      });
+  }
+</script>
+{% endblock %}

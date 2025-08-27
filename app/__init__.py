@@ -141,11 +141,6 @@ def setup_template_context(app):
             'timestamp': int(time.time())  # Para versionado de assets
         }
     
-    @app.template_global()
-    def moment():
-        """Función global para obtener timestamp actual"""
-        return type('moment', (), {'timestamp': int(time.time())})()
-    
     @app.after_request
     def add_cache_headers(response):
         """Añadir headers para controlar cache en producción"""

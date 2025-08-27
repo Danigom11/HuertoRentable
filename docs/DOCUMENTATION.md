@@ -23,29 +23,29 @@ Documentación completa de la arquitectura, APIs y funcionalidades del sistema.
 def create_app(config_name=None):
     """Factory pattern para crear la aplicación Flask"""
     app = Flask(__name__)
-    
+
     # Configuración
     config_name = config_name or os.environ.get('FLASK_ENV', 'development')
     app.config.from_object(config[config_name])
-    
+
     # Inicializar Firebase
     init_firebase()
-    
+
     # Registrar Blueprints
     register_blueprints(app)
-    
+
     return app
 ```
 
 ### **Blueprints**
 
-| Blueprint | Prefijo | Descripción |
-|-----------|---------|-------------|
-| `main` | `/` | Rutas principales (dashboard, home) |
-| `auth` | `/auth` | Autenticación (login, register, logout) |
-| `crops` | `/crops` | Gestión de cultivos (CRUD) |
-| `analytics` | `/analytics` | Reportes y estadísticas |
-| `api` | `/api` | RESTful API endpoints |
+| Blueprint   | Prefijo      | Descripción                             |
+| ----------- | ------------ | --------------------------------------- |
+| `main`      | `/`          | Rutas principales (dashboard, home)     |
+| `auth`      | `/auth`      | Autenticación (login, register, logout) |
+| `crops`     | `/crops`     | Gestión de cultivos (CRUD)              |
+| `analytics` | `/analytics` | Reportes y estadísticas                 |
+| `api`       | `/api`       | RESTful API endpoints                   |
 
 ### **Capas de la Aplicación**
 
@@ -278,7 +278,7 @@ class AuthService:
             return decoded_token
         except Exception as e:
             raise AuthError(f"Token inválido: {str(e)}")
-    
+
     @staticmethod
     def create_custom_token(user_data):
         """Crear JWT personalizado para sesiones"""
@@ -333,13 +333,13 @@ class CropService:
         """Obtener cultivos del usuario con límites de plan"""
         crops_ref = db.collection('crops').where('user_id', '==', user_id)
         crops = list(crops_ref.stream())
-        
+
         # Aplicar límites según plan
         if plan == 'invitado':
             crops = crops[:PLAN_LIMITS['invitado']['max_crops']]
-        
+
         return [crop.to_dict() for crop in crops]
-    
+
     @staticmethod
     def create_crop(user_id, crop_data, plan='gratuito'):
         """Crear nuevo cultivo verificando límites"""
@@ -347,14 +347,14 @@ class CropService:
         current_crops = CropService.get_user_crops(user_id, plan)
         if plan == 'invitado' and len(current_crops) >= 3:
             raise PlanLimitError("Límite de cultivos alcanzado")
-        
+
         # Crear cultivo
         crop_data['user_id'] = user_id
         crop_data['created_at'] = firestore.SERVER_TIMESTAMP
-        
+
         doc_ref = db.collection('crops').document()
         doc_ref.set(crop_data)
-        
+
         return doc_ref.id
 ```
 
@@ -367,11 +367,11 @@ class UserService:
         """Obtener plan del usuario"""
         user_ref = db.collection('users').document(user_id)
         user_doc = user_ref.get()
-        
+
         if user_doc.exists:
             return user_doc.to_dict().get('plan', 'invitado')
         return 'invitado'
-    
+
     @staticmethod
     def upgrade_to_premium(user_id, stripe_data):
         """Actualizar usuario a premium tras pago"""
@@ -394,7 +394,7 @@ templates/
 ├── base.html              # Layout base con Bootstrap 5
 ├── auth/
 │   ├── login.html         # Formulario de login
-│   └── register.html      # Formulario de registro  
+│   └── register.html      # Formulario de registro
 ├── dashboard/
 │   └── index.html         # Dashboard principal
 ├── crops/
@@ -410,32 +410,32 @@ templates/
 ```javascript
 // static/js/app.js
 class HuertoApp {
-    constructor() {
-        this.auth = new AuthManager();
-        this.crops = new CropManager();
-        this.analytics = new AnalyticsManager();
-    }
-    
-    init() {
-        this.setupEventListeners();
-        this.loadInitialData();
-    }
+  constructor() {
+    this.auth = new AuthManager();
+    this.crops = new CropManager();
+    this.analytics = new AnalyticsManager();
+  }
+
+  init() {
+    this.setupEventListeners();
+    this.loadInitialData();
+  }
 }
 
 class AuthManager {
-    async login(email, password) {
-        const response = await fetch('/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
-        
-        const data = await response.json();
-        if (data.success) {
-            localStorage.setItem('auth_token', data.token);
-            window.location.href = '/dashboard';
-        }
+  async login(email, password) {
+    const response = await fetch("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      localStorage.setItem("auth_token", data.token);
+      window.location.href = "/dashboard";
     }
+  }
 }
 ```
 
@@ -443,19 +443,18 @@ class AuthManager {
 
 ```javascript
 // service-worker.js
-const CACHE_NAME = 'huerto-rentable-v2';
+const CACHE_NAME = "huerto-rentable-v2";
 const urlsToCache = [
-    '/',
-    '/static/css/styles.css',
-    '/static/js/app.js',
-    '/static/img/icon.png'
+  "/",
+  "/static/css/styles.css",
+  "/static/js/app.js",
+  "/static/img/icon.png",
 ];
 
-self.addEventListener('install', (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME)
-        .then((cache) => cache.addAll(urlsToCache))
-    );
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
+  );
 });
 ```
 
@@ -503,9 +502,9 @@ def init_firebase():
                 # ... más configuración
             }
             cred = credentials.Certificate(firebase_config)
-        
+
         firebase_admin.initialize_app(cred)
-        
+
     except Exception as e:
         print(f"Error inicializando Firebase: {e}")
 ```
@@ -523,16 +522,16 @@ class TestCropService(unittest.TestCase):
         self.app = create_app('testing')
         self.app_context = self.app.app_context()
         self.app_context.push()
-    
+
     def test_create_crop_with_limit(self):
         """Test límite de cultivos para plan invitado"""
         user_id = "test_user"
         plan = "invitado"
-        
+
         # Crear 3 cultivos (límite)
         for i in range(3):
             CropService.create_crop(user_id, {"nombre": f"Cultivo {i}"}, plan)
-        
+
         # El cuarto debe fallar
         with self.assertRaises(PlanLimitError):
             CropService.create_crop(user_id, {"nombre": "Cultivo 4"}, plan)
@@ -551,16 +550,16 @@ class TestAPI(unittest.TestCase):
             'password': 'test123'
         })
         self.assertEqual(response.status_code, 201)
-        
+
         # Login
         response = self.client.post('/auth/login', json={
             'email': 'test@example.com',
             'password': 'test123'
         })
         self.assertEqual(response.status_code, 200)
-        
+
         token = response.json['token']
-        
+
         # Access protected route
         response = self.client.get('/api/crops', headers={
             'Authorization': f'Bearer {token}'

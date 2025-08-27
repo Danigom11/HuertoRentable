@@ -1,274 +1,309 @@
-{% extends "base.html" %}
-{% block title %}HuertoRentable - Gestión Profesional de Huertos{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}HuertoRentable - Gestión Profesional
+de Huertos{% endblock %} {% block content %}
 <!-- Hero Section -->
-<div class="hero-section bg-gradient text-white py-5 mb-5" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6">
-                <h1 class="display-4 fw-bold mb-4">
-                    🌱 HuertoRentable v2.0
-                </h1>
-                <p class="lead mb-4">
-                    La aplicación profesional para convertir tu huerto en un negocio rentable. 
-                    Gestiona cultivos, analiza beneficios y escala tu producción.
-                </p>
-                <div class="d-grid gap-2 d-md-flex">
-                    <a href="{{ url_for('auth.register') }}" class="btn btn-light btn-lg me-md-2">
-                        <i class="bi bi-person-plus me-2"></i>
-                        Empezar Gratis
-                    </a>
-                    <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-light btn-lg">
-                        <i class="bi bi-play-circle me-2"></i>
-                        Ver Demo
-                    </a>
-                </div>
-            </div>
-            <div class="col-lg-6 text-center">
-                <div class="hero-stats mt-4 mt-lg-0">
-                    <div class="row">
-                        <div class="col-4">
-                            <div class="stat-card bg-white bg-opacity-25 rounded p-3 mb-3">
-                                <h3 class="h2 mb-1">18</h3>
-                                <small>Cultivos</small>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="stat-card bg-white bg-opacity-25 rounded p-3 mb-3">
-                                <h3 class="h2 mb-1">241kg</h3>
-                                <small>Producción</small>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="stat-card bg-white bg-opacity-25 rounded p-3 mb-3">
-                                <h3 class="h2 mb-1">€796</h3>
-                                <small>Beneficios</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div
+  class="hero-section bg-gradient text-white py-5 mb-5"
+  style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%)"
+>
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-6">
+        <h1 class="display-4 fw-bold mb-4">🌱 HuertoRentable v2.0</h1>
+        <p class="lead mb-4">
+          La aplicación profesional para convertir tu huerto en un negocio
+          rentable. Gestiona cultivos, analiza beneficios y escala tu
+          producción.
+        </p>
+        <div class="d-grid gap-2 d-md-flex">
+          <a
+            href="{{ url_for('auth.register') }}"
+            class="btn btn-light btn-lg me-md-2"
+          >
+            <i class="bi bi-person-plus me-2"></i>
+            Empezar Gratis
+          </a>
+          <a
+            href="{{ url_for('main.dashboard') }}"
+            class="btn btn-outline-light btn-lg"
+          >
+            <i class="bi bi-play-circle me-2"></i>
+            Ver Demo
+          </a>
         </div>
+      </div>
+      <div class="col-lg-6 text-center">
+        <div class="hero-stats mt-4 mt-lg-0">
+          <div class="row">
+            <div class="col-4">
+              <div class="stat-card bg-white bg-opacity-25 rounded p-3 mb-3">
+                <h3 class="h2 mb-1">18</h3>
+                <small>Cultivos</small>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="stat-card bg-white bg-opacity-25 rounded p-3 mb-3">
+                <h3 class="h2 mb-1">241kg</h3>
+                <small>Producción</small>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="stat-card bg-white bg-opacity-25 rounded p-3 mb-3">
+                <h3 class="h2 mb-1">€796</h3>
+                <small>Beneficios</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 </div>
 
 <!-- Features Section -->
 <div class="container mb-5">
-    <div class="row">
-        <div class="col-lg-12 text-center mb-5">
-            <h2 class="display-5 fw-bold text-success">¿Por qué HuertoRentable?</h2>
-            <p class="lead text-muted">
-                La herramienta más completa para agricultores modernos y emprendedores del sector
-            </p>
+  <div class="row">
+    <div class="col-lg-12 text-center mb-5">
+      <h2 class="display-5 fw-bold text-success">¿Por qué HuertoRentable?</h2>
+      <p class="lead text-muted">
+        La herramienta más completa para agricultores modernos y emprendedores
+        del sector
+      </p>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Feature 1 -->
+    <div class="col-lg-4 col-md-6">
+      <div class="feature-card text-center p-4 h-100 border rounded shadow-sm">
+        <div class="feature-icon mb-3">
+          <i
+            class="bi bi-graph-up-arrow text-success"
+            style="font-size: 3rem"
+          ></i>
         </div>
+        <h4>Analytics Profesionales</h4>
+        <p class="text-muted">
+          Gráficas avanzadas, ROI automático, predicciones de beneficios y
+          reportes exportables.
+        </p>
+      </div>
     </div>
 
-    <div class="row g-4">
-        <!-- Feature 1 -->
-        <div class="col-lg-4 col-md-6">
-            <div class="feature-card text-center p-4 h-100 border rounded shadow-sm">
-                <div class="feature-icon mb-3">
-                    <i class="bi bi-graph-up-arrow text-success" style="font-size: 3rem;"></i>
-                </div>
-                <h4>Analytics Profesionales</h4>
-                <p class="text-muted">
-                    Gráficas avanzadas, ROI automático, predicciones de beneficios y reportes exportables.
-                </p>
-            </div>
+    <!-- Feature 2 -->
+    <div class="col-lg-4 col-md-6">
+      <div class="feature-card text-center p-4 h-100 border rounded shadow-sm">
+        <div class="feature-icon mb-3">
+          <i class="bi bi-cloud-check text-success" style="font-size: 3rem"></i>
         </div>
-
-        <!-- Feature 2 -->
-        <div class="col-lg-4 col-md-6">
-            <div class="feature-card text-center p-4 h-100 border rounded shadow-sm">
-                <div class="feature-icon mb-3">
-                    <i class="bi bi-cloud-check text-success" style="font-size: 3rem;"></i>
-                </div>
-                <h4>Multi-Usuario</h4>
-                <p class="text-muted">
-                    Sistema de autenticación seguro, datos privados por usuario y sincronización en tiempo real.
-                </p>
-            </div>
-        </div>
-
-        <!-- Feature 3 -->
-        <div class="col-lg-4 col-md-6">
-            <div class="feature-card text-center p-4 h-100 border rounded shadow-sm">
-                <div class="feature-icon mb-3">
-                    <i class="bi bi-phone text-success" style="font-size: 3rem;"></i>
-                </div>
-                <h4>PWA Completa</h4>
-                <p class="text-muted">
-                    Instalable como app nativa, funciona offline y optimizada para todos los dispositivos.
-                </p>
-            </div>
-        </div>
-
-        <!-- Feature 4 -->
-        <div class="col-lg-4 col-md-6">
-            <div class="feature-card text-center p-4 h-100 border rounded shadow-sm">
-                <div class="feature-icon mb-3">
-                    <i class="bi bi-currency-euro text-success" style="font-size: 3rem;"></i>
-                </div>
-                <h4>Monetización</h4>
-                <p class="text-muted">
-                    Sistema de planes freemium con suscripciones premium a €0.99/mes para funciones avanzadas.
-                </p>
-            </div>
-        </div>
-
-        <!-- Feature 5 -->
-        <div class="col-lg-4 col-md-6">
-            <div class="feature-card text-center p-4 h-100 border rounded shadow-sm">
-                <div class="feature-icon mb-3">
-                    <i class="bi bi-shield-check text-success" style="font-size: 3rem;"></i>
-                </div>
-                <h4>Seguridad</h4>
-                <p class="text-muted">
-                    Firebase Authentication, JWT tokens, encriptación y backup automático en la nube.
-                </p>
-            </div>
-        </div>
-
-        <!-- Feature 6 -->
-        <div class="col-lg-4 col-md-6">
-            <div class="feature-card text-center p-4 h-100 border rounded shadow-sm">
-                <div class="feature-icon mb-3">
-                    <i class="bi bi-gear text-success" style="font-size: 3rem;"></i>
-                </div>
-                <h4>Arquitectura Pro</h4>
-                <p class="text-muted">
-                    Factory pattern, Blueprints, servicios organizados y código escalable para el futuro.
-                </p>
-            </div>
-        </div>
+        <h4>Multi-Usuario</h4>
+        <p class="text-muted">
+          Sistema de autenticación seguro, datos privados por usuario y
+          sincronización en tiempo real.
+        </p>
+      </div>
     </div>
+
+    <!-- Feature 3 -->
+    <div class="col-lg-4 col-md-6">
+      <div class="feature-card text-center p-4 h-100 border rounded shadow-sm">
+        <div class="feature-icon mb-3">
+          <i class="bi bi-phone text-success" style="font-size: 3rem"></i>
+        </div>
+        <h4>PWA Completa</h4>
+        <p class="text-muted">
+          Instalable como app nativa, funciona offline y optimizada para todos
+          los dispositivos.
+        </p>
+      </div>
+    </div>
+
+    <!-- Feature 4 -->
+    <div class="col-lg-4 col-md-6">
+      <div class="feature-card text-center p-4 h-100 border rounded shadow-sm">
+        <div class="feature-icon mb-3">
+          <i
+            class="bi bi-currency-euro text-success"
+            style="font-size: 3rem"
+          ></i>
+        </div>
+        <h4>Monetización</h4>
+        <p class="text-muted">
+          Sistema de planes freemium con suscripciones premium a €0.99/mes para
+          funciones avanzadas.
+        </p>
+      </div>
+    </div>
+
+    <!-- Feature 5 -->
+    <div class="col-lg-4 col-md-6">
+      <div class="feature-card text-center p-4 h-100 border rounded shadow-sm">
+        <div class="feature-icon mb-3">
+          <i
+            class="bi bi-shield-check text-success"
+            style="font-size: 3rem"
+          ></i>
+        </div>
+        <h4>Seguridad</h4>
+        <p class="text-muted">
+          Firebase Authentication, JWT tokens, encriptación y backup automático
+          en la nube.
+        </p>
+      </div>
+    </div>
+
+    <!-- Feature 6 -->
+    <div class="col-lg-4 col-md-6">
+      <div class="feature-card text-center p-4 h-100 border rounded shadow-sm">
+        <div class="feature-icon mb-3">
+          <i class="bi bi-gear text-success" style="font-size: 3rem"></i>
+        </div>
+        <h4>Arquitectura Pro</h4>
+        <p class="text-muted">
+          Factory pattern, Blueprints, servicios organizados y código escalable
+          para el futuro.
+        </p>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Plans Section -->
 <div class="bg-light py-5">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h2 class="display-5 fw-bold text-success">Planes para Todos</h2>
-            <p class="lead text-muted">
-                Desde hobbyistas hasta agricultores profesionales
-            </p>
-        </div>
-
-        <div class="row justify-content-center">
-            <!-- Plan Invitado -->
-            <div class="col-lg-3 col-md-6 mb-4">
-                <div class="card h-100 border-0 shadow">
-                    <div class="card-header text-center bg-secondary text-white">
-                        <h5 class="mb-0">Invitado</h5>
-                    </div>
-                    <div class="card-body text-center">
-                        <h2 class="card-title text-success">Gratis</h2>
-                        <hr>
-                        <ul class="list-unstyled">
-                            <li class="mb-2">✅ 3 cultivos máximo</li>
-                            <li class="mb-2">✅ Analytics básicos</li>
-                            <li class="mb-2">❌ Backup en nube</li>
-                            <li class="mb-2">❌ Sin anuncios</li>
-                        </ul>
-                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">
-                            Probar Ahora
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Plan Gratuito -->
-            <div class="col-lg-3 col-md-6 mb-4">
-                <div class="card h-100 border-warning shadow">
-                    <div class="card-header text-center bg-warning text-dark">
-                        <h5 class="mb-0">Gratuito</h5>
-                    </div>
-                    <div class="card-body text-center">
-                        <h2 class="card-title text-success">Gratis</h2>
-                        <hr>
-                        <ul class="list-unstyled">
-                            <li class="mb-2">✅ Cultivos ilimitados</li>
-                            <li class="mb-2">✅ Backup en nube</li>
-                            <li class="mb-2">✅ Analytics básicos</li>
-                            <li class="mb-2">❌ Sin anuncios</li>
-                        </ul>
-                        <a href="{{ url_for('auth.register') }}" class="btn btn-warning">
-                            Registrarse
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Plan Premium -->
-            <div class="col-lg-3 col-md-6 mb-4">
-                <div class="card h-100 border-primary shadow position-relative">
-                    <div class="position-absolute top-0 start-50 translate-middle">
-                        <span class="badge bg-primary">Recomendado</span>
-                    </div>
-                    <div class="card-header text-center bg-primary text-white">
-                        <h5 class="mb-0">Premium</h5>
-                    </div>
-                    <div class="card-body text-center">
-                        <h2 class="card-title text-success">€0.99<small class="text-muted">/mes</small></h2>
-                        <hr>
-                        <ul class="list-unstyled">
-                            <li class="mb-2">✅ Todo lo anterior</li>
-                            <li class="mb-2">✅ Sin anuncios</li>
-                            <li class="mb-2">✅ Analytics avanzados</li>
-                            <li class="mb-2">✅ Exportar datos</li>
-                            <li class="mb-2">✅ Notificaciones</li>
-                        </ul>
-                        <a href="{{ url_for('main.pricing') }}" class="btn btn-primary">
-                            Suscribirse
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="display-5 fw-bold text-success">Planes para Todos</h2>
+      <p class="lead text-muted">
+        Desde hobbyistas hasta agricultores profesionales
+      </p>
     </div>
+
+    <div class="row justify-content-center">
+      <!-- Plan Invitado -->
+      <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card h-100 border-0 shadow">
+          <div class="card-header text-center bg-secondary text-white">
+            <h5 class="mb-0">Invitado</h5>
+          </div>
+          <div class="card-body text-center">
+            <h2 class="card-title text-success">Gratis</h2>
+            <hr />
+            <ul class="list-unstyled">
+              <li class="mb-2">✅ 3 cultivos máximo</li>
+              <li class="mb-2">✅ Analytics básicos</li>
+              <li class="mb-2">❌ Backup en nube</li>
+              <li class="mb-2">❌ Sin anuncios</li>
+            </ul>
+            <a
+              href="{{ url_for('main.dashboard') }}"
+              class="btn btn-outline-secondary"
+            >
+              Probar Ahora
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Plan Gratuito -->
+      <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card h-100 border-warning shadow">
+          <div class="card-header text-center bg-warning text-dark">
+            <h5 class="mb-0">Gratuito</h5>
+          </div>
+          <div class="card-body text-center">
+            <h2 class="card-title text-success">Gratis</h2>
+            <hr />
+            <ul class="list-unstyled">
+              <li class="mb-2">✅ Cultivos ilimitados</li>
+              <li class="mb-2">✅ Backup en nube</li>
+              <li class="mb-2">✅ Analytics básicos</li>
+              <li class="mb-2">❌ Sin anuncios</li>
+            </ul>
+            <a href="{{ url_for('auth.register') }}" class="btn btn-warning">
+              Registrarse
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Plan Premium -->
+      <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card h-100 border-primary shadow position-relative">
+          <div class="position-absolute top-0 start-50 translate-middle">
+            <span class="badge bg-primary">Recomendado</span>
+          </div>
+          <div class="card-header text-center bg-primary text-white">
+            <h5 class="mb-0">Premium</h5>
+          </div>
+          <div class="card-body text-center">
+            <h2 class="card-title text-success">
+              €0.99<small class="text-muted">/mes</small>
+            </h2>
+            <hr />
+            <ul class="list-unstyled">
+              <li class="mb-2">✅ Todo lo anterior</li>
+              <li class="mb-2">✅ Sin anuncios</li>
+              <li class="mb-2">✅ Analytics avanzados</li>
+              <li class="mb-2">✅ Exportar datos</li>
+              <li class="mb-2">✅ Notificaciones</li>
+            </ul>
+            <a href="{{ url_for('main.pricing') }}" class="btn btn-primary">
+              Suscribirse
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- CTA Section -->
 <div class="container py-5">
-    <div class="row">
-        <div class="col-lg-8 mx-auto text-center">
-            <h2 class="display-5 fw-bold text-success mb-4">
-                ¿Listo para hacer tu huerto rentable?
-            </h2>
-            <p class="lead text-muted mb-4">
-                Únete a cientos de agricultores que ya están optimizando sus cultivos y maximizando beneficios.
-            </p>
-            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                <a href="{{ url_for('auth.register') }}" class="btn btn-success btn-lg me-md-2">
-                    <i class="bi bi-rocket-takeoff me-2"></i>
-                    Empezar Gratis
-                </a>
-                <a href="https://huertorentable.onrender.com" target="_blank" class="btn btn-outline-success btn-lg">
-                    <i class="bi bi-globe me-2"></i>
-                    Ver App Live
-                </a>
-            </div>
-        </div>
+  <div class="row">
+    <div class="col-lg-8 mx-auto text-center">
+      <h2 class="display-5 fw-bold text-success mb-4">
+        ¿Listo para hacer tu huerto rentable?
+      </h2>
+      <p class="lead text-muted mb-4">
+        Únete a cientos de agricultores que ya están optimizando sus cultivos y
+        maximizando beneficios.
+      </p>
+      <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+        <a
+          href="{{ url_for('auth.register') }}"
+          class="btn btn-success btn-lg me-md-2"
+        >
+          <i class="bi bi-rocket-takeoff me-2"></i>
+          Empezar Gratis
+        </a>
+        <a
+          href="https://huertorentable.onrender.com"
+          target="_blank"
+          class="btn btn-outline-success btn-lg"
+        >
+          <i class="bi bi-globe me-2"></i>
+          Ver App Live
+        </a>
+      </div>
     </div>
+  </div>
 </div>
 
 <style>
-.feature-card {
+  .feature-card {
     transition: all 0.3s ease;
-}
+  }
 
-.feature-card:hover {
+  .feature-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
-}
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+  }
 
-.hero-stats .stat-card {
+  .hero-stats .stat-card {
     transition: all 0.3s ease;
-}
+  }
 
-.hero-stats .stat-card:hover {
+  .hero-stats .stat-card:hover {
     transform: scale(1.05);
-}
+  }
 </style>
 {% endblock %}

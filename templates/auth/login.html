@@ -1,0 +1,181 @@
+{% extends "base.html" %} {% block title %}Iniciar Sesión - HuertoRentable{%
+endblock %} {% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-5 col-md-7">
+      <div class="card shadow">
+        <div class="card-header bg-success text-white text-center">
+          <h4 class="mb-0">
+            <i class="bi bi-box-arrow-in-right me-2"></i>
+            Iniciar Sesión
+          </h4>
+        </div>
+        <div class="card-body p-4">
+          <!-- Formulario de login -->
+          <form id="loginForm">
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input
+                type="email"
+                class="form-control"
+                id="email"
+                name="email"
+                required
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="password" class="form-label">Contraseña</label>
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                name="password"
+                required
+              />
+            </div>
+
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="remember" />
+              <label class="form-check-label" for="remember">
+                Recordarme
+              </label>
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-success btn-lg">
+                <i class="bi bi-box-arrow-in-right me-2"></i>
+                Iniciar Sesión
+              </button>
+            </div>
+          </form>
+
+          <!-- Separador -->
+          <div class="text-center my-4">
+            <span class="text-muted">── o ──</span>
+          </div>
+
+          <!-- Login con Google (futuro) -->
+          <div class="d-grid mb-3">
+            <button class="btn btn-outline-secondary" disabled>
+              <i class="bi bi-google me-2"></i>
+              Continuar con Google (próximamente)
+            </button>
+          </div>
+
+          <!-- Links -->
+          <div class="text-center">
+            <p class="mb-2">
+              <a href="#" class="text-success small"
+                >¿Olvidaste tu contraseña?</a
+              >
+            </p>
+            <p class="mb-0">
+              ¿No tienes cuenta?
+              <a href="{{ url_for('auth.register') }}" class="text-success"
+                >Crear cuenta gratis</a
+              >
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Demo access -->
+      <div class="card mt-4 border-warning">
+        <div class="card-body text-center">
+          <h6 class="text-warning mb-2">
+            <i class="bi bi-eye me-2"></i>
+            Acceso de Prueba
+          </h6>
+          <p class="small text-muted mb-3">
+            Explora la aplicación sin crear cuenta
+          </p>
+          <a
+            href="{{ url_for('main.dashboard') }}"
+            class="btn btn-outline-warning btn-sm"
+          >
+            <i class="bi bi-play-circle me-1"></i>
+            Ver Demo
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase Auth SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Configuración Firebase (sustituir con tus credenciales)
+    const firebaseConfig = {
+      // Estas credenciales serían públicas en una app real
+      apiKey: "tu-api-key",
+      authDomain: "tu-proyecto.firebaseapp.com",
+      projectId: "tu-proyecto-id",
+    };
+
+    // Inicializar Firebase (comentado por ahora)
+    // firebase.initializeApp(firebaseConfig);
+
+    const form = document.getElementById("loginForm");
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      try {
+        // Por ahora, simular login exitoso
+        alert("Login exitoso! (Funcionalidad en desarrollo)");
+
+        // TODO: Implementar login real con Firebase
+        /*
+            const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+            const user = userCredential.user;
+            
+            // Enviar token al backend
+            const idToken = await user.getIdToken();
+            const response = await fetch('/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken: idToken })
+            });
+            
+            if (response.ok) {
+                window.location.href = '/dashboard';
+            }
+            */
+
+        // Por ahora redirigir al dashboard directamente
+        window.location.href = "/dashboard";
+      } catch (error) {
+        console.error("Error en login:", error);
+        alert("Error al iniciar sesión: " + error.message);
+      }
+    });
+  });
+</script>
+
+<style>
+  .card {
+    border-radius: 15px;
+  }
+
+  .card-header {
+    border-radius: 15px 15px 0 0 !important;
+  }
+
+  .form-control:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+  }
+
+  .btn-success:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  }
+</style>
+{% endblock %}

@@ -64,24 +64,33 @@ def dashboard():
     # Marcar como visitado
     session['visited_before'] = True
     
+    # Calcular estadísticas adicionales
+    total_crops = len(cultivos)
+    active_crops = len([c for c in cultivos if c.get('activo', True)])
+    
     context = {
         'cultivos': cultivos,
         'total_kilos': total_kilos,
         'total_beneficios': total_beneficios,
+        'total_production': total_kilos,  # Alias para compatibilidad con template
+        'total_revenue': total_beneficios,  # Alias para compatibilidad con template
+        'total_crops': total_crops,
+        'active_crops': active_crops,
         'plan': plan,
         'plan_limits': plan_limits,
         'is_authenticated': is_authenticated,
-        'show_upgrade_banner': should_show_upgrade_banner(plan, len(cultivos))
+        'show_upgrade_banner': should_show_upgrade_banner(plan, len(cultivos)),
+        'demo_mode': not is_authenticated  # Para mostrar banner demo
     }
     
-    return render_template('dashboard/main.html', **context)
+    return render_template('dashboard.html', **context)
 
 @main_bp.route('/profile')
 def profile():
     """Perfil de usuario y configuración"""
     user = get_current_user()
     if not user:
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('auth_bp.login'))
     
     from flask import current_app
     user_service = UserService(current_app.db)

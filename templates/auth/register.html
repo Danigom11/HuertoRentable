@@ -1,0 +1,240 @@
+{% extends "base.html" %} {% block title %}Crear Cuenta - HuertoRentable{%
+endblock %} {% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
+      <div class="card shadow">
+        <div class="card-header bg-success text-white text-center">
+          <h4 class="mb-0">
+            <i class="bi bi-person-plus me-2"></i>
+            Crear Cuenta Gratuita
+          </h4>
+        </div>
+        <div class="card-body p-4">
+          <!-- Formulario de registro -->
+          <form id="registerForm">
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input
+                type="email"
+                class="form-control"
+                id="email"
+                name="email"
+                required
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="password" class="form-label">Contraseña</label>
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                name="password"
+                required
+                minlength="6"
+              />
+              <div class="form-text">Mínimo 6 caracteres</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="confirmPassword" class="form-label"
+                >Confirmar Contraseña</label
+              >
+              <input
+                type="password"
+                class="form-control"
+                id="confirmPassword"
+                name="confirmPassword"
+                required
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="displayName" class="form-label"
+                >Nombre (opcional)</label
+              >
+              <input
+                type="text"
+                class="form-control"
+                id="displayName"
+                name="displayName"
+              />
+            </div>
+
+            <div class="mb-3 form-check">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                id="terms"
+                required
+              />
+              <label class="form-check-label" for="terms">
+                Acepto los
+                <a href="#" class="text-success">términos y condiciones</a>
+              </label>
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-success btn-lg">
+                <i class="bi bi-rocket-takeoff me-2"></i>
+                Crear Cuenta Gratis
+              </button>
+            </div>
+          </form>
+
+          <!-- Separador -->
+          <div class="text-center my-4">
+            <span class="text-muted">── o ──</span>
+          </div>
+
+          <!-- Login con Google (futuro) -->
+          <div class="d-grid mb-3">
+            <button class="btn btn-outline-secondary" disabled>
+              <i class="bi bi-google me-2"></i>
+              Continuar con Google (próximamente)
+            </button>
+          </div>
+
+          <!-- Link a login -->
+          <div class="text-center">
+            <p class="mb-0">
+              ¿Ya tienes cuenta?
+              <a href="{{ url_for('auth.login') }}" class="text-success"
+                >Iniciar sesión</a
+              >
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Beneficios del plan gratuito -->
+      <div class="card mt-4 border-0">
+        <div class="card-body text-center">
+          <h6 class="text-success mb-3">Tu plan gratuito incluye:</h6>
+          <div class="row">
+            <div class="col-6">
+              <small class="text-muted">
+                <i class="bi bi-check-circle text-success me-1"></i>
+                Cultivos ilimitados
+              </small>
+            </div>
+            <div class="col-6">
+              <small class="text-muted">
+                <i class="bi bi-check-circle text-success me-1"></i>
+                Backup en la nube
+              </small>
+            </div>
+            <div class="col-6 mt-2">
+              <small class="text-muted">
+                <i class="bi bi-check-circle text-success me-1"></i>
+                Sincronización automática
+              </small>
+            </div>
+            <div class="col-6 mt-2">
+              <small class="text-muted">
+                <i class="bi bi-check-circle text-success me-1"></i>
+                Analytics básicos
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase Auth SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Configuración Firebase (sustituir con tus credenciales)
+    const firebaseConfig = {
+      // Estas credenciales serían públicas en una app real
+      apiKey: "tu-api-key",
+      authDomain: "tu-proyecto.firebaseapp.com",
+      projectId: "tu-proyecto-id",
+    };
+
+    // Inicializar Firebase (comentado por ahora)
+    // firebase.initializeApp(firebaseConfig);
+
+    const form = document.getElementById("registerForm");
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+      const displayName = document.getElementById("displayName").value;
+
+      // Validaciones básicas
+      if (password !== confirmPassword) {
+        alert("Las contraseñas no coinciden");
+        return;
+      }
+
+      if (password.length < 6) {
+        alert("La contraseña debe tener al menos 6 caracteres");
+        return;
+      }
+
+      try {
+        // Por ahora, simular registro exitoso
+        alert("Registro exitoso! (Funcionalidad en desarrollo)");
+
+        // TODO: Implementar registro real con Firebase
+        /*
+            const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+            const user = userCredential.user;
+            
+            // Actualizar perfil con nombre
+            if (displayName) {
+                await user.updateProfile({ displayName: displayName });
+            }
+            
+            // Enviar token al backend
+            const idToken = await user.getIdToken();
+            const response = await fetch('/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken: idToken })
+            });
+            
+            if (response.ok) {
+                window.location.href = '/dashboard';
+            }
+            */
+
+        // Por ahora redirigir al dashboard directamente
+        window.location.href = "/dashboard";
+      } catch (error) {
+        console.error("Error en registro:", error);
+        alert("Error al crear la cuenta: " + error.message);
+      }
+    });
+  });
+</script>
+
+<style>
+  .card {
+    border-radius: 15px;
+  }
+
+  .card-header {
+    border-radius: 15px 15px 0 0 !important;
+  }
+
+  .form-control:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+  }
+
+  .btn-success:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  }
+</style>
+{% endblock %}

@@ -250,4 +250,6 @@ def premium_required(f):
 
 def get_current_user():
     """Obtener usuario actual del contexto"""
+    # Por ahora, siempre retorna None (usuario no autenticado)
+    # TODO: Implementar middleware para establecer g.current_user
     return getattr(g, 'current_user', None)

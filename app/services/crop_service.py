@@ -166,12 +166,14 @@ class CropService:
     
     def get_demo_crops(self) -> List[Dict]:
         """Datos demo para usuarios no autenticados"""
-        return [
+        crops = [
             {
                 'id': 'demo-1',
                 'nombre': 'tomates',
                 'fecha_siembra': datetime.datetime(2025, 6, 1),
                 'precio_por_kilo': 3.50,
+                'plantas_sembradas': 12,
+                'unidades_recolectadas': 150,
                 'produccion_diaria': [
                     {'fecha': datetime.datetime(2025, 8, 1), 'kilos': 2.5},
                     {'fecha': datetime.datetime(2025, 8, 5), 'kilos': 3.2},
@@ -184,6 +186,8 @@ class CropService:
                 'nombre': 'lechugas',
                 'fecha_siembra': datetime.datetime(2025, 7, 15),
                 'precio_por_kilo': 2.80,
+                'plantas_sembradas': 8,
+                'unidades_recolectadas': 24,
                 'produccion_diaria': [
                     {'fecha': datetime.datetime(2025, 8, 15), 'kilos': 1.5},
                     {'fecha': datetime.datetime(2025, 8, 20), 'kilos': 2.1}
@@ -191,6 +195,14 @@ class CropService:
                 'activo': True
             }
         ]
+        
+        # Calcular kilos_totales para cada cultivo
+        for cultivo in crops:
+            produccion = cultivo.get('produccion_diaria', [])
+            cultivo['kilos_totales'] = sum(p.get('kilos', 0) for p in produccion)
+            cultivo['beneficio_total'] = cultivo['kilos_totales'] * cultivo['precio_por_kilo']
+        
+        return crops
     
     def get_demo_totals(self) -> Tuple[float, float]:
         """Calcular totales de datos demo"""

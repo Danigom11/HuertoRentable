@@ -1,6 +1,5 @@
-{% extends "base.html" %} 
-{% block title %}Dashboard - HuertoRentable{% endblock %} 
-{% block content %}
+{% extends "base.html" %} {% block title %}Dashboard - HuertoRentable{% endblock
+%} {% block content %}
 
 <!-- Banner de modo demo para usuarios invitados -->
 {% if not is_authenticated or demo_mode %}
@@ -17,12 +16,12 @@
 {% if show_upgrade_banner %}
 <div class="alert alert-warning alert-dismissible fade show" role="alert">
   <i class="bi bi-star me-2"></i>
-  <strong>¡Mejora tu plan!</strong> 
-  {% if plan == 'invitado' %}
-  Tienes casi lleno el límite de 3 cultivos. 
-  <a href="{{ url_for('main.pricing') }}" class="alert-link">Registrarse gratis</a>
-  {% else %}
-  Aprovecha todas las funciones premium.
+  <strong>¡Mejora tu plan!</strong>
+  {% if plan == 'invitado' %} Tienes casi lleno el límite de 3 cultivos.
+  <a href="{{ url_for('main.pricing') }}" class="alert-link"
+    >Registrarse gratis</a
+  >
+  {% else %} Aprovecha todas las funciones premium.
   <a href="{{ url_for('main.pricing') }}" class="alert-link">Ver planes</a>
   {% endif %}
   <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -34,7 +33,10 @@
   <div class="col-md-8">
     <h1 class="display-6 text-success mb-2">
       <i class="bi bi-house-gear me-2"></i>
-      Mi Huerto {% if plan != 'invitado' %}<span class="badge bg-{{ 'warning' if plan == 'gratuito' else 'primary' }}">{{ plan.title() }}</span>{% endif %}
+      Mi Huerto {% if plan != 'invitado' %}<span
+        class="badge bg-{{ 'warning' if plan == 'gratuito' else 'primary' }}"
+        >{{ plan.title() }}</span
+      >{% endif %}
     </h1>
     <p class="lead text-muted">
       Gestiona tus cultivos, registra cosechas y monitorea tu rentabilidad
@@ -83,7 +85,11 @@
           <div>
             <h6 class="card-title text-uppercase">Kilos Totales</h6>
             <h2 class="mb-0">{{ total_production }} kg</h2>
-            <small>{% if plan_limits.max_crops != float('inf') %}Límite: {{ plan_limits.max_crops }} cultivos{% endif %}</small>
+            <small
+              >{% if plan_limits.max_crops != -1 %}Límite: {{
+              plan_limits.max_crops }} cultivos{% else %}Sin límite de
+              cultivos{% endif %}</small
+            >
           </div>
           <div class="align-self-center">
             <i class="bi bi-basket fs-1"></i>
@@ -100,7 +106,10 @@
           <div>
             <h6 class="card-title text-uppercase">Beneficio Total</h6>
             <h2 class="mb-0">€{{ total_revenue }}</h2>
-            <small>{% if total_crops > 0 %}€{{ "%.2f"|format(total_revenue / total_crops) }} promedio{% endif %}</small>
+            <small
+              >{% if total_crops > 0 %}€{{ "%.2f"|format(total_revenue /
+              total_crops) }} promedio{% endif %}</small
+            >
           </div>
           <div class="align-self-center">
             <i class="bi bi-currency-euro fs-1"></i>
@@ -317,7 +326,7 @@
             Añade tu primer cultivo para comenzar a gestionar tu huerto.
           </p>
           <a
-            href="{{ url_for('gestionar_cultivos') }}"
+            href="{{ url_for('crops.list_crops') }}"
             class="btn btn-success btn-lg"
           >
             <i class="bi bi-plus-circle me-2"></i>
@@ -344,7 +353,10 @@
           Explora gráficas de producción, beneficios por año y comparativas
           entre cultivos
         </p>
-        <a href="{{ url_for('analytics') }}" class="btn btn-outline-success">
+        <a
+          href="{{ url_for('analytics.dashboard') }}"
+          class="btn btn-outline-success"
+        >
           <i class="bi bi-bar-chart me-2"></i>
           Ver Análisis Completo
         </a>

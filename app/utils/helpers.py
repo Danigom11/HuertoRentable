@@ -4,6 +4,34 @@ Configuración de planes, límites y funciones auxiliares
 """
 from flask import current_app
 
+# Configuración de planes (constantes)
+PLAN_LIMITS = {
+    'invitado': {
+        'max_crops': 3,
+        'firebase_backup': False,
+        'ads': True,
+        'analytics': 'basic',
+        'export': False,
+        'notifications': False
+    },
+    'gratuito': {
+        'max_crops': -1,  # Sin límite
+        'firebase_backup': True,
+        'ads': True,
+        'analytics': 'basic',
+        'export': False,
+        'notifications': False
+    },
+    'premium': {
+        'max_crops': -1,  # Sin límite
+        'firebase_backup': True,
+        'ads': False,
+        'analytics': 'advanced',
+        'export': True,
+        'notifications': True
+    }
+}
+
 def get_plan_limits(plan_name: str) -> dict:
     """
     Obtener límites y características de un plan
@@ -14,13 +42,7 @@ def get_plan_limits(plan_name: str) -> dict:
     Returns:
         dict: Configuración del plan
     """
-    plan_configs = {
-        'invitado': current_app.config['PLAN_INVITADO'],
-        'gratuito': current_app.config['PLAN_GRATUITO'], 
-        'premium': current_app.config['PLAN_PREMIUM']
-    }
-    
-    return plan_configs.get(plan_name, plan_configs['invitado'])
+    return PLAN_LIMITS.get(plan_name, PLAN_LIMITS['invitado'])
 
 def format_currency(amount: float) -> str:
     """

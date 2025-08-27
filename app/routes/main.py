@@ -10,6 +10,26 @@ import time
 
 main_bp = Blueprint('main', __name__)
 
+@main_bp.route('/login')
+def login_redirect():
+    """Redireccionar desde /login a /auth/login para compatibilidad"""
+    return redirect(url_for('auth.login'))
+
+@main_bp.route('/register')
+def register_redirect():
+    """Redireccionar desde /register a /auth/register para compatibilidad"""
+    return redirect(url_for('auth.register'))
+
+@main_bp.route('/service-worker.js')
+def service_worker():
+    """Servir el service worker para PWA"""
+    from flask import send_from_directory, current_app
+    import os
+    
+    # Buscar service-worker.js en el directorio raíz del proyecto
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    return send_from_directory(project_root, 'service-worker.js', mimetype='application/javascript')
+
 @main_bp.route('/version')
 def check_version():
     """Endpoint para verificar versión actual - solo para información"""

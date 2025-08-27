@@ -20,6 +20,16 @@ def register_redirect():
     """Redireccionar desde /register a /auth/register para compatibilidad"""
     return redirect(url_for('auth.register'))
 
+@main_bp.route('/manifest.json')
+def manifest():
+    """Servir el manifest de PWA"""
+    from flask import send_from_directory, current_app
+    import os
+    
+    # Buscar manifest.json en el directorio raíz del proyecto
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    return send_from_directory(project_root, 'manifest.json', mimetype='application/json')
+
 @main_bp.route('/service-worker.js')
 def service_worker():
     """Servir el service worker para PWA"""

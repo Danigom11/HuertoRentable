@@ -130,10 +130,31 @@ def register_error_handlers(app):
 
 def setup_template_context(app):
     """Configurar variables globales para plantillas"""
+    import time
+    
     @app.context_processor
     def inject_config():
         return {
             'PLAN_INVITADO': app.config['PLAN_INVITADO'],
             'PLAN_GRATUITO': app.config['PLAN_GRATUITO'], 
-            'PLAN_PREMIUM': app.config['PLAN_PREMIUM']
+            'PLAN_PREMIUM': app.config['PLAN_PREMIUM'],
+            'timestamp': int(time.time())  # Para versionado de assets
         }
+    
+    @app.template_global()
+    def moment():
+        """Función global para obtener timestamp actual"""
+        return type('moment', (), {'timestamp': int(time.time())})()
+    
+    @app.after_request
+    def add_cache_headers(response):
+        """Añadir headers para controlar cache en producción"""
+        if app.config.get('ENV') == 'production':
+            # No cachear HTML, CSS y JS en producción para forzar actualizaciones
+            if (response.mimetype.startswith('text/html') or 
+                response.mimetype.startswith('text/css') or 
+                response.mimetype.startswith('application/javascript')):
+                response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+                response.headers['Pragma'] = 'no-cache'
+                response.headers['Expires'] = '0'
+        return response

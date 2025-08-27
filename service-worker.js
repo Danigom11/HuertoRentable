@@ -1,9 +1,11 @@
 // Service Worker para HuertoRentable PWA
 // Proporciona funcionalidad offline y cacheo de recursos
 
-const CACHE_NAME = "huertorentable-v1.0";
-const STATIC_CACHE = "huertorentable-static-v1.0";
-const DYNAMIC_CACHE = "huertorentable-dynamic-v1.0";
+// Versión actualizada para forzar actualización en Render
+const CACHE_VERSION = "v2.1-" + Date.now();
+const CACHE_NAME = "huertorentable-" + CACHE_VERSION;
+const STATIC_CACHE = "huertorentable-static-" + CACHE_VERSION;
+const DYNAMIC_CACHE = "huertorentable-dynamic-" + CACHE_VERSION;
 
 // Recursos estáticos para cachear inmediatamente
 const STATIC_ASSETS = [
@@ -50,35 +52,47 @@ self.addEventListener("install", (event) => {
   );
 });
 
-// Evento de activación - limpiar caches antiguos
+// Evento de activación - limpiar caches antiguos y notificar actualización
 self.addEventListener("activate", (event) => {
-  console.log("🚀 Service Worker: Activando...");
+  console.log("🚀 Service Worker: Activando versión", CACHE_VERSION);
 
   event.waitUntil(
     caches
       .keys()
       .then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            // Eliminar caches que no sean la versión actual
-            if (
-              cacheName !== STATIC_CACHE &&
-              cacheName !== DYNAMIC_CACHE &&
-              cacheName.startsWith("huertorentable-")
-            ) {
-              console.log(
-                "🗑️ Service Worker: Eliminando cache antiguo:",
-                cacheName
-              );
-              return caches.delete(cacheName);
-            }
-          })
-        );
+        // Eliminar TODOS los caches antiguos de HuertoRentable
+        const deletePromises = cacheNames.map((cacheName) => {
+          if (
+            cacheName !== STATIC_CACHE &&
+            cacheName !== DYNAMIC_CACHE &&
+            (cacheName.startsWith("huertorentable-") || cacheName.includes("huertorentable"))
+          ) {
+            console.log(
+              "🗑️ Service Worker: Eliminando cache antiguo:",
+              cacheName
+            );
+            return caches.delete(cacheName);
+          }
+        }).filter(Boolean);
+        
+        return Promise.all(deletePromises);
       })
       .then(() => {
         console.log("✅ Service Worker: Activado y limpieza completada");
         // Tomar control de todas las páginas inmediatamente
         return self.clients.claim();
+      })
+      .then(() => {
+        // Notificar a todos los clientes sobre la actualización
+        return self.clients.matchAll().then(clients => {
+          clients.forEach(client => {
+            client.postMessage({
+              type: 'SW_UPDATED',
+              version: CACHE_VERSION,
+              message: 'Nueva versión disponible'
+            });
+          });
+        });
       })
   );
 });

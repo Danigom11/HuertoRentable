@@ -2,12 +2,30 @@
 Rutas principales de la aplicación
 Dashboard, onboarding y páginas principales
 """
-from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
+from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify, make_response
 from app.auth.auth_service import get_current_user, UserService
 from app.services.crop_service import CropService
 from app.utils.helpers import get_plan_limits
+import time
 
 main_bp = Blueprint('main', __name__)
+
+@main_bp.route('/version')
+def check_version():
+    """Endpoint para verificar versión actual y forzar actualización"""
+    current_version = f"v2.1-{int(time.time())}"
+    response = make_response(jsonify({
+        'version': current_version,
+        'timestamp': int(time.time()),
+        'force_reload': True
+    }))
+    
+    # Headers para evitar cache
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache' 
+    response.headers['Expires'] = '0'
+    
+    return response
 
 @main_bp.route('/')
 def home():

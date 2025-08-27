@@ -486,4 +486,90 @@ window.formatNumber = formatNumber;
 window.formatDate = formatDate;
 window.apiRequest = apiRequest;
 
+// ================================
+// SISTEMA DE ACTUALIZACIONES PWA
+// ================================
+
+// Función para verificar actualizaciones desde el servidor
+function checkForUpdates() {
+  fetch('/version', { 
+    cache: 'no-cache',
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.force_reload) {
+      console.log('🔄 Actualización forzada detectada desde servidor');
+      // Limpiar todos los caches
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          names.forEach(name => {
+            if (name.includes('huertorentable')) {
+              caches.delete(name);
+            }
+          });
+        });
+      }
+      
+      // Mostrar notificación y recargar
+      showUpdateNotification();
+    }
+  })
+  .catch(error => {
+    console.log('No se pudo verificar actualizaciones:', error);
+  });
+}
+
+// Mostrar notificación de actualización
+function showUpdateNotification() {
+  const updateNotification = document.createElement('div');
+  updateNotification.className = 'alert alert-success alert-dismissible position-fixed top-0 start-50 translate-middle-x mt-3';
+  updateNotification.style.zIndex = '9999';
+  updateNotification.innerHTML = `
+    <div class="d-flex align-items-center">
+      <i class="bi bi-arrow-clockwise me-2"></i>
+      <span class="me-auto"><strong>¡Nueva versión disponible!</strong></span>
+      <button type="button" class="btn btn-sm btn-success me-2" onclick="window.location.reload(true)">
+        Actualizar Ahora
+      </button>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+    </div>
+  `;
+  
+  document.body.appendChild(updateNotification);
+  
+  // Auto-recargar después de 3 segundos
+  setTimeout(() => {
+    console.log('🔄 Recargando automáticamente...');
+    window.location.reload(true);
+  }, 3000);
+}
+
+// Detectar actualizaciones del Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data && event.data.type === 'SW_UPDATED') {
+      console.log('🔄 Nueva versión detectada:', event.data.version);
+      showUpdateNotification();
+    }
+  });
+  
+  // Verificar actualizaciones del servidor periódicamente
+  setInterval(checkForUpdates, 10000); // Cada 10 segundos
+  
+  // Verificar inmediatamente al cargar
+  setTimeout(checkForUpdates, 2000);
+  
+  // Forzar actualización en la próxima navegación
+  navigator.serviceWorker.ready.then(registration => {
+    // Verificar actualizaciones cada 15 segundos
+    setInterval(() => {
+      registration.update();
+    }, 15000);
+  });
+}
+
 console.log("✅ JavaScript principal de HuertoRentable cargado");

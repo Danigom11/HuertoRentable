@@ -36,10 +36,10 @@
       href="{{ url_for('static', filename='img/icon.png') }}"
     />
 
-    <!-- CSS personalizado -->
+    <!-- CSS personalizado con versión para forzar actualización -->
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='css/styles.css') }}"
+      href="{{ url_for('static', filename='css/styles.css') }}?v={{ moment().timestamp }}"
     />
 
     <title>{% block title %}HuertoRentable{% endblock %}</title>
@@ -160,18 +160,32 @@
     <!-- Chart.js para gráficas - solo se carga donde es necesario -->
     {% block chart_js %}{% endblock %}
 
-    <!-- JavaScript personalizado -->
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <!-- JavaScript personalizado con versión para forzar actualización -->
+    <script src="{{ url_for('static', filename='js/app.js') }}?v={{ moment().timestamp }}"></script>
 
     <!-- Service Worker para PWA - funcionalidad offline -->
     <script>
-      // Registrar Service Worker para funcionalidad offline
+      // Registrar Service Worker con actualización forzada
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
           navigator.serviceWorker
-            .register("/service-worker.js")
+            .register("/service-worker.js?v={{ moment().timestamp }}")
             .then(function (registration) {
               console.log("✅ Service Worker registrado:", registration.scope);
+              
+              // Verificar actualizaciones inmediatamente
+              registration.update();
+              
+              // Detectar nuevo Service Worker
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('🔄 Nueva versión del Service Worker disponible');
+                    // El Service Worker enviará un mensaje para notificar la actualización
+                  }
+                });
+              });
             })
             .catch(function (error) {
               console.log("❌ Error registrando Service Worker:", error);

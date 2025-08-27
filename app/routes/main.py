@@ -144,7 +144,7 @@ def profile():
     """Perfil de usuario y configuración"""
     user = get_current_user()
     if not user:
-        # return redirect(url_for('auth_bp.login'))  # Comentado para evitar loops
+        # return redirect(url_for('auth.login'))  # Comentado para evitar loops
         return redirect(url_for('main.dashboard'))
     
     from flask import current_app

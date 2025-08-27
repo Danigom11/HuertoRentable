@@ -10,15 +10,15 @@ import time
 
 main_bp = Blueprint('main', __name__)
 
-@main_bp.route('/login')
-def login_redirect():
-    """Redireccionar desde /login a /auth/login para compatibilidad"""
-    return redirect(url_for('auth.login'))
+# @main_bp.route('/login')
+# def login_redirect():
+#     """Redireccionar desde /login a /auth/login para compatibilidad"""
+#     return redirect(url_for('auth.login'))
 
-@main_bp.route('/register')
-def register_redirect():
-    """Redireccionar desde /register a /auth/register para compatibilidad"""
-    return redirect(url_for('auth.register'))
+# @main_bp.route('/register')
+# def register_redirect():
+#     """Redireccionar desde /register a /auth/register para compatibilidad"""
+#     return redirect(url_for('auth.register'))
 
 @main_bp.route('/manifest.json')
 def manifest():

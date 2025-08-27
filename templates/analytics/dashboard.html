@@ -1,12 +1,11 @@
-{% extends "base.html" %}
-{% block title %}Analytics - HuertoRentable{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}Analytics - HuertoRentable{% endblock
+%} {% block content %}
 <!-- Banner de modo demo en analytics -->
 {% if demo_mode %}
 <div class="alert alert-success alert-dismissible fade show" role="alert">
   <i class="bi bi-star-fill me-2"></i>
-  <strong>Analytics Premium Demo</strong> - Explorando todas las funcionalidades de análisis avanzado.
+  <strong>Analytics Premium Demo</strong> - Explorando todas las funcionalidades
+  de análisis avanzado.
   <a href="{{ url_for('auth.login') }}" class="alert-link">Inicia sesión</a>
   para analizar tus datos reales.
   <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -19,8 +18,7 @@
     <div class="col-12">
       <h1 class="display-6 text-success mb-2">
         <i class="bi bi-bar-chart me-2"></i>
-        Analytics del Huerto
-        {% if demo_mode %}
+        Analytics del Huerto {% if demo_mode %}
         <span class="badge bg-warning">DEMO</span>
         {% endif %}
       </h1>
@@ -86,7 +84,10 @@
           <div class="d-flex justify-content-between">
             <div>
               <h6 class="card-title text-uppercase">Promedio/Cultivo</h6>
-              <h2 class="mb-0">€{{ "%.0f"|format(total_beneficios / datos_cultivos|length if datos_cultivos|length > 0 else 0) }}</h2>
+              <h2 class="mb-0">
+                €{{ "%.0f"|format(total_beneficios / datos_cultivos|length if
+                datos_cultivos|length > 0 else 0) }}
+              </h2>
             </div>
             <div class="align-self-center">
               <i class="bi bi-graph-up fs-1"></i>
@@ -132,17 +133,25 @@
   <div class="row">
     <div class="col-12">
       <div class="card">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <div
+          class="card-header bg-light d-flex justify-content-between align-items-center"
+        >
           <h5 class="card-title mb-0">
             <i class="bi bi-table me-2"></i>
             Análisis Detallado por Cultivo
           </h5>
           <div class="btn-group">
-            <a href="{{ url_for('analytics.export_csv') }}" class="btn btn-sm btn-outline-success">
+            <a
+              href="{{ url_for('analytics.export_csv') }}"
+              class="btn btn-sm btn-outline-success"
+            >
               <i class="bi bi-file-earmark-excel me-1"></i>
               Exportar CSV
             </a>
-            <a href="{{ url_for('analytics.export_json') }}" class="btn btn-sm btn-outline-primary">
+            <a
+              href="{{ url_for('analytics.export_json') }}"
+              class="btn btn-sm btn-outline-primary"
+            >
               <i class="bi bi-file-earmark-code me-1"></i>
               Exportar JSON
             </a>
@@ -177,12 +186,17 @@
                     </strong>
                   </td>
                   <td>
-                    €{{ "%.2f"|format(data.beneficio / data.kilos if data.kilos > 0 else 0) }}
+                    €{{ "%.2f"|format(data.beneficio / data.kilos if data.kilos
+                    > 0 else 0) }}
                   </td>
                   <td>
-                    {% set rentabilidad = (data.beneficio / total_beneficios * 100) if total_beneficios > 0 else 0 %}
-                    <div class="progress" style="height: 20px;">
-                      <div class="progress-bar bg-success" style="width: {{ rentabilidad }}%">
+                    {% set rentabilidad = (data.beneficio / total_beneficios *
+                    100) if total_beneficios > 0 else 0 %}
+                    <div class="progress" style="height: 20px">
+                      <div
+                        class="progress-bar bg-success"
+                        style="width: {{ rentabilidad }}%"
+                      >
                         {{ "%.1f"|format(rentabilidad) }}%
                       </div>
                     </div>
@@ -200,98 +214,108 @@
   <!-- Botones de acción -->
   <div class="row mt-4">
     <div class="col-12 text-center">
-      <a href="{{ url_for('analytics.advanced') }}" class="btn btn-primary btn-lg me-3">
+      <a
+        href="{{ url_for('analytics.advanced') }}"
+        class="btn btn-primary btn-lg me-3"
+      >
         <i class="bi bi-graph-up-arrow me-2"></i>
         Analytics Avanzados
       </a>
-      <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary btn-lg">
+      <a
+        href="{{ url_for('main.dashboard') }}"
+        class="btn btn-outline-secondary btn-lg"
+      >
         <i class="bi bi-arrow-left me-2"></i>
         Volver al Dashboard
       </a>
     </div>
   </div>
 </div>
-{% endblock %}
-
-{% block page_js %}
+{% endblock %} {% block page_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // Obtener datos de la API
-  fetch('{{ url_for("analytics.api_chart_data") }}')
-    .then(response => response.json())
-    .then(data => {
-      // Gráfico de barras - Producción
-      const ctx1 = document.getElementById('productionChart').getContext('2d');
-      new Chart(ctx1, {
-        type: 'bar',
-        data: {
-          labels: data.labels,
-          datasets: [{
-            label: 'Kilogramos producidos',
-            data: data.datasets[0].data,
-            backgroundColor: 'rgba(25, 135, 84, 0.8)',
-            borderColor: 'rgba(25, 135, 84, 1)',
-            borderWidth: 2
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              title: {
-                display: true,
-                text: 'Kilogramos'
-              }
-            }
-          },
-          plugins: {
-            legend: {
-              display: false
-            }
-          }
-        }
-      });
-
-      // Gráfico de dona - Beneficios
-      const ctx2 = document.getElementById('benefitsChart').getContext('2d');
-      new Chart(ctx2, {
-        type: 'doughnut',
-        data: {
-          labels: data.labels,
-          datasets: [{
-            data: data.datasets[1].data,
-            backgroundColor: [
-              '#ff6384',
-              '#36a2eb',
-              '#cc65fe',
-              '#ffce56',
-              '#4bc0c0',
-              '#9966ff',
-              '#ff9f40',
-              '#ff6384',
-              '#c9cbcf',
-              '#4bc0c0'
+  document.addEventListener("DOMContentLoaded", function () {
+    // Obtener datos de la API
+    fetch('{{ url_for("analytics.api_chart_data") }}')
+      .then((response) => response.json())
+      .then((data) => {
+        // Gráfico de barras - Producción
+        const ctx1 = document
+          .getElementById("productionChart")
+          .getContext("2d");
+        new Chart(ctx1, {
+          type: "bar",
+          data: {
+            labels: data.labels,
+            datasets: [
+              {
+                label: "Kilogramos producidos",
+                data: data.datasets[0].data,
+                backgroundColor: "rgba(25, 135, 84, 0.8)",
+                borderColor: "rgba(25, 135, 84, 1)",
+                borderWidth: 2,
+              },
             ],
-            borderWidth: 2
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom'
-            }
-          }
-        }
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: "Kilogramos",
+                },
+              },
+            },
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+          },
+        });
+
+        // Gráfico de dona - Beneficios
+        const ctx2 = document.getElementById("benefitsChart").getContext("2d");
+        new Chart(ctx2, {
+          type: "doughnut",
+          data: {
+            labels: data.labels,
+            datasets: [
+              {
+                data: data.datasets[1].data,
+                backgroundColor: [
+                  "#ff6384",
+                  "#36a2eb",
+                  "#cc65fe",
+                  "#ffce56",
+                  "#4bc0c0",
+                  "#9966ff",
+                  "#ff9f40",
+                  "#ff6384",
+                  "#c9cbcf",
+                  "#4bc0c0",
+                ],
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+              },
+            },
+          },
+        });
+      })
+      .catch((error) => {
+        console.error("Error cargando datos de gráficas:", error);
       });
-    })
-    .catch(error => {
-      console.error('Error cargando datos de gráficas:', error);
-    });
-});
+  });
 </script>
 {% endblock %}

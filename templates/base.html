@@ -36,10 +36,10 @@
       href="{{ url_for('static', filename='img/icon.png') }}"
     />
 
-    <!-- CSS personalizado con versión para forzar actualización -->
+    <!-- CSS personalizado con versión fija -->
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='css/styles.css') }}?v={{ moment().timestamp }}"
+      href="{{ url_for('static', filename='css/styles.css') }}?v=2.2"
     />
 
     <title>{% block title %}HuertoRentable{% endblock %}</title>
@@ -160,28 +160,33 @@
     <!-- Chart.js para gráficas - solo se carga donde es necesario -->
     {% block chart_js %}{% endblock %}
 
-    <!-- JavaScript personalizado con versión para forzar actualización -->
-    <script src="{{ url_for('static', filename='js/app.js') }}?v={{ moment().timestamp }}"></script>
+    <!-- JavaScript personalizado con versión fija -->
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=2.2"></script>
 
     <!-- Service Worker para PWA - funcionalidad offline -->
     <script>
-      // Registrar Service Worker con actualización forzada
+      // Registrar Service Worker sin parámetros dinámicos
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
           navigator.serviceWorker
-            .register("/service-worker.js?v={{ moment().timestamp }}")
+            .register("/service-worker.js")
             .then(function (registration) {
               console.log("✅ Service Worker registrado:", registration.scope);
-              
-              // Verificar actualizaciones inmediatamente
+
+              // Verificar actualizaciones menos frecuentemente
               registration.update();
-              
+
               // Detectar nuevo Service Worker
-              registration.addEventListener('updatefound', () => {
+              registration.addEventListener("updatefound", () => {
                 const newWorker = registration.installing;
-                newWorker.addEventListener('statechange', () => {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    console.log('🔄 Nueva versión del Service Worker disponible');
+                newWorker.addEventListener("statechange", () => {
+                  if (
+                    newWorker.state === "installed" &&
+                    navigator.serviceWorker.controller
+                  ) {
+                    console.log(
+                      "🔄 Nueva versión del Service Worker disponible"
+                    );
                     // El Service Worker enviará un mensaje para notificar la actualización
                   }
                 });

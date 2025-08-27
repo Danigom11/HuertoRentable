@@ -12,12 +12,12 @@ main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/version')
 def check_version():
-    """Endpoint para verificar versión actual y forzar actualización"""
-    current_version = f"v2.1-{int(time.time())}"
+    """Endpoint para verificar versión actual - solo para información"""
+    current_version = "v2.2"  # Versión fija, cambiar solo en actualizaciones reales
     response = make_response(jsonify({
         'version': current_version,
         'timestamp': int(time.time()),
-        'force_reload': True
+        'force_reload': False  # No forzar reload automático
     }))
     
     # Headers para evitar cache

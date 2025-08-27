@@ -1,8 +1,8 @@
 // Service Worker para HuertoRentable PWA
 // Proporciona funcionalidad offline y cacheo de recursos
 
-// Versión actualizada para forzar actualización en Render
-const CACHE_VERSION = "v2.1-" + Date.now();
+// Versión fija - solo cambiar cuando hay actualizaciones reales
+const CACHE_VERSION = "v2.2";
 const CACHE_NAME = "huertorentable-" + CACHE_VERSION;
 const STATIC_CACHE = "huertorentable-static-" + CACHE_VERSION;
 const DYNAMIC_CACHE = "huertorentable-dynamic-" + CACHE_VERSION;
@@ -61,20 +61,23 @@ self.addEventListener("activate", (event) => {
       .keys()
       .then((cacheNames) => {
         // Eliminar TODOS los caches antiguos de HuertoRentable
-        const deletePromises = cacheNames.map((cacheName) => {
-          if (
-            cacheName !== STATIC_CACHE &&
-            cacheName !== DYNAMIC_CACHE &&
-            (cacheName.startsWith("huertorentable-") || cacheName.includes("huertorentable"))
-          ) {
-            console.log(
-              "🗑️ Service Worker: Eliminando cache antiguo:",
-              cacheName
-            );
-            return caches.delete(cacheName);
-          }
-        }).filter(Boolean);
-        
+        const deletePromises = cacheNames
+          .map((cacheName) => {
+            if (
+              cacheName !== STATIC_CACHE &&
+              cacheName !== DYNAMIC_CACHE &&
+              (cacheName.startsWith("huertorentable-") ||
+                cacheName.includes("huertorentable"))
+            ) {
+              console.log(
+                "🗑️ Service Worker: Eliminando cache antiguo:",
+                cacheName
+              );
+              return caches.delete(cacheName);
+            }
+          })
+          .filter(Boolean);
+
         return Promise.all(deletePromises);
       })
       .then(() => {
@@ -84,12 +87,12 @@ self.addEventListener("activate", (event) => {
       })
       .then(() => {
         // Notificar a todos los clientes sobre la actualización
-        return self.clients.matchAll().then(clients => {
-          clients.forEach(client => {
+        return self.clients.matchAll().then((clients) => {
+          clients.forEach((client) => {
             client.postMessage({
-              type: 'SW_UPDATED',
+              type: "SW_UPDATED",
               version: CACHE_VERSION,
-              message: 'Nueva versión disponible'
+              message: "Nueva versión disponible",
             });
           });
         });

@@ -72,11 +72,11 @@ def home():
     if user:
         return redirect(url_for('main.dashboard'))
     
-    # Si es primera visita, mostrar onboarding
-    if not session.get('visited_before'):
-        return redirect(url_for('main.onboarding'))
+    # Comentado para evitar problemas: ir directo al dashboard en modo demo
+    # if not session.get('visited_before'):
+    #     return redirect(url_for('main.onboarding'))
     
-    # Usuario conocido sin autenticar, ir al dashboard
+    # Usuario conocido sin autenticar, ir al dashboard en modo demo
     return redirect(url_for('main.dashboard'))
 
 @main_bp.route('/onboarding')

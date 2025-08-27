@@ -1,15 +1,6 @@
-{% extends "base.html" %} {% block title %}Dash      {% if is_authenticated %}
-      <a href="{{ url_for('crops.add_crop') }}" class="btn btn-success">
-        <i class="bi bi-plus-circle me-1"></i>
-        Nuevo Cultivo
-      </a>
-      {% else %}
-      <a href="{{ url_for('auth_bp.register') }}" class="btn btn-outline-success">
-        <i class="bi bi-person-plus me-1"></i>
-        Registrarse
-      </a>
-      {% endif %}rtoRentable{% endblock
-%} {% block content %}
+{% extends "base.html" %} 
+{% block title %}Dashboard - HuertoRentable{% endblock %} 
+{% block content %}
 
 <!-- Banner de modo demo para usuarios invitados -->
 {% if not is_authenticated or demo_mode %}
@@ -56,12 +47,12 @@
   <div class="col-md-4 text-md-end">
     <div class="d-grid gap-2 d-md-block">
       {% if is_authenticated %}
-      <a href="{{ url_for('crops.create_crop') }}" class="btn btn-success">
+      <a href="{{ url_for('crops.add_crop') }}" class="btn btn-success">
         <i class="bi bi-plus-circle me-1"></i>
         Nuevo Cultivo
       </a>
       {% else %}
-      <a href="{{ url_for('auth.register') }}" class="btn btn-outline-success">
+      <a href="{{ url_for('auth_bp.register') }}" class="btn btn-outline-success">
         <i class="bi bi-person-plus me-1"></i>
         Registrarse
       </a>

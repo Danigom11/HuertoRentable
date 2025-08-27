@@ -165,38 +165,60 @@ class CropService:
             return 0, 0
     
     def get_demo_crops(self) -> List[Dict]:
-        """Datos demo para usuarios no autenticados"""
-        crops = [
-            {
-                'id': 'demo-1',
-                'nombre': 'tomates',
-                'fecha_siembra': datetime.datetime(2025, 6, 1),
-                'precio_por_kilo': 3.50,
-                'plantas_sembradas': 12,
-                'unidades_recolectadas': 150,
-                'produccion_diaria': [
-                    {'fecha': datetime.datetime(2025, 8, 1), 'kilos': 2.5},
-                    {'fecha': datetime.datetime(2025, 8, 5), 'kilos': 3.2},
-                    {'fecha': datetime.datetime(2025, 8, 10), 'kilos': 2.8}
-                ],
-                'activo': True
-            },
-            {
-                'id': 'demo-2', 
-                'nombre': 'lechugas',
-                'fecha_siembra': datetime.datetime(2025, 7, 15),
-                'precio_por_kilo': 2.80,
-                'plantas_sembradas': 8,
-                'unidades_recolectadas': 24,
-                'produccion_diaria': [
-                    {'fecha': datetime.datetime(2025, 8, 15), 'kilos': 1.5},
-                    {'fecha': datetime.datetime(2025, 8, 20), 'kilos': 2.1}
-                ],
-                'activo': True
-            }
+        """Datos demo completos para mostrar funcionalidades premium - 10 plantas distintas"""
+        import random
+        
+        # Plantas variadas con datos realistas
+        demo_data = [
+            {'nombre': 'tomates', 'precio': 3.50, 'plantas': 15, 'unidades_base': 180},
+            {'nombre': 'lechugas', 'precio': 2.80, 'plantas': 12, 'unidades_base': 36},
+            {'nombre': 'zanahorias', 'precio': 1.90, 'plantas': 20, 'unidades_base': 240},
+            {'nombre': 'pimientos', 'precio': 4.20, 'plantas': 8, 'unidades_base': 96},
+            {'nombre': 'berenjenas', 'precio': 3.80, 'plantas': 6, 'unidades_base': 72},
+            {'nombre': 'calabacines', 'precio': 2.50, 'plantas': 10, 'unidades_base': 150},
+            {'nombre': 'espinacas', 'precio': 4.50, 'plantas': 14, 'unidades_base': 84},
+            {'nombre': 'apio', 'precio': 3.20, 'plantas': 8, 'unidades_base': 48},
+            {'nombre': 'brócoli', 'precio': 5.20, 'plantas': 7, 'unidades_base': 42},
+            {'nombre': 'coliflor', 'precio': 4.80, 'plantas': 6, 'unidades_base': 36}
         ]
         
-        # Calcular kilos_totales para cada cultivo
+        crops = []
+        base_date = datetime.datetime(2025, 4, 1)  # Comenzar en abril
+        
+        for i, data in enumerate(demo_data):
+            # Fechas escalonadas cada 2 semanas
+            fecha_siembra = base_date + datetime.timedelta(weeks=i*2)
+            
+            # Generar producción diaria realista (últimos 3 meses)
+            produccion_diaria = []
+            fecha_inicio_cosecha = fecha_siembra + datetime.timedelta(days=60)  # 2 meses después de siembra
+            
+            # Generar 20-30 días de cosecha con variación realista
+            for j in range(random.randint(20, 30)):
+                fecha_cosecha = fecha_inicio_cosecha + datetime.timedelta(days=j*2)
+                if fecha_cosecha <= datetime.datetime.now():
+                    # Producción variable entre 0.5kg y 3kg por día
+                    kilos = round(random.uniform(0.5, 3.0), 1)
+                    produccion_diaria.append({
+                        'fecha': fecha_cosecha,
+                        'kilos': kilos
+                    })
+            
+            cultivo = {
+                'id': f'demo-{i+1}',
+                'nombre': data['nombre'],
+                'fecha_siembra': fecha_siembra,
+                'precio_por_kilo': data['precio'],
+                'plantas_sembradas': data['plantas'],
+                'unidades_recolectadas': data['unidades_base'] + random.randint(-20, 40),
+                'produccion_diaria': produccion_diaria,
+                'activo': i < 8,  # Los primeros 8 están activos, 2 cosechados
+                'fecha_cosecha': None if i < 8 else fecha_siembra + datetime.timedelta(days=120)
+            }
+            
+            crops.append(cultivo)
+        
+        # Calcular kilos_totales y beneficio_total para cada cultivo
         for cultivo in crops:
             produccion = cultivo.get('produccion_diaria', [])
             cultivo['kilos_totales'] = sum(p.get('kilos', 0) for p in produccion)

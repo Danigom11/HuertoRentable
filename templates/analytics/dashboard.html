@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+{% block title %}Analytics - HuertoRentable{% endblock %}
+
+{% block content %}
+<!-- Banner de modo demo en analytics -->
+{% if demo_mode %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+  <i class="bi bi-star-fill me-2"></i>
+  <strong>Analytics Premium Demo</strong> - Explorando todas las funcionalidades de análisis avanzado.
+  <a href="{{ url_for('auth.login') }}" class="alert-link">Inicia sesión</a>
+  para analizar tus datos reales.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h1 class="display-6 text-success mb-2">
+        <i class="bi bi-bar-chart me-2"></i>
+        Analytics del Huerto
+        {% if demo_mode %}
+        <span class="badge bg-warning">DEMO</span>
+        {% endif %}
+      </h1>
+      <p class="lead text-muted">
+        Análisis detallado de producción y rentabilidad
+      </p>
+    </div>
+  </div>
+
+  <!-- Tarjetas de resumen -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-primary text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title text-uppercase">Total Cultivos</h6>
+              <h2 class="mb-0">{{ datos_cultivos|length }}</h2>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-seedling fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-success text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title text-uppercase">Producción Total</h6>
+              <h2 class="mb-0">{{ "%.1f"|format(total_kilos) }} kg</h2>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-weight fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-warning text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title text-uppercase">Beneficios Totales</h6>
+              <h2 class="mb-0">€{{ "%.0f"|format(total_beneficios) }}</h2>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-currency-euro fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-info text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title text-uppercase">Promedio/Cultivo</h6>
+              <h2 class="mb-0">€{{ "%.0f"|format(total_beneficios / datos_cultivos|length if datos_cultivos|length > 0 else 0) }}</h2>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-graph-up fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráficas -->
+  <div class="row mb-4">
+    <div class="col-lg-8 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-bar-chart me-2"></i>
+            Producción por Cultivo
+          </h5>
+        </div>
+        <div class="card-body">
+          <canvas id="productionChart" height="120"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-pie-chart me-2"></i>
+            Distribución de Beneficios
+          </h5>
+        </div>
+        <div class="card-body">
+          <canvas id="benefitsChart" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla detallada -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-table me-2"></i>
+            Análisis Detallado por Cultivo
+          </h5>
+          <div class="btn-group">
+            <a href="{{ url_for('analytics.export_csv') }}" class="btn btn-sm btn-outline-success">
+              <i class="bi bi-file-earmark-excel me-1"></i>
+              Exportar CSV
+            </a>
+            <a href="{{ url_for('analytics.export_json') }}" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-file-earmark-code me-1"></i>
+              Exportar JSON
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Cultivo</th>
+                  <th>Producción (kg)</th>
+                  <th>Beneficio (€)</th>
+                  <th>Precio/kg (€)</th>
+                  <th>Rentabilidad</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for nombre, data in datos_cultivos.items() %}
+                <tr>
+                  <td>
+                    <strong class="text-capitalize">{{ nombre }}</strong>
+                  </td>
+                  <td>
+                    <span class="badge bg-success rounded-pill">
+                      {{ "%.1f"|format(data.kilos) }} kg
+                    </span>
+                  </td>
+                  <td>
+                    <strong class="text-success">
+                      €{{ "%.2f"|format(data.beneficio) }}
+                    </strong>
+                  </td>
+                  <td>
+                    €{{ "%.2f"|format(data.beneficio / data.kilos if data.kilos > 0 else 0) }}
+                  </td>
+                  <td>
+                    {% set rentabilidad = (data.beneficio / total_beneficios * 100) if total_beneficios > 0 else 0 %}
+                    <div class="progress" style="height: 20px;">
+                      <div class="progress-bar bg-success" style="width: {{ rentabilidad }}%">
+                        {{ "%.1f"|format(rentabilidad) }}%
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Botones de acción -->
+  <div class="row mt-4">
+    <div class="col-12 text-center">
+      <a href="{{ url_for('analytics.advanced') }}" class="btn btn-primary btn-lg me-3">
+        <i class="bi bi-graph-up-arrow me-2"></i>
+        Analytics Avanzados
+      </a>
+      <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary btn-lg">
+        <i class="bi bi-arrow-left me-2"></i>
+        Volver al Dashboard
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Obtener datos de la API
+  fetch('{{ url_for("analytics.api_chart_data") }}')
+    .then(response => response.json())
+    .then(data => {
+      // Gráfico de barras - Producción
+      const ctx1 = document.getElementById('productionChart').getContext('2d');
+      new Chart(ctx1, {
+        type: 'bar',
+        data: {
+          labels: data.labels,
+          datasets: [{
+            label: 'Kilogramos producidos',
+            data: data.datasets[0].data,
+            backgroundColor: 'rgba(25, 135, 84, 0.8)',
+            borderColor: 'rgba(25, 135, 84, 1)',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Kilogramos'
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              display: false
+            }
+          }
+        }
+      });
+
+      // Gráfico de dona - Beneficios
+      const ctx2 = document.getElementById('benefitsChart').getContext('2d');
+      new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+          labels: data.labels,
+          datasets: [{
+            data: data.datasets[1].data,
+            backgroundColor: [
+              '#ff6384',
+              '#36a2eb',
+              '#cc65fe',
+              '#ffce56',
+              '#4bc0c0',
+              '#9966ff',
+              '#ff9f40',
+              '#ff6384',
+              '#c9cbcf',
+              '#4bc0c0'
+            ],
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+    })
+    .catch(error => {
+      console.error('Error cargando datos de gráficas:', error);
+    });
+});
+</script>
+{% endblock %}

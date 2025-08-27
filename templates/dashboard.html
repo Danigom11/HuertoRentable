@@ -3,11 +3,12 @@
 
 <!-- Banner de modo demo para usuarios invitados -->
 {% if not is_authenticated or demo_mode %}
-<div class="alert alert-info alert-dismissible fade show" role="alert">
-  <i class="bi bi-info-circle me-2"></i>
-  <strong>Modo Demo</strong> - Estás viendo datos de ejemplo.
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+  <i class="bi bi-star-fill me-2"></i>
+  <strong>Vista Premium Demo</strong> - Estás viendo una demostración completa
+  de todas las funcionalidades premium con 10 cultivos de ejemplo.
   <a href="{{ url_for('auth.login') }}" class="alert-link">Inicia sesión</a>
-  para usar datos reales.
+  para gestionar tus cultivos reales.
   <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 {% endif %}

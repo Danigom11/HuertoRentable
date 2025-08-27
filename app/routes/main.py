@@ -184,9 +184,11 @@ def api_user_status():
         })
 
 def should_show_upgrade_banner(plan, num_cultivos):
-    """Determinar si mostrar banner de upgrade"""
-    if plan == 'invitado' and num_cultivos >= 2:
-        return True
+    """Determinar si mostrar banner de upgrade - NO mostrar en modo demo"""
+    # En modo demo (plan='invitado') no mostrar banners de upgrade
+    # porque es una demostración de funcionalidades premium
+    if plan == 'invitado':
+        return False
     elif plan == 'gratuito' and num_cultivos >= 5:
         return True
     return False

@@ -20,6 +20,12 @@ main_bp = Blueprint('main', __name__)
 #     """Redireccionar desde /register a /auth/register para compatibilidad"""
 #     return redirect(url_for('auth.register'))
 
+@main_bp.route('/clear-session')
+def clear_session():
+    """Limpiar sesión problemática - útil para resolver loops de login"""
+    session.clear()
+    return redirect(url_for('main.dashboard'))
+
 @main_bp.route('/manifest.json')
 def manifest():
     """Servir el manifest de PWA"""
@@ -138,7 +144,8 @@ def profile():
     """Perfil de usuario y configuración"""
     user = get_current_user()
     if not user:
-        return redirect(url_for('auth_bp.login'))
+        # return redirect(url_for('auth_bp.login'))  # Comentado para evitar loops
+        return redirect(url_for('main.dashboard'))
     
     from flask import current_app
     user_service = UserService(current_app.db)

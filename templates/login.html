@@ -207,7 +207,7 @@ endblock %} {% block content %}
   function cerrarSesion() {
     localStorage.removeItem("huerto_auth");
     localStorage.removeItem("huerto_user");
-    window.location.href = '{{ url_for("auth.login") }}';
+    window.location.href = '{{ url_for("auth_bp.login") }}';
   }
 </script>
 {% endblock %}

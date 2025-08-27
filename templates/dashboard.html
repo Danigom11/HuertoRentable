@@ -1,4 +1,14 @@
-{% extends "base.html" %} {% block title %}Dashboard - HuertoRentable{% endblock
+{% extends "base.html" %} {% block title %}Dash      {% if is_authenticated %}
+      <a href="{{ url_for('crops.add_crop') }}" class="btn btn-success">
+        <i class="bi bi-plus-circle me-1"></i>
+        Nuevo Cultivo
+      </a>
+      {% else %}
+      <a href="{{ url_for('auth_bp.register') }}" class="btn btn-outline-success">
+        <i class="bi bi-person-plus me-1"></i>
+        Registrarse
+      </a>
+      {% endif %}rtoRentable{% endblock
 %} {% block content %}
 
 <!-- Banner de modo demo para usuarios invitados -->
@@ -7,7 +17,7 @@
   <i class="bi bi-star-fill me-2"></i>
   <strong>Vista Premium Demo</strong> - Estás viendo una demostración completa
   de todas las funcionalidades premium con 10 cultivos de ejemplo.
-  <a href="{{ url_for('auth.login') }}" class="alert-link">Inicia sesión</a>
+  <a href="{{ url_for('auth_bp.login') }}" class="alert-link">Inicia sesión</a>
   para gestionar tus cultivos reales.
   <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>

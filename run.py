@@ -5,14 +5,14 @@ Sistema de gestión de huertos rentables con autenticación y monetización
 import os
 from app import create_app
 
+# Crear aplicación usando factory pattern
+app, db = create_app()
+
+# Inyectar db en el contexto de la aplicación
+app.db = db
+
 def main():
     """Función principal de la aplicación"""
-    # Crear aplicación usando factory pattern
-    app, db = create_app()
-    
-    # Inyectar db en el contexto de la aplicación
-    app.db = db
-    
     # Configurar host y puerto
     port = int(os.environ.get('PORT', 5001))
     host = '0.0.0.0' if os.environ.get('FLASK_ENV') == 'production' else '127.0.0.1'

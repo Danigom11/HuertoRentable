@@ -1,0 +1,526 @@
+{% extends "base.html" %} {% block title %}Analytics Avanzados -
+HuertoRentable{% endblock %} {% block content %}
+<!-- Banner de modo demo en analytics avanzados -->
+{% if demo_mode %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+  <i class="bi bi-star-fill me-2"></i>
+  <strong>Analytics Premium Avanzados - DEMO</strong> - Explorando todas las
+  funcionalidades profesionales de análisis.
+  <a href="{{ url_for('auth.login') }}" class="alert-link">Inicia sesión</a>
+  para analizar tus datos reales con estas herramientas.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h1 class="display-6 text-success mb-2">
+        <i class="bi bi-graph-up-arrow me-2"></i>
+        Analytics Avanzados {% if demo_mode %}
+        <span class="badge bg-warning">DEMO PREMIUM</span>
+        {% endif %}
+      </h1>
+      <p class="lead text-muted">
+        Análisis profesional con predicciones, tendencias y insights avanzados
+      </p>
+    </div>
+  </div>
+
+  <!-- Métricas clave -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-gradient bg-primary text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title text-uppercase">Beneficio Total</h6>
+              <h2 class="mb-0">€{{ "%.0f"|format(total_beneficios) }}</h2>
+              <small>+23% vs mes anterior</small>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-cash-stack fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-gradient bg-success text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title text-uppercase">Proyección Anual</h6>
+              <h2 class="mb-0">€{{ "%.0f"|format(proyeccion_anual) }}</h2>
+              <small>Basado en tendencias</small>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-trending-up fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-gradient bg-warning text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title text-uppercase">Eficiencia</h6>
+              <h2 class="mb-0">
+                {{ "%.1f"|format(total_kilos / cultivos|length) }} kg
+              </h2>
+              <small>Por cultivo promedio</small>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-speedometer2 fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-gradient bg-info text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title text-uppercase">ROI Promedio</h6>
+              <h2 class="mb-0">
+                {{ "%.0f"|format((total_beneficios / (total_kilos * 0.5)) * 100
+                if total_kilos > 0 else 0) }}%
+              </h2>
+              <small>Retorno de inversión</small>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-percent fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráficas avanzadas -->
+  <div class="row mb-4">
+    <div class="col-lg-8 mb-4">
+      <div class="card h-100">
+        <div
+          class="card-header bg-light d-flex justify-content-between align-items-center"
+        >
+          <h5 class="card-title mb-0">
+            <i class="bi bi-graph-up me-2"></i>
+            Evolución Temporal de Beneficios
+          </h5>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-primary active">Mensual</button>
+            <button class="btn btn-outline-primary">Semanal</button>
+            <button class="btn btn-outline-primary">Diario</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <canvas id="evolutionChart" height="100"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-trophy me-2"></i>
+            Top 5 Cultivos Más Rentables
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            {% for cultivo in cultivos_ranking %}
+            <div
+              class="list-group-item d-flex justify-content-between align-items-center px-0"
+            >
+              <div>
+                <h6 class="mb-1 text-capitalize">{{ cultivo.nombre }}</h6>
+                <small class="text-muted"
+                  >{{ "%.1f"|format(cultivo.kilos_totales) }} kg
+                  producidos</small
+                >
+              </div>
+              <div class="text-end">
+                <span class="badge bg-success rounded-pill">
+                  €{{ "%.0f"|format(cultivo.beneficio_total) }}
+                </span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Análisis por temporadas -->
+  <div class="row mb-4">
+    <div class="col-lg-6 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-calendar3 me-2"></i>
+            Análisis por Temporadas
+          </h5>
+        </div>
+        <div class="card-body">
+          <canvas id="seasonChart" height="150"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-target me-2"></i>
+            Comparativa de Rendimiento
+          </h5>
+        </div>
+        <div class="card-body">
+          <canvas id="performanceChart" height="150"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de datos detallados -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div
+          class="card-header bg-light d-flex justify-content-between align-items-center"
+        >
+          <h5 class="card-title mb-0">
+            <i class="bi bi-table me-2"></i>
+            Análisis Detallado por Cultivo
+          </h5>
+          <div class="btn-group">
+            <a
+              href="{{ url_for('analytics.export_csv') }}"
+              class="btn btn-sm btn-outline-success"
+            >
+              <i class="bi bi-file-earmark-excel me-1"></i>
+              Exportar CSV
+            </a>
+            <a
+              href="{{ url_for('analytics.export_json') }}"
+              class="btn btn-sm btn-outline-primary"
+            >
+              <i class="bi bi-file-earmark-code me-1"></i>
+              Exportar JSON
+            </a>
+            <button class="btn btn-sm btn-outline-warning">
+              <i class="bi bi-file-earmark-pdf me-1"></i>
+              Generar Reporte PDF
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Cultivo</th>
+                  <th>Fecha Siembra</th>
+                  <th>Plantas</th>
+                  <th>Producción</th>
+                  <th>Beneficio</th>
+                  <th>€/kg</th>
+                  <th>ROI</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for cultivo in cultivos %}
+                <tr>
+                  <td>
+                    <strong class="text-capitalize"
+                      >{{ cultivo.nombre }}</strong
+                    >
+                  </td>
+                  <td>
+                    <small
+                      >{{ cultivo.fecha_siembra.strftime('%d/%m/%Y') }}</small
+                    >
+                  </td>
+                  <td>
+                    <span class="badge bg-light text-dark">
+                      {{ cultivo.plantas_sembradas }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge bg-success rounded-pill">
+                      {{ "%.1f"|format(cultivo.kilos_totales) }} kg
+                    </span>
+                  </td>
+                  <td>
+                    <strong class="text-success">
+                      €{{ "%.2f"|format(cultivo.beneficio_total) }}
+                    </strong>
+                  </td>
+                  <td>€{{ "%.2f"|format(cultivo.precio_por_kilo) }}</td>
+                  <td>
+                    {% set roi = ((cultivo.beneficio_total /
+                    (cultivo.kilos_totales * 0.5)) * 100) if
+                    cultivo.kilos_totales > 0 else 0 %}
+                    <span
+                      class="badge {% if roi > 200 %}bg-success{% elif roi > 100 %}bg-warning{% else %}bg-danger{% endif %}"
+                    >
+                      {{ "%.0f"|format(roi) }}%
+                    </span>
+                  </td>
+                  <td>
+                    {% if cultivo.activo %}
+                    <span class="badge bg-success">Activo</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Cosechado</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Insights y recomendaciones -->
+  <div class="row mb-4">
+    <div class="col-lg-8 mb-4">
+      <div class="card">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-lightbulb me-2"></i>
+            Insights y Recomendaciones
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info">
+            <h6>
+              <i class="bi bi-info-circle me-2"></i>Análisis de Rendimiento
+            </h6>
+            <p class="mb-2">
+              Tus
+              <strong
+                >{{ cultivos_ranking[0].nombre if cultivos_ranking|length > 0
+                else 'tomates' }}</strong
+              >
+              son el cultivo más rentable con €{{
+              "%.0f"|format(cultivos_ranking[0].beneficio_total if
+              cultivos_ranking|length > 0 else 185) }} de beneficio.
+            </p>
+            <p class="mb-0">
+              <strong>Recomendación:</strong> Considera aumentar la superficie
+              dedicada a este cultivo en la próxima temporada.
+            </p>
+          </div>
+
+          <div class="alert alert-warning">
+            <h6>
+              <i class="bi bi-exclamation-triangle me-2"></i>Oportunidad de
+              Mejora
+            </h6>
+            <p class="mb-2">
+              La producción promedio por planta podría mejorarse en un 15%
+              optimizando el riego y la fertilización.
+            </p>
+            <p class="mb-0">
+              <strong>Próximo paso:</strong> Implementar sistema de riego por
+              goteo en cultivos de menor rendimiento.
+            </p>
+          </div>
+
+          <div class="alert alert-success">
+            <h6><i class="bi bi-check-circle me-2"></i>Excelente Desempeño</h6>
+            <p class="mb-0">
+              Has superado la proyección mensual en un 23%. ¡Continúa con las
+              prácticas actuales!
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 mb-4">
+      <div class="card">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-calendar-check me-2"></i>
+            Próximas Acciones
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            <div class="list-group-item px-0">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">Siembra de Temporada</h6>
+                <small>En 5 días</small>
+              </div>
+              <p class="mb-1">Preparar semillero de lechugas de invierno</p>
+            </div>
+            <div class="list-group-item px-0">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">Cosecha Prevista</h6>
+                <small>En 2 semanas</small>
+              </div>
+              <p class="mb-1">Tomates cherry listos para recolección</p>
+            </div>
+            <div class="list-group-item px-0">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">Fertilización</h6>
+                <small>Pendiente</small>
+              </div>
+              <p class="mb-1">Aplicar compost en cultivos de hoja verde</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Botones de acción -->
+  <div class="row mt-4">
+    <div class="col-12 text-center">
+      <a
+        href="{{ url_for('analytics.dashboard') }}"
+        class="btn btn-outline-secondary btn-lg me-3"
+      >
+        <i class="bi bi-arrow-left me-2"></i>
+        Analytics Básicos
+      </a>
+      <a href="{{ url_for('main.dashboard') }}" class="btn btn-success btn-lg">
+        <i class="bi bi-house-door me-2"></i>
+        Volver al Dashboard
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block page_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Datos simulados para demo
+    const monthlyData = {
+      labels: [
+        "Enero",
+        "Febrero",
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+      ],
+      datasets: [
+        {
+          label: "Beneficios (€)",
+          data: [120, 180, 150, 240, 320, 280, 380, 450],
+          borderColor: "rgba(25, 135, 84, 1)",
+          backgroundColor: "rgba(25, 135, 84, 0.1)",
+          tension: 0.4,
+          fill: true,
+        },
+      ],
+    };
+
+    // Gráfico de evolución temporal
+    const ctx1 = document.getElementById("evolutionChart").getContext("2d");
+    new Chart(ctx1, {
+      type: "line",
+      data: monthlyData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: "Beneficios (€)",
+            },
+          },
+        },
+        plugins: {
+          legend: {
+            display: false,
+          },
+        },
+      },
+    });
+
+    // Gráfico de temporadas
+    const ctx2 = document.getElementById("seasonChart").getContext("2d");
+    new Chart(ctx2, {
+      type: "doughnut",
+      data: {
+        labels: ["Primavera", "Verano", "Otoño", "Invierno"],
+        datasets: [
+          {
+            data: [30, 45, 20, 5],
+            backgroundColor: ["#28a745", "#ffc107", "#fd7e14", "#6f42c1"],
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: "bottom",
+          },
+        },
+      },
+    });
+
+    // Gráfico de rendimiento comparativo
+    const ctx3 = document.getElementById("performanceChart").getContext("2d");
+    new Chart(ctx3, {
+      type: "radar",
+      data: {
+        labels: [
+          "Productividad",
+          "Calidad",
+          "Resistencia",
+          "Rentabilidad",
+          "Sostenibilidad",
+        ],
+        datasets: [
+          {
+            label: "Tu Huerto",
+            data: [85, 78, 92, 88, 75],
+            borderColor: "rgba(25, 135, 84, 1)",
+            backgroundColor: "rgba(25, 135, 84, 0.2)",
+          },
+          {
+            label: "Promedio Regional",
+            data: [70, 65, 75, 72, 68],
+            borderColor: "rgba(108, 117, 125, 1)",
+            backgroundColor: "rgba(108, 117, 125, 0.2)",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          r: {
+            beginAtZero: true,
+            max: 100,
+          },
+        },
+      },
+    });
+  });
+</script>
+{% endblock %}

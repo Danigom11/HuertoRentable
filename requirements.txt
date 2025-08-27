@@ -1,6 +1,16 @@
-# Dependencias para HuertoRentable - PWA Flask con Firebase
-# ESTAS son las únicas dependencias permitidas
-
+# HuertoRentable v2.0 - Dependencias de producción
+# Core Flask
 Flask==2.3.3
-firebase-admin==6.2.0
 python-dotenv==1.0.0
+
+# Firebase para base de datos y autenticación
+firebase-admin==6.2.0
+
+# JWT para autenticación personalizada
+PyJWT==2.10.1
+
+# Utilidades adicionales
+python-dateutil==2.9.0
+
+# Para exportación PDF (premium feature)
+# reportlab==4.0.4  # Descomentado cuando se implemente

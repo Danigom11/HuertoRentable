@@ -49,7 +49,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-success shadow-sm">
       <div class="container">
         <!-- Logo y nombre de la app -->
-        <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
+        <a class="navbar-brand fw-bold" href="{{ url_for('main.dashboard') }}">
           <i class="bi bi-flower2 me-2"></i>
           HuertoRentable
         </a>
@@ -69,8 +69,8 @@
           <ul class="navbar-nav me-auto">
             <li class="nav-item">
               <a
-                class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}"
-                href="{{ url_for('dashboard') }}"
+                class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}"
+                href="{{ url_for('main.dashboard') }}"
               >
                 <i class="bi bi-house-door me-1"></i>
                 Dashboard
@@ -78,8 +78,8 @@
             </li>
             <li class="nav-item">
               <a
-                class="nav-link {% if request.endpoint == 'gestionar_cultivos' %}active{% endif %}"
-                href="{{ url_for('gestionar_cultivos') }}"
+                class="nav-link {% if request.endpoint == 'crops.list_crops' %}active{% endif %}"
+                href="{{ url_for('crops.list_crops') }}"
               >
                 <i class="bi bi-seedling me-1"></i>
                 Cultivos
@@ -87,8 +87,8 @@
             </li>
             <li class="nav-item">
               <a
-                class="nav-link {% if request.endpoint == 'analytics' %}active{% endif %}"
-                href="{{ url_for('analytics') }}"
+                class="nav-link {% if request.endpoint == 'analytics.dashboard' %}active{% endif %}"
+                href="{{ url_for('analytics.dashboard') }}"
               >
                 <i class="bi bi-graph-up me-1"></i>
                 Análisis

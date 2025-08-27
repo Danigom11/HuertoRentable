@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Bienvenido - HuertoRentable{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 text-center">
+            <!-- Hero -->
+            <div class="mb-5">
+                <h1 class="display-4 text-success mb-3">
+                    🌱 ¡Bienvenido a HuertoRentable!
+                </h1>
+                <p class="lead text-muted">
+                    Transforma tu huerto en un negocio rentable con nuestra herramienta de gestión profesional.
+                </p>
+            </div>
+
+            <!-- Features -->
+            <div class="row mb-5">
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon mb-3">
+                                <i class="bi bi-grid-3x3-gap text-success fs-1"></i>
+                            </div>
+                            <h5 class="card-title">Gestión de Cultivos</h5>
+                            <p class="card-text text-muted">
+                                Registra y controla todos tus cultivos desde un solo lugar.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon mb-3">
+                                <i class="bi bi-graph-up text-success fs-1"></i>
+                            </div>
+                            <h5 class="card-title">Analytics Avanzados</h5>
+                            <p class="card-text text-muted">
+                                Visualiza tus beneficios y rendimiento con gráficas interactivas.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon mb-3">
+                                <i class="bi bi-cloud-check text-success fs-1"></i>
+                            </div>
+                            <h5 class="card-title">Backup en la Nube</h5>
+                            <p class="card-text text-muted">
+                                Tus datos seguros y sincronizados en todos tus dispositivos.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA Buttons -->
+            <div class="d-grid gap-3 d-md-block">
+                <a href="{{ url_for('auth.register') }}" class="btn btn-success btn-lg px-5">
+                    <i class="bi bi-person-plus me-2"></i>
+                    Crear Cuenta Gratis
+                </a>
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-success btn-lg px-5">
+                    <i class="bi bi-eye me-2"></i>
+                    Ver Demo
+                </a>
+            </div>
+
+            <!-- Plans Preview -->
+            <div class="mt-5 pt-5">
+                <h3 class="text-center mb-4">Planes Disponibles</h3>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-secondary">
+                            <div class="card-header text-center bg-secondary text-white">
+                                <h5 class="mb-0">Invitado</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                <h3 class="card-title">Gratis</h3>
+                                <ul class="list-unstyled">
+                                    <li>✅ 3 cultivos máximo</li>
+                                    <li>✅ Analytics básicos</li>
+                                    <li>❌ Backup en nube</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-warning">
+                            <div class="card-header text-center bg-warning text-dark">
+                                <h5 class="mb-0">Gratuito</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                <h3 class="card-title">Gratis</h3>
+                                <ul class="list-unstyled">
+                                    <li>✅ Cultivos ilimitados</li>
+                                    <li>✅ Backup en nube</li>
+                                    <li>✅ Analytics básicos</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-primary">
+                            <div class="card-header text-center bg-primary text-white">
+                                <h5 class="mb-0">Premium</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                <h3 class="card-title">€0.99/mes</h3>
+                                <ul class="list-unstyled">
+                                    <li>✅ Todo lo anterior</li>
+                                    <li>✅ Sin anuncios</li>
+                                    <li>✅ Analytics avanzados</li>
+                                    <li>✅ Exportar datos</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.feature-icon {
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+</style>
+{% endblock %}

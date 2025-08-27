@@ -1,0 +1,60 @@
+# VARIABLES DE ENTORNO PARA RENDER
+# Copia estas variables una por una en Render Dashboard -> Environment
+
+# === VARIABLES BÁSICAS ===
+FLASK_ENV=production
+SECRET_KEY=huerto-rentable-secreto-2025
+PORT=5000
+
+# === VARIABLES FIREBASE ===
+FIREBASE_TYPE=service_account
+FIREBASE_PROJECT_ID=huerto-rentable
+FIREBASE_PRIVATE_KEY_ID=21d3e98f4c1e7923f063a69ba30a583161f2af70
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-fbsvc@huerto-rentable.iam.gserviceaccount.com
+FIREBASE_CLIENT_ID=115865445845937222635
+FIREBASE_AUTH_URI=https://accounts.google.com/o/oauth2/auth
+FIREBASE_TOKEN_URI=https://oauth2.googleapis.com/token
+FIREBASE_AUTH_PROVIDER_X509_CERT_URL=https://www.googleapis.com/oauth2/v1/certs
+FIREBASE_CLIENT_X509_CERT_URL=https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40huerto-rentable.iam.gserviceaccount.com
+FIREBASE_UNIVERSE_DOMAIN=googleapis.com
+
+# === FIREBASE_PRIVATE_KEY (ESPECIAL - Todo en una línea) ===
+FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----
+MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC86jfMkqyx3IDY
+TD3ke26Y3eezhA0DN+hiFCHK0eMt+0ecNnF5L1G+lBGE3njaU+tnLEypyTH9h2LP
+dqzGOW36BaUuw8Ff5lU6kXu17is/xsb2RgOXpqGJERbaE7s/F3fEjGcOGam4icWq
+gGG6DiDhrRP+PI7YcYdKJUSaIdKNEgcz4wwPw17pso2xFxv2wv3KxhVOtCW89LoG
+89TFBjXRGRa35cGGI5xur1sozEihOFdU6yEAWjXYfZTkx2boiTSivspCGgSQvmK1
+GOLiuRiX5tbn8WCvOh8QoYfemgb/PieLaRtsoSvmzcGvONeXVwvTc6HGXRtTQ3gG
+h4k31Ji/AgMBAAECggEAFAVYg4g54CGn0ASIfKnuJypBT3+bp28p5BcRG78RrgJW
+7QHCFd9DcQidMLEpKq5BIO6Lc2T8tMs/2A/SMLHOa3RktKePW1v8RVg8vaOvlrM4
+y8nQwKYqsW2Lt/HmYsHYcg6VL2Pd3k5PkgnIEaFEr9YZa9S8KMkjVuLLOfCCsWt8
+chSWXP+L4EMnx5hR+SgYsod+AeqTuZCiN2w/hazCYIRYnOLKh5JfUmoVo1+QS9NZ
+AqJemPscs38Bj/EreMLaczRYrg7kVqJsW8GEMlnNvSC1Y1hW4BTwUVOCmp+e5aZg
+hd23ozxcau9kebR4DnrYyOBy4/Ls8Ut9vjeqkUhXiQKBgQDtp6o/lFBLnoTS99tT
+2Ge7rqoKW9O/Vwq2VaMxUBP4stKTbGfSBa9vdJKfIAltUKxzfyfO+/118tpK3cF3
+F/c30A57dekGoBm4V4ExapcB8eef282BZjzDE8eI1Ow6bTPnRM5SNVKHb1MV8SN2
+yfOsft11TH1yhCnwAyVEx7qGSQKBgQDLf2TYvAdcgGHwER5idsb2v4heRUCAyJIi
+NZUpCNSHaiPl5qahXfU9QgIMDiwB6NJVGf4G+pZMGjVuOWsieqjn3etqHPt6NQY6
+3MI2Dcc6rhbb7nXynsjSRmPw/WWTBkgE9jBuUzDMx2Uq06EZQxSiEp6yVMOYgmsU
+QHFxRyyGxwKBgQDDsRU6Z1k6+1vqEFhVEVRRskCoaPbSjszuWVQYzhSz7CQDaveO
+dEoCn94AE7RPhGeMbz8LbGpITmI71aBx/ZT/K15RgUURxJGJPtzOITQZUOVmt+rf
+y5zrEYVzgcjHT5a2r+youumrRhsHbVnDfgYdmxWmegauXm/eB+kPWtuXqQKBgQCE
+AZrYoXig/8MIaQJt2yEMFYkPphrGr9VkDaA54zmCsk6hJzM2gG3ClBwh19uiTXaL
+r/XCbzGqImJAo0ylLC5/Ys0Ao9ZaGyV0b5ooWF3B6gZ4GsM2ZNxe0zynqqkGa8+y
+MEWQe7SvUjWFR408hvBOhoedpTDQsOFnXLp6QjJXJwKBgQCPWV04bK3sSHvHTpi6
+HjBFOwCKqmX7mZK9ldCml/RgztGhxFu+gFDNAXHCPurbYNBET3GSRERDXzqFKYOI
+9FKNg3WYIJOb7Q9v1h8QpIYBd0/V+KHkAWrWXAj68WG4uqGOhdkA6sqmQq6uNEdM
+nMxfxiaCVZjmDq671qHUKi1rbQ==
+-----END PRIVATE KEY-----
+
+# === INSTRUCCIONES ===
+# 1. Ve a tu navegador normal (Chrome/Firefox)
+# 2. Ve a: https://dashboard.render.com
+# 3. Busca tu servicio "huerto-rentable"
+# 4. Click en "Environment" en el menú lateral
+# 5. Añade cada variable una por una:
+#    - Key: FLASK_ENV, Value: production
+#    - Key: SECRET_KEY, Value: huerto-rentable-secreto-2025
+#    - etc...
+# 6. Para FIREBASE_PRIVATE_KEY, copia TODO el texto desde -----BEGIN hasta -----END

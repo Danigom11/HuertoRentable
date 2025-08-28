@@ -218,10 +218,20 @@ HuertoRentable{% endblock %} {% block content %}
               <i class="bi bi-file-earmark-code me-1"></i>
               Exportar JSON
             </a>
-            <button class="btn btn-sm btn-outline-warning">
+            <a
+              href="{{ url_for('analytics.export_excel') }}"
+              class="btn btn-sm btn-outline-warning"
+            >
+              <i class="bi bi-file-earmark-spreadsheet me-1"></i>
+              Exportar Excel
+            </a>
+            <a
+              href="{{ url_for('analytics.export_pdf') }}"
+              class="btn btn-sm btn-outline-danger"
+            >
               <i class="bi bi-file-earmark-pdf me-1"></i>
-              Generar Reporte PDF
-            </button>
+              Exportar PDF
+            </a>
           </div>
         </div>
         <div class="card-body">

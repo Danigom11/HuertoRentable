@@ -24,19 +24,25 @@ def list_crops():
         # Modo demo: cultivos de ejemplo
         cultivos = crop_service.get_demo_crops()
     
-    return render_template('crops/list.html', cultivos=cultivos, demo_mode=not bool(user))
+    return render_template('crops.html', cultivos=cultivos, demo_mode=not bool(user))
 
 @crops_bp.route('/create', methods=['GET', 'POST'])
 def create_crop():
     """Crear nuevo cultivo (requiere autenticación)"""
     user = get_current_user()
     if not user:
-        return jsonify({'error': 'Modo demo: regístrate para crear cultivos reales'}), 403
+        if request.method == 'POST':
+            # En modo demo, mostrar mensaje informativo y redirigir
+            flash('🌱 Modo Demo: Para crear cultivos reales, regístrate gratis. ¡Los datos demo son solo para explorar!', 'info')
+            return redirect(url_for('crops.list_crops'))
+        else:
+            # GET request, redirigir directamente
+            return redirect(url_for('crops.list_crops'))
         
     from flask import current_app
     
     if request.method == 'GET':
-        return render_template('crops/create.html')
+        return render_template('crops.html')
     
     user = get_current_user()
     crop_service = CropService(current_app.db)

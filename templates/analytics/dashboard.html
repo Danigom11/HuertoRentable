@@ -1,10 +1,10 @@
-{% extends "base.html" %} {% block title %}Analytics - HuertoRentable{% endblock
+{% extends "base.html" %} {% block title %}Informes - HuertoRentable{% endblock
 %} {% block content %}
 <!-- Banner de modo demo en analytics -->
 {% if demo_mode %}
-<div class="alert alert-success alert-dismissible fade show" role="alert">
+<div class="alert alert-info alert-dismissible fade show" role="alert">
   <i class="bi bi-star-fill me-2"></i>
-  <strong>Analytics Premium Demo</strong> - Explorando todas las funcionalidades
+  <strong>Informes Premium Demo</strong> - Explorando todas las funcionalidades
   de análisis avanzado.
   <a href="{{ url_for('auth.login') }}" class="alert-link">Inicia sesión</a>
   para analizar tus datos reales.
@@ -18,9 +18,7 @@
     <div class="col-12">
       <h1 class="display-6 text-success mb-2">
         <i class="bi bi-bar-chart me-2"></i>
-        Analytics del Huerto {% if demo_mode %}
-        <span class="badge bg-warning">DEMO</span>
-        {% endif %}
+        Analytics del Huerto
       </h1>
       <p class="lead text-muted">
         Análisis detallado de producción y rentabilidad
@@ -31,7 +29,7 @@
   <!-- Tarjetas de resumen -->
   <div class="row mb-4">
     <div class="col-lg-3 col-md-6 mb-3">
-      <div class="card bg-primary text-white h-100">
+      <div class="card bg-dark text-white h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between">
             <div>
@@ -154,6 +152,20 @@
             >
               <i class="bi bi-file-earmark-code me-1"></i>
               Exportar JSON
+            </a>
+            <a
+              href="{{ url_for('analytics.export_excel') }}"
+              class="btn btn-sm btn-outline-warning"
+            >
+              <i class="bi bi-file-earmark-spreadsheet me-1"></i>
+              Exportar Excel
+            </a>
+            <a
+              href="{{ url_for('analytics.export_pdf') }}"
+              class="btn btn-sm btn-outline-danger"
+            >
+              <i class="bi bi-file-earmark-pdf me-1"></i>
+              Exportar PDF
             </a>
           </div>
         </div>

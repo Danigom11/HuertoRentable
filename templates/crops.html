@@ -2,14 +2,13 @@
 HuertoRentable{% endblock %} {% block content %}
 
 <!-- Banner de modo demo -->
-{% if modo_demo %}
+{% if demo_mode %}
 <div class="alert alert-info alert-dismissible fade show" role="alert">
-  <i class="bi bi-info-circle me-2"></i>
-  <strong>Modo Demo</strong> - Estás viendo datos de ejemplo.
-  <a href="/FIREBASE_SETUP.md" target="_blank" class="alert-link"
-    >Configura Firebase</a
-  >
-  para guardar datos reales.
+  <i class="bi bi-star-fill me-2"></i>
+  <strong>Cultivos Premium Demo</strong> - Estás viendo una demostración
+  completa de la gestión de cultivos con datos de ejemplo.
+  <a href="{{ url_for('auth.login') }}" class="alert-link">Inicia sesión</a>
+  para gestionar tus cultivos reales.
   <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 {% endif %}
@@ -245,7 +244,7 @@ HuertoRentable{% endblock %} {% block content %}
           data-bs-dismiss="modal"
         ></button>
       </div>
-      <form action="{{ url_for('gestionar_cultivos') }}" method="POST">
+      <form action="{{ url_for('crops.create_crop') }}" method="POST">
         <div class="modal-body">
           <div class="mb-3">
             <label for="nombre" class="form-label">
@@ -317,10 +316,21 @@ HuertoRentable{% endblock %} {% block content %}
           >
             Cancelar
           </button>
+          {% if demo_mode %}
+          <button
+            type="button"
+            class="btn btn-success"
+            onclick="mostrarMensajeModoDemo()"
+          >
+            <i class="bi bi-plus-circle me-1"></i>
+            Crear Cultivo
+          </button>
+          {% else %}
           <button type="submit" class="btn btn-success">
             <i class="bi bi-plus-circle me-1"></i>
             Crear Cultivo
           </button>
+          {% endif %}
         </div>
       </form>
     </div>
@@ -624,6 +634,18 @@ HuertoRentable{% endblock %} {% block content %}
 
   function editarCultivo(cultivoId) {
     mostrarAlerta("info", "✏️ Función de editar cultivo - En desarrollo");
+  }
+
+  function mostrarMensajeModoDemo() {
+    // Cerrar el modal primero
+    modalNuevoCultivo.hide();
+
+    // Mostrar alerta informativa después de un pequeño delay
+    setTimeout(function () {
+      alert(
+        "🌱 Modo Demo\n\nNo puedes añadir cultivos reales en el modo demostración.\n\n✨ Para crear y gestionar tus propios cultivos, regístrate gratis y disfruta de todas las funcionalidades."
+      );
+    }, 300);
   }
 </script>
 {% endblock %}

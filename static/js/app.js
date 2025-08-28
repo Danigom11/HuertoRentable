@@ -74,7 +74,11 @@ function setupEventListeners() {
 // ================================
 
 function checkAuthentication() {
-  // TEMPORAL: Deshabilitado para modo demo
+  // TEMPORAL: Limpiar localStorage problemático
+  localStorage.removeItem("huerto_auth");
+  localStorage.removeItem("huerto_user");
+
+  // Deshabilitado para modo demo
   console.log("🔧 Autenticación deshabilitada para modo demo");
   return;
 

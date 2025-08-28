@@ -15,8 +15,16 @@
       rel="stylesheet"
     />
     <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
       rel="stylesheet"
+    />
+    <!-- Fallback para Bootstrap Icons -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css"
+      rel="stylesheet"
+      integrity="sha512-dPXYcDub/aeb08c63jRq/k6GaKccl256JQy/AnOq7CAnEZ9FzSL9wSbcZkMp4R26qAlAi/E4WwVoRUx3i4p5Lsg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
     />
 
     <!-- PWA Manifest - hace la app instalable -->
@@ -39,7 +47,7 @@
     <!-- CSS personalizado con versión fija -->
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='css/styles.css') }}?v=2.2"
+      href="{{ url_for('static', filename='css/styles.css') }}?v=2.4"
     />
 
     <title>{% block title %}HuertoRentable{% endblock %}</title>
@@ -49,12 +57,20 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-success shadow-sm">
       <div class="container">
         <!-- Logo y nombre de la app -->
+        {% if request.endpoint == 'main.onboarding' %}
+        <a class="navbar-brand fw-bold" href="{{ url_for('main.onboarding') }}">
+          <i class="bi bi-flower2 me-2"></i>
+          HuertoRentable
+        </a>
+        {% else %}
         <a class="navbar-brand fw-bold" href="{{ url_for('main.dashboard') }}">
           <i class="bi bi-flower2 me-2"></i>
           HuertoRentable
         </a>
+        {% endif %}
 
         <!-- Botón hamburguesa para móviles -->
+        {% if request.endpoint != 'main.onboarding' %}
         <button
           class="navbar-toggler"
           type="button"
@@ -63,9 +79,11 @@
         >
           <span class="navbar-toggler-icon"></span>
         </button>
+        {% endif %}
 
         <!-- Enlaces de navegación -->
         <div class="collapse navbar-collapse" id="navbarNav">
+          {% if request.endpoint != 'main.onboarding' %}
           <ul class="navbar-nav me-auto">
             <li class="nav-item">
               <a
@@ -81,7 +99,7 @@
                 class="nav-link {% if request.endpoint == 'crops.list_crops' %}active{% endif %}"
                 href="{{ url_for('crops.list_crops') }}"
               >
-                <i class="bi bi-seedling me-1"></i>
+                <i class="bi bi-tree me-1"></i>
                 Cultivos
               </a>
             </li>
@@ -95,6 +113,7 @@
               </a>
             </li>
           </ul>
+          {% endif %}
         </div>
       </div>
     </nav>
@@ -154,10 +173,13 @@
     {% block chart_js %}{% endblock %}
 
     <!-- JavaScript personalizado con versión fija -->
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=2.2"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=2.3"></script>
 
     <!-- Service Worker para PWA - funcionalidad offline -->
     <script>
+      // TEMPORAL: Service Worker deshabilitado para debug
+      console.log("🔧 Service Worker deshabilitado para evitar cache issues");
+      /*
       // Registrar Service Worker sin parámetros dinámicos
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
@@ -190,6 +212,7 @@
             });
         });
       }
+      */
 
       // Detectar cuando la app se puede instalar
       let deferredPrompt;
@@ -197,6 +220,29 @@
         console.log("💾 App se puede instalar");
         deferredPrompt = e;
         // Mostrar botón de instalación personalizado si queremos
+      });
+
+      // Verificar que Bootstrap Icons se cargue correctamente
+      document.addEventListener("DOMContentLoaded", function () {
+        // Pequeño delay para que carguen los CSS
+        setTimeout(function () {
+          const testIcon = document.querySelector(".bi-tree");
+          if (testIcon) {
+            const computedStyle = window.getComputedStyle(testIcon, "::before");
+            if (!computedStyle.content || computedStyle.content === "none") {
+              console.warn(
+                "🔧 Bootstrap Icons no se cargó correctamente, aplicando fallback"
+              );
+              // Fallback: añadir texto simple
+              document.querySelectorAll(".bi-tree").forEach((icon) => {
+                if (!icon.textContent) {
+                  icon.textContent = "🌱";
+                  icon.style.fontFamily = "emoji";
+                }
+              });
+            }
+          }
+        }, 1000);
       });
     </script>
 

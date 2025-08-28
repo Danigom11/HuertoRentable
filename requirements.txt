@@ -9,6 +9,11 @@ firebase-admin==6.2.0
 # JWT para autenticación personalizada
 PyJWT==2.10.1
 
+# Exportación de datos
+openpyxl==3.1.2
+weasyprint==61.2
+reportlab==4.0.9
+
 # Utilidades adicionales
 python-dateutil==2.9.0
 

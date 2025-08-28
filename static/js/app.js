@@ -80,7 +80,7 @@ function checkAuthentication() {
   // TEMPORAL: Deshabilitado para modo demo
   console.log("🔧 Autenticación deshabilitada para modo demo");
   return;
-  
+
   // Código original comentado
   /*
   const authStatus = localStorage.getItem("huerto_auth");

@@ -10,22 +10,29 @@ from app.utils.helpers import get_plan_limits
 crops_bp = Blueprint('crops', __name__)
 
 @crops_bp.route('/')
-@login_required
 def list_crops():
-    """Listar cultivos del usuario"""
+    """Listar cultivos del usuario (modo demo disponible)"""
     from flask import current_app
     
     user = get_current_user()
     crop_service = CropService(current_app.db)
     
-    cultivos = crop_service.get_user_crops(user['uid'])
+    if user:
+        # Usuario autenticado: sus cultivos reales
+        cultivos = crop_service.get_user_crops(user['uid'])
+    else:
+        # Modo demo: cultivos de ejemplo
+        cultivos = crop_service.get_demo_crops()
     
-    return render_template('crops/list.html', cultivos=cultivos)
+    return render_template('crops/list.html', cultivos=cultivos, demo_mode=not bool(user))
 
 @crops_bp.route('/create', methods=['GET', 'POST'])
-@login_required  
 def create_crop():
-    """Crear nuevo cultivo"""
+    """Crear nuevo cultivo (requiere autenticación)"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Modo demo: regístrate para crear cultivos reales'}), 403
+        
     from flask import current_app
     
     if request.method == 'GET':
@@ -63,9 +70,12 @@ def create_crop():
         return redirect(url_for('crops.create_crop'))
 
 @crops_bp.route('/<crop_id>/production', methods=['POST'])
-@login_required
 def update_production(crop_id):
-    """Actualizar producción de un cultivo"""
+    """Actualizar producción de un cultivo (requiere autenticación)"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Modo demo: regístrate para actualizar cultivos reales'}), 403
+        
     from flask import current_app
     
     user = get_current_user()
@@ -89,15 +99,17 @@ def update_production(crop_id):
         return redirect(url_for('main.dashboard'))
 
 @crops_bp.route('/api/user-crops')
-@login_required
 def api_user_crops():
-    """API para obtener cultivos del usuario"""
+    """API para obtener cultivos del usuario (modo demo disponible)"""
     from flask import current_app
     
     user = get_current_user()
     crop_service = CropService(current_app.db)
     
-    cultivos = crop_service.get_user_crops(user['uid'])
+    if user:
+        cultivos = crop_service.get_user_crops(user['uid'])
+    else:
+        cultivos = crop_service.get_demo_crops()
     
     # Serializar cultivos para JSON
     cultivos_json = []

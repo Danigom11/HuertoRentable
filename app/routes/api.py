@@ -23,15 +23,17 @@ def status():
     })
 
 @api_bp.route('/crops', methods=['GET'])
-@login_required
 def get_crops():
-    """Obtener cultivos del usuario"""
+    """Obtener cultivos del usuario (modo demo disponible)"""
     from flask import current_app
     
     user = get_current_user()
     crop_service = CropService(current_app.db)
     
-    cultivos = crop_service.get_user_crops(user['uid'])
+    if user:
+        cultivos = crop_service.get_user_crops(user['uid'])
+    else:
+        cultivos = crop_service.get_demo_crops()
     
     return jsonify({
         'success': True,
@@ -40,9 +42,12 @@ def get_crops():
     })
 
 @api_bp.route('/crops', methods=['POST'])
-@login_required
 def create_crop():
-    """Crear nuevo cultivo via API"""
+    """Crear nuevo cultivo via API (requiere autenticación)"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Modo demo: regístrate para crear cultivos reales'}), 403
+        
     from flask import current_app
     
     user = get_current_user()
@@ -64,9 +69,11 @@ def create_crop():
         return jsonify({'error': 'Error creando cultivo'}), 400
 
 @api_bp.route('/crops/<crop_id>/production', methods=['POST'])
-@login_required
 def update_production(crop_id):
-    """Actualizar producción via API"""
+    """Actualizar producción via API (requiere autenticación)"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Modo demo: regístrate para actualizar cultivos reales'}), 403
     from flask import current_app
     
     user = get_current_user()
@@ -84,15 +91,18 @@ def update_production(crop_id):
         return jsonify({'error': 'Error actualizando producción'}), 400
 
 @api_bp.route('/user/totals')
-@login_required
 def user_totals():
-    """Obtener totales del usuario"""
+    """Obtener totales del usuario (modo demo disponible)"""
     from flask import current_app
     
     user = get_current_user()
     crop_service = CropService(current_app.db)
     
-    total_kilos, total_beneficios = crop_service.get_user_totals(user['uid'])
+    if user:
+        total_kilos, total_beneficios = crop_service.get_user_totals(user['uid'])
+    else:
+        # Datos demo de ejemplo
+        total_kilos, total_beneficios = 2500.0, 12500.0
     
     return jsonify({
         'total_kilos': total_kilos,

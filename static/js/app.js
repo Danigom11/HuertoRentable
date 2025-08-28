@@ -77,11 +77,17 @@ function setupEventListeners() {
 // ================================
 
 function checkAuthentication() {
+  // TEMPORAL: Deshabilitado para modo demo
+  console.log("🔧 Autenticación deshabilitada para modo demo");
+  return;
+  
+  // Código original comentado
+  /*
   const authStatus = localStorage.getItem("huerto_auth");
   const currentPath = window.location.pathname;
 
   // Si no está autenticado y no está en login, redirigir
-  if (!authStatus && currentPath !== "/login" && currentPath !== "/") {
+  if (!authStatus && currentPath !== "/auth/login" && currentPath !== "/") {
     // En desarrollo, permitir acceso directo para testing
     if (HuertoApp.config.isDevelopment) {
       console.log("🔧 Modo desarrollo: saltando autenticación");
@@ -89,15 +95,16 @@ function checkAuthentication() {
     }
 
     console.log("🔐 Redirigiendo a login...");
-    window.location.href = "/login";
+    window.location.href = "/auth/login";
     return;
   }
 
   // Si está autenticado y está en login, redirigir a dashboard
-  if (authStatus && currentPath === "/login") {
+  if (authStatus && currentPath === "/auth/login") {
     window.location.href = "/";
     return;
   }
+  */
 }
 
 function updateUIForUser() {

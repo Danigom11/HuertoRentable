@@ -67,17 +67,30 @@ def check_version():
 def home():
     """Página principal - redirecciona según estado del usuario"""
     user = get_current_user()
+    visited_before = session.get('visited_before')
+    
+    # Debug logging
+    print(f"🔍 DEBUG home(): user={user}, visited_before={visited_before}")
     
     # Si está autenticado, ir al dashboard
     if user:
+        print("🔍 Usuario autenticado, redirigiendo a dashboard")
         return redirect(url_for('main.dashboard'))
     
     # Si es primera visita (sin autenticar), mostrar onboarding
-    if not session.get('visited_before'):
+    if not visited_before:
+        print("🔍 Primera visita, redirigiendo a onboarding")
         return redirect(url_for('main.onboarding'))
     
     # Usuario conocido sin autenticar, ir al dashboard en modo demo
+    print("🔍 Usuario conocido, redirigiendo a dashboard demo")
     return redirect(url_for('main.dashboard'))
+
+@main_bp.route('/reset-onboarding')
+def reset_onboarding():
+    """Forzar reset del onboarding para testing"""
+    session.clear()
+    return redirect(url_for('main.home'))
 
 @main_bp.route('/onboarding')
 def onboarding():

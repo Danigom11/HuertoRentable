@@ -66,18 +66,24 @@ def check_version():
 @main_bp.route('/')
 def home():
     """Página principal - redirecciona según estado del usuario"""
-    user = get_current_user()
+    # TEMPORAL: comentado toda la lógica de redirects para debug
+    # user = get_current_user()
     
-    # Si está autenticado, ir al dashboard
-    if user:
-        return redirect(url_for('main.dashboard'))
+    # # Si está autenticado, ir al dashboard
+    # if user:
+    #     return redirect(url_for('main.dashboard'))
     
-    # Comentado para evitar problemas: ir directo al dashboard en modo demo
-    # if not session.get('visited_before'):
-    #     return redirect(url_for('main.onboarding'))
+    # # Comentado para evitar problemas: ir directo al dashboard en modo demo
+    # # if not session.get('visited_before'):
+    # #     return redirect(url_for('main.onboarding'))
     
     # Usuario conocido sin autenticar, ir al dashboard en modo demo
     return redirect(url_for('main.dashboard'))
+
+@main_bp.route('/test-login')
+def test_login():
+    """Ruta de prueba para verificar si el problema está en auth/login"""
+    return "<h1>Ruta de prueba funcionando</h1><p>Si ves esto, el problema está en /auth/login</p>"
 
 @main_bp.route('/onboarding')
 def onboarding():

@@ -48,9 +48,6 @@ function initializeApp() {
     }
   }
 
-  // Configurar estado inicial de conexión
-  updateConnectionStatus();
-
   // Inicializar tooltips de Bootstrap
   initializeTooltips();
 }
@@ -142,7 +139,6 @@ function showDemoBadge() {
 function handleOnline() {
   console.log("🟢 Conexión restaurada");
   HuertoApp.isOnline = true;
-  updateConnectionStatus();
 
   // Mostrar notificación
   showNotification("Conexión restaurada", "success");
@@ -154,34 +150,12 @@ function handleOnline() {
 function handleOffline() {
   console.log("🔴 Conexión perdida");
   HuertoApp.isOnline = false;
-  updateConnectionStatus();
 
   // Mostrar notificación
   showNotification(
     "Sin conexión - Los datos se guardarán localmente",
     "warning"
   );
-}
-
-function updateConnectionStatus() {
-  const wifiIcon = document.getElementById("wifi-icon");
-  const lastSync = document.getElementById("last-sync");
-
-  if (wifiIcon) {
-    if (HuertoApp.isOnline) {
-      wifiIcon.className = "bi bi-wifi text-light";
-    } else {
-      wifiIcon.className = "bi bi-wifi-off text-warning";
-    }
-  }
-
-  if (lastSync) {
-    if (HuertoApp.isOnline) {
-      lastSync.textContent = "Conectado";
-    } else {
-      lastSync.textContent = "Sin conexión";
-    }
-  }
 }
 
 // ================================

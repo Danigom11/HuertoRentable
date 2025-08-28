@@ -95,13 +95,6 @@
               </a>
             </li>
           </ul>
-
-          <!-- Estado de conexión - útil para PWA offline -->
-          <div class="navbar-nav">
-            <span class="nav-link" id="connection-status">
-              <i class="bi bi-wifi text-light" id="wifi-icon"></i>
-            </span>
-          </div>
         </div>
       </div>
     </nav>
@@ -204,19 +197,6 @@
         console.log("💾 App se puede instalar");
         deferredPrompt = e;
         // Mostrar botón de instalación personalizado si queremos
-      });
-
-      // Detectar cambios de conexión - feedback visual
-      window.addEventListener("online", function () {
-        document.getElementById("wifi-icon").className =
-          "bi bi-wifi text-light";
-        document.getElementById("last-sync").textContent = "Conectado";
-      });
-
-      window.addEventListener("offline", function () {
-        document.getElementById("wifi-icon").className =
-          "bi bi-wifi-off text-warning";
-        document.getElementById("last-sync").textContent = "Sin conexión";
       });
     </script>
 

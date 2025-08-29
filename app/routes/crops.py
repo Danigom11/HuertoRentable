@@ -18,8 +18,11 @@ def list_crops():
     crop_service = CropService(current_app.db)
     
     if user:
-        # Usuario autenticado: sus cultivos reales
-        cultivos = crop_service.get_user_crops(user['uid'])
+        # Usuario autenticado: verificar si es local o Firebase
+        if user.get('is_local'):
+            cultivos = crop_service.get_local_user_crops(user['uid'])
+        else:
+            cultivos = crop_service.get_user_crops(user['uid'])
     else:
         # Modo demo: cultivos de ejemplo
         cultivos = crop_service.get_demo_crops()
@@ -68,7 +71,14 @@ def create_crop():
         return redirect(url_for('crops.create_crop'))
     
     # Crear cultivo
-    if crop_service.create_crop(user['uid'], crop_data):
+    if user.get('is_local'):
+        # Usuario local: guardar en sesión
+        success = crop_service.create_local_crop(user['uid'], crop_data)
+    else:
+        # Usuario Firebase: guardar en Firestore
+        success = crop_service.create_crop(user['uid'], crop_data)
+    
+    if success:
         flash(f'Cultivo "{crop_data["nombre"]}" creado exitosamente', 'success')
         return redirect(url_for('crops.list_crops'))
     else:

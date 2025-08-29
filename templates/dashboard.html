@@ -1,14 +1,36 @@
 {% extends "base.html" %} {% block title %}Dashboard - HuertoRentable{% endblock
 %} {% block content %}
 
-<!-- Banner de modo demo para usuarios invitados -->
-{% if not is_authenticated or demo_mode %}
+<!-- Banner específico según el modo -->
+{% if is_demo_mode %}
 <div class="alert alert-info alert-dismissible fade show" role="alert">
-  <i class="bi bi-star-fill me-2"></i>
-  <strong>Vista Premium Demo</strong> - Estás viendo una demostración completa
-  de todas las funcionalidades premium con 10 cultivos de ejemplo.
-  <a href="{{ url_for('auth.login') }}" class="alert-link">Inicia sesión</a>
+  <i class="bi bi-eye me-2"></i>
+  <strong>Modo Demo</strong> - Estás viendo datos de ejemplo para conocer todas
+  las funcionalidades.
+  <a href="{{ url_for('auth.plan_selection') }}" class="alert-link"
+    >Crear cuenta</a
+  >
   para gestionar tus cultivos reales.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% elif is_guest_mode %}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+  <i class="bi bi-person me-2"></i>
+  <strong>Modo Invitado</strong> - Tus datos se guardan localmente y pueden
+  perderse.
+  <a href="{{ url_for('auth.plan_selection') }}" class="alert-link"
+    >Crear cuenta gratis</a
+  >
+  para respaldarlos en la nube.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% elif not is_authenticated %}
+<div class="alert alert-secondary alert-dismissible fade show" role="alert">
+  <i class="bi bi-info-circle me-2"></i>
+  <strong>Sesión temporal</strong> -
+  <a href="{{ url_for('auth.login') }}" class="alert-link">Inicia sesión</a>
+  o <a href="{{ url_for('auth.register') }}" class="alert-link">regístrate</a>
+  para guardar tus datos permanentemente.
   <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 {% endif %}
@@ -46,7 +68,7 @@
   <div class="col-md-4 text-md-end">
     <div class="d-grid gap-2 d-md-block">
       {% if is_authenticated %}
-      <a href="{{ url_for('crops.add_crop') }}" class="btn btn-success">
+      <a href="{{ url_for('crops.create_crop') }}" class="btn btn-success">
         <i class="bi bi-plus-circle me-1"></i>
         Nuevo Cultivo
       </a>
@@ -68,8 +90,12 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="card-title text-uppercase">Cultivos Activos</h6>
-            <h2 class="mb-0">{{ active_crops }}</h2>
-            <small>de {{ total_crops }} totales</small>
+            <h2 class="mb-0" data-stat="total-crops">{{ active_crops }}</h2>
+            <small
+              >de
+              <span data-stat="total-crops-total">{{ total_crops }}</span>
+              totales</small
+            >
           </div>
           <div class="align-self-center">
             <i class="bi bi-grid-3x3-gap fs-1"></i>
@@ -85,7 +111,9 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="card-title text-uppercase">Kilos Totales</h6>
-            <h2 class="mb-0">{{ total_production }} kg</h2>
+            <h2 class="mb-0" data-stat="total-kilos">
+              {{ total_production }} kg
+            </h2>
             <small
               >{% if plan_limits.max_crops != -1 %}Límite: {{
               plan_limits.max_crops }} cultivos{% else %}Sin límite de
@@ -106,7 +134,9 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="card-title text-uppercase">Beneficio Total</h6>
-            <h2 class="mb-0">€{{ total_revenue }}</h2>
+            <h2 class="mb-0" data-stat="total-beneficios">
+              €{{ total_revenue }}
+            </h2>
             <small
               >{% if total_crops > 0 %}€{{ "%.2f"|format(total_revenue /
               total_crops) }} promedio{% endif %}</small
@@ -134,7 +164,7 @@
       <div class="card-body p-4">
         {% if cultivos %}
         <!-- Grid responsive de tarjetas de cultivos -->
-        <div class="row g-4">
+        <div class="row g-4" data-crops-container>
           {% for cultivo in cultivos %}
           <div class="col-12 col-md-6 col-lg-4 col-xl-3">
             <div
@@ -319,13 +349,19 @@
         </div>
         {% else %}
         <!-- Estado vacío - primera experiencia del usuario -->
-        <div class="text-center py-5">
+        <div class="text-center py-5" data-crops-container>
           <i class="bi bi-seedling text-muted" style="font-size: 4rem"></i>
           <h4 class="text-muted mt-3">¡Comienza tu huerto rentable!</h4>
           <p class="text-muted mb-4">
             Aún no tienes cultivos registrados. <br />
             Añade tu primer cultivo para comenzar a gestionar tu huerto.
           </p>
+          {% if is_guest_mode %}
+          <a href="/crops/create" class="btn btn-success btn-lg">
+            <i class="bi bi-plus-circle me-2"></i>
+            Añadir Primer Cultivo (Local)
+          </a>
+          {% else %}
           <a
             href="{{ url_for('crops.list_crops') }}"
             class="btn btn-success btn-lg"
@@ -333,6 +369,7 @@
             <i class="bi bi-plus-circle me-2"></i>
             Añadir Primer Cultivo
           </a>
+          {% endif %}
         </div>
         {% endif %}
       </div>
@@ -560,4 +597,194 @@
       });
   }
 </script>
-{% endblock %}
+
+<!-- Script para modo invitado con almacenamiento local -->
+{% if is_guest_mode %}
+<script>
+  // Servicio de almacenamiento local para usuarios invitados
+  class LocalCropService {
+    constructor() {
+      this.storageKey = "huerto_cultivos_local";
+      this.maxCrops = 3;
+    }
+
+    getUserCrops() {
+      try {
+        const data = localStorage.getItem(this.storageKey);
+        return data ? JSON.parse(data) : [];
+      } catch (error) {
+        console.error("Error obteniendo cultivos locales:", error);
+        return [];
+      }
+    }
+
+    createCrop(cropData) {
+      try {
+        const crops = this.getUserCrops();
+
+        if (crops.length >= this.maxCrops) {
+          throw new Error(`Máximo ${this.maxCrops} cultivos en modo invitado`);
+        }
+
+        const newCrop = {
+          id: "crop_" + Date.now(),
+          nombre: cropData.nombre,
+          fecha_siembra: new Date().toISOString(),
+          fecha_cosecha: null,
+          precio_por_kilo: parseFloat(cropData.precio || 0),
+          abonos: [],
+          produccion_diaria: [],
+          activo: true,
+          creado_en: new Date().toISOString(),
+        };
+
+        crops.push(newCrop);
+        localStorage.setItem(this.storageKey, JSON.stringify(crops));
+        return true;
+      } catch (error) {
+        console.error("❌ Error creando cultivo local:", error);
+        throw error;
+      }
+    }
+
+    getCropsSummary() {
+      const crops = this.getUserCrops();
+
+      let totalKilos = 0;
+      let totalBeneficios = 0;
+
+      crops.forEach((crop) => {
+        const kilosCrop = crop.produccion_diaria.reduce(
+          (sum, p) => sum + (p.kilos || 0),
+          0
+        );
+        const beneficioCrop = kilosCrop * (crop.precio_por_kilo || 0);
+
+        totalKilos += kilosCrop;
+        totalBeneficios += beneficioCrop;
+      });
+
+      return {
+        total_cultivos: crops.length,
+        total_kilos: totalKilos,
+        total_beneficios: totalBeneficios,
+        limite_cultivos: this.maxCrops,
+        cultivos_restantes: this.maxCrops - crops.length,
+      };
+    }
+  }
+
+  // Inicializar servicio local
+  window.localCropService = new LocalCropService();
+
+  document.addEventListener("DOMContentLoaded", function () {
+    loadLocalCrops();
+
+    function loadLocalCrops() {
+      try {
+        const crops = window.localCropService.getUserCrops();
+        const summary = window.localCropService.getCropsSummary();
+
+        updateDashboardStats(summary);
+        updateCropsList(crops);
+      } catch (error) {
+        console.error("Error cargando cultivos locales:", error);
+      }
+    }
+
+    function updateDashboardStats(summary) {
+      // Actualizar contadores en el dashboard
+      const totalCropsEl = document.querySelector('[data-stat="total-crops"]');
+      const totalKilosEl = document.querySelector('[data-stat="total-kilos"]');
+      const totalBeneficiosEl = document.querySelector(
+        '[data-stat="total-beneficios"]'
+      );
+
+      if (totalCropsEl) totalCropsEl.textContent = summary.total_cultivos;
+      if (totalKilosEl)
+        totalKilosEl.textContent = summary.total_kilos.toFixed(1);
+      if (totalBeneficiosEl)
+        totalBeneficiosEl.textContent =
+          "€" + summary.total_beneficios.toFixed(2);
+
+      // Actualizar progreso de límites
+      const progressEl = document.querySelector('[data-progress="crops"]');
+      if (progressEl) {
+        const percentage =
+          (summary.total_cultivos / summary.limite_cultivos) * 100;
+        progressEl.style.width = percentage + "%";
+        progressEl.setAttribute("aria-valuenow", summary.total_cultivos);
+      }
+    }
+
+    function updateCropsList(crops) {
+      const cropsContainer = document.querySelector("[data-crops-container]");
+      if (!cropsContainer) return;
+
+      if (crops.length === 0) {
+        cropsContainer.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="bi bi-seedling text-muted" style="font-size: 3rem;"></i>
+                    <h5 class="text-muted mt-3">No tienes cultivos todavía</h5>
+                    <p class="text-muted">¡Añade tu primer cultivo para empezar!</p>
+                    <a href="/crops/create" class="btn btn-success">
+                        <i class="bi bi-plus-circle me-1"></i>
+                        Añadir Cultivo
+                    </a>
+                </div>
+            `;
+        return;
+      }
+
+      // Renderizar cultivos existentes
+      let cropsHTML = "";
+      crops.forEach((crop) => {
+        const fechaSiembra = new Date(crop.fecha_siembra).toLocaleDateString();
+        const kilosTotal = crop.produccion_diaria.reduce(
+          (sum, p) => sum + (p.kilos || 0),
+          0
+        );
+        const beneficio = kilosTotal * (crop.precio_por_kilo || 0);
+
+        cropsHTML += `
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title text-success">${
+                              crop.nombre
+                            }</h6>
+                            <p class="card-text">
+                                <small class="text-muted">Sembrado: ${fechaSiembra}</small><br>
+                                <strong>${kilosTotal.toFixed(
+                                  1
+                                )} kg</strong> producidos<br>
+                                <strong>€${beneficio.toFixed(
+                                  2
+                                )}</strong> generados
+                            </p>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <small class="text-muted">Plan Invitado • Datos locales</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+      });
+
+      cropsContainer.innerHTML = cropsHTML;
+    }
+
+    // Función global para añadir cultivo desde modo invitado
+    window.addLocalCrop = function (cropData) {
+      try {
+        window.localCropService.createCrop(cropData);
+        loadLocalCrops(); // Recargar vista
+        return true;
+      } catch (error) {
+        alert("Error: " + error.message);
+        return false;
+      }
+    };
+  });
+</script>
+{% endif %} {% endblock %}

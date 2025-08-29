@@ -1,0 +1,415 @@
+{% extends "base.html" %} {% block title %}Elige tu Plan - HuertoRentable{%
+endblock %} {% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <!-- Header -->
+      <div class="text-center mb-5">
+        <h1 class="display-5 text-success mb-3">
+          🌱 Elige el Plan Perfecto para tu Huerto
+        </h1>
+        <p class="lead text-muted">
+          Selecciona el plan que mejor se adapte a tus necesidades
+        </p>
+      </div>
+
+      <!-- Planes -->
+      <div class="row g-4 mb-5">
+        <!-- Plan Invitado -->
+        <div class="col-lg-4">
+          <div class="card plan-card h-100 border-2" data-plan="invitado">
+            <div class="card-header bg-secondary text-white text-center py-3">
+              <h4 class="mb-0">
+                <i class="bi bi-person me-2"></i>
+                Invitado
+              </h4>
+              <small class="opacity-75">Prueba sin compromiso</small>
+            </div>
+            <div class="card-body d-flex flex-column p-4">
+              <div class="text-center mb-4">
+                <h2 class="display-6 text-secondary mb-0">Gratis</h2>
+                <small class="text-muted">Sin registro</small>
+              </div>
+
+              <div class="mb-4">
+                <h6 class="text-success mb-3">✅ Incluye:</h6>
+                <ul class="list-unstyled">
+                  <li class="mb-2">
+                    <i class="bi bi-check-circle text-success me-2"></i>Hasta 3
+                    cultivos
+                  </li>
+                  <li class="mb-2">
+                    <i class="bi bi-check-circle text-success me-2"></i>Informes
+                    básicos
+                  </li>
+                  <li class="mb-2">
+                    <i class="bi bi-check-circle text-success me-2"></i>Uso
+                    inmediato
+                  </li>
+                </ul>
+              </div>
+
+              <div class="mb-4">
+                <h6 class="text-warning mb-3">⚠️ Limitaciones:</h6>
+                <ul class="list-unstyled">
+                  <li class="mb-2">
+                    <i class="bi bi-exclamation-triangle text-warning me-2"></i
+                    >Datos pueden perderse
+                  </li>
+                  <li class="mb-2">
+                    <i class="bi bi-exclamation-triangle text-warning me-2"></i
+                    >Sin copia de seguridad
+                  </li>
+                  <li class="mb-2">
+                    <i class="bi bi-exclamation-triangle text-warning me-2"></i
+                    >Solo en este dispositivo
+                  </li>
+                </ul>
+              </div>
+
+              <div class="mt-auto">
+                <button
+                  class="btn btn-outline-secondary btn-lg w-100"
+                  onclick="activarModoInvitadoSimple()"
+                  type="button"
+                >
+                  <i class="bi bi-eye me-2"></i>
+                  Probar Ahora
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Plan Gratuito -->
+        <div class="col-lg-4">
+          <div
+            class="card plan-card h-100 border-success border-3 position-relative"
+            data-plan="gratuito"
+          >
+            <!-- Badge Popular -->
+            <div class="position-absolute top-0 start-50 translate-middle">
+              <span class="badge bg-success fs-6 px-3 py-2">
+                <i class="bi bi-star me-1"></i>
+                Más Popular
+              </span>
+            </div>
+
+            <div class="card-header bg-success text-white text-center py-3">
+              <h4 class="mb-0">
+                <i class="bi bi-tree me-2"></i>
+                Gratuito
+              </h4>
+              <small class="opacity-75">Para huertos familiares</small>
+            </div>
+            <div class="card-body d-flex flex-column p-4">
+              <div class="text-center mb-4">
+                <h2 class="display-6 text-success mb-0">Gratis</h2>
+                <small class="text-muted">Para siempre</small>
+              </div>
+
+              <div class="mb-4">
+                <h6 class="text-success mb-3">✅ Todo lo de Invitado más:</h6>
+                <ul class="list-unstyled">
+                  <li class="mb-2">
+                    <i class="bi bi-check-circle text-success me-2"></i>Cultivos
+                    ilimitados
+                  </li>
+                  <li class="mb-2">
+                    <i class="bi bi-check-circle text-success me-2"></i>Copia de
+                    seguridad
+                  </li>
+                  <li class="mb-2">
+                    <i class="bi bi-check-circle text-success me-2"></i
+                    >Sincronización
+                  </li>
+                  <li class="mb-2">
+                    <i class="bi bi-check-circle text-success me-2"></i
+                    >Notificaciones
+                  </li>
+                </ul>
+              </div>
+
+              <div class="mb-4">
+                <h6 class="text-muted mb-3">Limitaciones menores:</h6>
+                <ul class="list-unstyled">
+                  <li class="mb-2">
+                    <i class="bi bi-dash-circle text-muted me-2"></i>Anuncios
+                    ocasionales
+                  </li>
+                  <li class="mb-2">
+                    <i class="bi bi-dash-circle text-muted me-2"></i>Informes
+                    básicos
+                  </li>
+                </ul>
+              </div>
+
+              <div class="mt-auto">
+                <button
+                  class="btn btn-success btn-lg w-100 plan-select-btn"
+                  data-plan="gratuito"
+                >
+                  <i class="bi bi-person-plus me-2"></i>
+                  Registrarse Gratis
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Plan Premium -->
+        <div class="col-lg-4">
+          <div
+            class="card plan-card h-100 border-primary border-2"
+            data-plan="premium"
+          >
+            <div class="card-header bg-primary text-white text-center py-3">
+              <h4 class="mb-0">
+                <i class="bi bi-crown me-2"></i>
+                Premium
+              </h4>
+              <small class="opacity-75">Para profesionales</small>
+            </div>
+            <div class="card-body d-flex flex-column p-4">
+              <div class="text-center mb-4">
+                <h2 class="display-6 text-primary mb-0">€0.99</h2>
+                <small class="text-muted">por mes</small>
+              </div>
+
+              <div class="mb-4">
+                <h6 class="text-success mb-3">✅ Todo lo anterior más:</h6>
+                <ul class="list-unstyled">
+                  <li class="mb-2">
+                    <i class="bi bi-check-circle text-success me-2"></i>Sin
+                    anuncios
+                  </li>
+                  <li class="mb-2">
+                    <i class="bi bi-check-circle text-success me-2"></i>Informes
+                    avanzados
+                  </li>
+                  <li class="mb-2">
+                    <i class="bi bi-check-circle text-success me-2"></i>Exportar
+                    a Excel/PDF
+                  </li>
+                  <li class="mb-2">
+                    <i class="bi bi-check-circle text-success me-2"></i>Soporte
+                    prioritario
+                  </li>
+                </ul>
+              </div>
+
+              <div class="mb-4">
+                <div class="text-center">
+                  <span class="badge bg-primary">
+                    <i class="bi bi-shield-check me-1"></i>
+                    7 días gratis
+                  </span>
+                </div>
+              </div>
+
+              <div class="mt-auto">
+                <button
+                  class="btn btn-primary btn-lg w-100 plan-select-btn"
+                  data-plan="premium"
+                >
+                  <i class="bi bi-star me-2"></i>
+                  Probar Premium
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Información adicional -->
+      <div class="row">
+        <div class="col-12">
+          <div class="card bg-light border-0">
+            <div class="card-body text-center p-4">
+              <h5 class="text-success mb-3">
+                <i class="bi bi-shield-check me-2"></i>
+                Garantía de Satisfacción
+              </h5>
+              <p class="text-muted mb-0">
+                Puedes cambiar de plan en cualquier momento. Los planes
+                gratuitos son gratis para siempre. El plan Premium incluye 7
+                días de prueba gratuita.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Confirmación -->
+<div class="modal fade" id="planConfirmModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-check-circle text-success me-2"></i>
+          Confirmar Selección
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body text-center">
+        <p id="planConfirmText">
+          ¿Estás seguro de que quieres continuar con este plan?
+        </p>
+        <div id="planWarning" class="alert alert-warning d-none">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <strong>Importante:</strong> Los datos del plan Invitado se guardan
+          solo en tu navegador y pueden perderse.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-success" id="confirmPlanBtn">
+          Continuar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .plan-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .plan-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  .plan-card.selected {
+    transform: scale(1.02);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+  }
+
+  .plan-select-btn {
+    transition: all 0.3s ease;
+  }
+
+  .plan-select-btn:hover {
+    transform: translateY(-2px);
+  }
+
+  .badge {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+</style>
+
+<script>
+  // Función simple para modo invitado
+  function activarModoInvitadoSimple() {
+    console.log('🔍 Función activarModoInvitadoSimple ejecutada');
+    
+    if (confirm('🔔 Modo Invitado\n\nComenzarás con una cuenta vacía. Tus datos se guardarán solo en este navegador.\n\n¿Continuar?')) {
+      console.log('✅ Usuario confirmó, configurando...');
+      
+      localStorage.setItem('huerto_plan', 'invitado');
+      localStorage.setItem('huerto_user', JSON.stringify({
+        uid: 'guest_' + Date.now(),
+        email: 'invitado@local',
+        name: 'Usuario Invitado',
+        plan: 'invitado',
+        isGuest: true,
+        created_at: new Date().toISOString()
+      }));
+      localStorage.removeItem('huerto_cultivos_local');
+      localStorage.removeItem('demo_data_loaded');
+      
+      console.log('📦 LocalStorage configurado, redirigiendo...');
+      window.location.href = '/dashboard?mode=guest';
+    } else {
+      console.log('❌ Usuario canceló');
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    console.log('🔍 DOM loaded, página de planes iniciada');
+
+    const planCards = document.querySelectorAll(".plan-card");
+    const planSelectBtns = document.querySelectorAll(".plan-select-btn");
+    
+    // Solo intentar crear modal si existe el elemento
+    const modalElement = document.getElementById("planConfirmModal");
+    let confirmModal = null;
+    if (modalElement && typeof bootstrap !== 'undefined') {
+      confirmModal = new bootstrap.Modal(modalElement);
+    }
+    
+    const confirmBtn = document.getElementById("confirmPlanBtn");
+    const planConfirmText = document.getElementById("planConfirmText");
+    const planWarning = document.getElementById("planWarning");
+
+    let selectedPlan = null;
+
+    // Manejar selección de plan (solo para gratuito y premium)
+    planSelectBtns.forEach((btn) => {
+      btn.addEventListener("click", function (e) {
+        e.preventDefault();
+
+        // Skip si es el botón de invitado (tiene onclick directo)
+        if (this.dataset.plan === "invitado" || !this.dataset.plan) {
+          return;
+        }
+
+        selectedPlan = this.dataset.plan;
+
+        // Actualizar modal según el plan
+        updateConfirmModal(selectedPlan);
+        if (confirmModal) {
+          confirmModal.show();
+        }
+      });
+    });
+
+    // Manejar confirmación
+    if (confirmBtn) {
+      confirmBtn.addEventListener("click", function () {
+        if (selectedPlan) {
+          proceedWithPlan(selectedPlan);
+        }
+      });
+    }
+
+    function updateConfirmModal(plan) {
+      const planNames = {
+        gratuito: "Plan Gratuito",
+        premium: "Plan Premium",
+      };
+
+      if (planConfirmText) {
+        planConfirmText.textContent = `¿Continuar con el ${planNames[plan]}?`;
+      }
+      
+      if (planWarning) {
+        planWarning.classList.add("d-none");
+      }
+    }
+
+    function proceedWithPlan(plan) {
+      // Ir al registro con el plan seleccionado
+      window.location.href = `/auth/register?plan=${plan}`;
+
+      if (confirmModal) {
+        confirmModal.hide();
+      }
+    }
+  });
+</script>
+  });
+</script>
+
+{% endblock %}

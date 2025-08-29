@@ -103,59 +103,116 @@ endblock %} {% block content %}
   </div>
 </div>
 
-<!-- Firebase Auth SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
-
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    // Configuración Firebase (sustituir con tus credenciales)
-    const firebaseConfig = {
-      // Estas credenciales serían públicas en una app real
-      apiKey: "tu-api-key",
-      authDomain: "tu-proyecto.firebaseapp.com",
-      projectId: "tu-proyecto-id",
+    // Esperar a que el servicio de autenticación esté listo
+    const waitForAuthService = () => {
+      if (window.authService) {
+        setupLoginForm();
+      } else {
+        setTimeout(waitForAuthService, 100);
+      }
     };
 
-    // Inicializar Firebase (comentado por ahora)
-    // firebase.initializeApp(firebaseConfig);
+    waitForAuthService();
 
-    const form = document.getElementById("loginForm");
-    form.addEventListener("submit", async function (e) {
-      e.preventDefault();
+    function setupLoginForm() {
+      const form = document.getElementById("loginForm");
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
 
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
 
-      try {
-        // Por ahora, simular login exitoso
-        alert("Login exitoso! (Funcionalidad en desarrollo)");
+        // Validaciones básicas
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          showAlert("error", "Por favor, introduce un email válido");
+          return;
+        }
 
-        // TODO: Implementar login real con Firebase
-        /*
-            const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
-            const user = userCredential.user;
-            
-            // Enviar token al backend
-            const idToken = await user.getIdToken();
-            const response = await fetch('/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ idToken: idToken })
-            });
-            
-            if (response.ok) {
-                window.location.href = '/dashboard';
+        if (password.length < 6) {
+          showAlert("error", "La contraseña debe tener al menos 6 caracteres");
+          return;
+        }
+
+        try {
+          // Mostrar estado de carga
+          const submitBtn = document.querySelector('button[type="submit"]');
+          const originalText = submitBtn.innerHTML;
+          submitBtn.innerHTML =
+            '<i class="bi bi-hourglass-split me-2"></i>Iniciando sesión...';
+          submitBtn.disabled = true;
+
+          // Iniciar sesión usando el servicio de autenticación
+          const result = await window.authService.login(email, password);
+
+          if (result.success) {
+            // Mostrar mensaje de éxito
+            if (result.isLocal) {
+              showAlert(
+                "success",
+                `¡Bienvenido/a de vuelta, ${result.user.name}! Accediendo con cuenta local.`
+              );
+            } else {
+              showAlert(
+                "success",
+                `¡Bienvenido/a de vuelta, ${result.user.name}! Accediendo con Firebase.`
+              );
             }
-            */
 
-        // Por ahora redirigir al dashboard directamente
-        window.location.href = "/dashboard";
-      } catch (error) {
-        console.error("Error en login:", error);
-        alert("Error al iniciar sesión: " + error.message);
+            // Redirigir al dashboard después de un momento
+            setTimeout(() => {
+              window.location.href = "/dashboard";
+            }, 1500);
+          } else {
+            throw new Error(result.error);
+          }
+        } catch (error) {
+          console.error("Error en login:", error);
+          showAlert(
+            "error",
+            error.message ||
+              "Error al iniciar sesión. Verifica tu email y contraseña."
+          );
+
+          // Restaurar botón
+          const submitBtn = document.querySelector('button[type="submit"]');
+          submitBtn.innerHTML = originalText;
+          submitBtn.disabled = false;
+        }
+      });
+    }
+
+    // Función para mostrar alertas
+    function showAlert(type, message) {
+      // Remover alertas previas
+      const existingAlerts = document.querySelectorAll(".alert");
+      existingAlerts.forEach((alert) => alert.remove());
+
+      // Crear nueva alerta
+      const alertDiv = document.createElement("div");
+      alertDiv.className = `alert alert-${
+        type === "error" ? "danger" : type
+      } alert-dismissible fade show`;
+      alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+
+      // Insertar al inicio del formulario
+      const form = document.getElementById("loginForm");
+      form.parentNode.insertBefore(alertDiv, form);
+
+      // Auto-remover después de 6 segundos para alertas de éxito
+      if (type === "success") {
+        setTimeout(() => {
+          if (alertDiv.parentNode) {
+            alertDiv.remove();
+          }
+        }, 6000);
       }
-    });
+    }
   });
 </script>
 

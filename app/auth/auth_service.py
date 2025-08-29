@@ -175,8 +175,12 @@ class UserService:
             str: Nombre del plan ('invitado', 'gratuito', 'premium')
         """
         user = self.get_user_by_uid(uid)
+        print(f"🔍 get_user_plan para {uid[:8]}... - Usuario encontrado: {user is not None}")
         if user:
-            return user.get('plan', 'gratuito')
+            plan = user.get('plan', 'gratuito')
+            print(f"🔍 Plan del usuario: {plan}")
+            return plan
+        print(f"⚠️ Usuario no encontrado en Firestore, devolviendo plan 'invitado'")
         return 'invitado'
     
     def upgrade_to_premium(self, uid):
@@ -250,6 +254,18 @@ def premium_required(f):
 
 def get_current_user():
     """Obtener usuario actual del contexto"""
-    # Por ahora, siempre retorna None (usuario no autenticado)
-    # TODO: Implementar middleware para establecer g.current_user
-    return getattr(g, 'current_user', None)
+    # Primero verificar si hay usuario en el contexto global (Firebase)
+    if hasattr(g, 'current_user'):
+        return g.current_user
+    
+    # Verificar usuario local en sesión
+    if session.get('is_authenticated') and session.get('user'):
+        return session.get('user')
+    
+    # Por último, verificar token en sesión
+    if 'token' in session:
+        user_data = AuthService.verify_custom_token(session['token'])
+        if user_data:
+            return user_data
+    
+    return None

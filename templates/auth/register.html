@@ -7,10 +7,52 @@ endblock %} {% block content %}
         <div class="card-header bg-success text-white text-center">
           <h4 class="mb-0">
             <i class="bi bi-person-plus me-2"></i>
-            Crear Cuenta Gratuita
+            Crear Cuenta - Plan {{ selected_plan|title }}
           </h4>
+          {% if selected_plan == 'premium' %}
+          <small class="opacity-75">
+            <i class="bi bi-star me-1"></i>
+            Con 7 días de prueba gratis
+          </small>
+          {% else %}
+          <small class="opacity-75">
+            <i class="bi bi-check-circle me-1"></i>
+            Gratis para siempre
+          </small>
+          {% endif %}
         </div>
         <div class="card-body p-4">
+          <!-- Plan seleccionado -->
+          {% if selected_plan %}
+          <div class="alert alert-info d-flex align-items-center mb-4">
+            {% if selected_plan == 'premium' %}
+            <i class="bi bi-crown text-primary me-2 fs-4"></i>
+            <div>
+              <strong>Plan Premium seleccionado</strong>
+              <br /><small
+                >€0.99/mes • 7 días gratis • Sin anuncios • Informes
+                avanzados</small
+              >
+            </div>
+            {% else %}
+            <i class="bi bi-tree text-success me-2 fs-4"></i>
+            <div>
+              <strong>Plan Gratuito seleccionado</strong>
+              <br /><small
+                >Cultivos ilimitados • Copia de seguridad • Gratis para
+                siempre</small
+              >
+            </div>
+            {% endif %}
+            <a
+              href="{{ url_for('auth.plan_selection') }}"
+              class="btn btn-sm btn-outline-primary ms-auto"
+            >
+              Cambiar Plan
+            </a>
+          </div>
+          {% endif %}
+
           <!-- Formulario de registro -->
           <form id="registerForm">
             <div class="mb-3">
@@ -144,77 +186,141 @@ endblock %} {% block content %}
   </div>
 </div>
 
-<!-- Firebase Auth SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
-
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    // Configuración Firebase (sustituir con tus credenciales)
-    const firebaseConfig = {
-      // Estas credenciales serían públicas en una app real
-      apiKey: "tu-api-key",
-      authDomain: "tu-proyecto.firebaseapp.com",
-      projectId: "tu-proyecto-id",
+    // Esperar a que el servicio de autenticación esté listo
+    const waitForAuthService = () => {
+      if (window.authService) {
+        setupRegisterForm();
+      } else {
+        setTimeout(waitForAuthService, 100);
+      }
     };
 
-    // Inicializar Firebase (comentado por ahora)
-    // firebase.initializeApp(firebaseConfig);
+    waitForAuthService();
 
-    const form = document.getElementById("registerForm");
-    form.addEventListener("submit", async function (e) {
-      e.preventDefault();
+    function setupRegisterForm() {
+      const form = document.getElementById("registerForm");
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
 
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      const confirmPassword = document.getElementById("confirmPassword").value;
-      const displayName = document.getElementById("displayName").value;
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const confirmPassword =
+          document.getElementById("confirmPassword").value;
+        const displayName = document.getElementById("displayName").value;
+        const terms = document.getElementById("terms").checked;
 
-      // Validaciones básicas
-      if (password !== confirmPassword) {
-        alert("Las contraseñas no coinciden");
-        return;
-      }
+        // Validaciones básicas
+        if (!terms) {
+          showAlert("error", "Debes aceptar los términos y condiciones");
+          return;
+        }
 
-      if (password.length < 6) {
-        alert("La contraseña debe tener al menos 6 caracteres");
-        return;
-      }
+        if (password !== confirmPassword) {
+          showAlert("error", "Las contraseñas no coinciden");
+          return;
+        }
 
-      try {
-        // Por ahora, simular registro exitoso
-        alert("Registro exitoso! (Funcionalidad en desarrollo)");
+        if (password.length < 6) {
+          showAlert("error", "La contraseña debe tener al menos 6 caracteres");
+          return;
+        }
 
-        // TODO: Implementar registro real con Firebase
-        /*
-            const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
-            const user = userCredential.user;
-            
-            // Actualizar perfil con nombre
-            if (displayName) {
-                await user.updateProfile({ displayName: displayName });
+        // Validar email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          showAlert("error", "Por favor, introduce un email válido");
+          return;
+        }
+
+        try {
+          // Mostrar estado de carga
+          const submitBtn = document.querySelector('button[type="submit"]');
+          const originalText = submitBtn.innerHTML;
+          submitBtn.innerHTML =
+            '<i class="bi bi-hourglass-split me-2"></i>Creando cuenta...';
+          submitBtn.disabled = true;
+
+          // Obtener plan seleccionado de la URL o formulario
+          const urlParams = new URLSearchParams(window.location.search);
+          const selectedPlan =
+            urlParams.get("plan") || "{{ selected_plan }}" || "gratuito";
+
+          // Registrar usuario usando el servicio de autenticación
+          const result = await window.authService.register(
+            email,
+            password,
+            displayName,
+            selectedPlan // Pasar el plan seleccionado
+          );
+
+          if (result.success) {
+            // Mostrar mensaje de éxito
+            if (result.isLocal) {
+              showAlert(
+                "success",
+                `¡Bienvenido/a ${result.user.name}! Cuenta local creada exitosamente con plan ${selectedPlan}. Tus datos se guardarán en esta sesión.`
+              );
+            } else {
+              showAlert(
+                "success",
+                `¡Bienvenido/a ${result.user.name}! Cuenta creada exitosamente con plan ${selectedPlan}. Revisa tu email para verificar la cuenta.`
+              );
             }
-            
-            // Enviar token al backend
-            const idToken = await user.getIdToken();
-            const response = await fetch('/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ idToken: idToken })
-            });
-            
-            if (response.ok) {
-                window.location.href = '/dashboard';
-            }
-            */
 
-        // Por ahora redirigir al dashboard directamente
-        window.location.href = "/dashboard";
-      } catch (error) {
-        console.error("Error en registro:", error);
-        alert("Error al crear la cuenta: " + error.message);
+            // Redirigir al dashboard después de un momento
+            setTimeout(() => {
+              window.location.href = "/dashboard?from=register";
+            }, 2500);
+          } else {
+            throw new Error(result.error);
+          }
+        } catch (error) {
+          console.error("Error en registro:", error);
+          showAlert(
+            "error",
+            error.message ||
+              "Error al crear la cuenta. Por favor, inténtalo de nuevo."
+          );
+
+          // Restaurar botón
+          const submitBtn = document.querySelector('button[type="submit"]');
+          submitBtn.innerHTML = originalText;
+          submitBtn.disabled = false;
+        }
+      });
+    }
+
+    // Función para mostrar alertas
+    function showAlert(type, message) {
+      // Remover alertas previas
+      const existingAlerts = document.querySelectorAll(".alert");
+      existingAlerts.forEach((alert) => alert.remove());
+
+      // Crear nueva alerta
+      const alertDiv = document.createElement("div");
+      alertDiv.className = `alert alert-${
+        type === "error" ? "danger" : type
+      } alert-dismissible fade show`;
+      alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+
+      // Insertar al inicio del formulario
+      const form = document.getElementById("registerForm");
+      form.parentNode.insertBefore(alertDiv, form);
+
+      // Auto-remover después de 8 segundos para alertas de éxito
+      if (type === "success") {
+        setTimeout(() => {
+          if (alertDiv.parentNode) {
+            alertDiv.remove();
+          }
+        }, 8000);
       }
-    });
+    }
   });
 </script>
 

@@ -556,4 +556,46 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+// ================================
+// FUNCIONES GLOBALES DE AUTENTICACIÓN
+// ================================
+
+/**
+ * Función global para cerrar sesión
+ * Utiliza AuthService si está disponible
+ */
+async function logout() {
+  try {
+    if (typeof AuthService !== "undefined") {
+      // Usar AuthService si está disponible
+      await AuthService.logout();
+    } else {
+      // Fallback directo
+      const response = await fetch("/auth/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        // Limpiar datos locales
+        localStorage.removeItem("huerto_user");
+        localStorage.removeItem("firebase_token");
+
+        // Redirigir al onboarding
+        window.location.href = "/";
+      } else {
+        throw new Error("Error al cerrar sesión");
+      }
+    }
+  } catch (error) {
+    console.error("Error durante logout:", error);
+    // En caso de error, forzar limpieza local y redirección
+    localStorage.clear();
+    window.location.href = "/";
+  }
+}
+
 console.log("✅ JavaScript principal de HuertoRentable cargado");

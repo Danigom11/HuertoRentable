@@ -1,0 +1,116 @@
+{% extends "base.html" %} {% block title %}Configurando cuenta -
+HuertoRentable{% endblock %} {% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-6 text-center">
+      <!-- Spinner de carga -->
+      <div class="mb-4">
+        <div
+          class="spinner-border text-success"
+          role="status"
+          style="width: 4rem; height: 4rem"
+        >
+          <span class="visually-hidden">Cargando...</span>
+        </div>
+      </div>
+
+      <!-- Mensaje -->
+      <h3 class="text-success mb-3">
+        {{ message or "Configurando tu cuenta..." }}
+      </h3>
+      <p class="text-muted">Solo un momento mientras preparamos todo para ti</p>
+
+      <!-- Indicador de progreso -->
+      <div class="progress mb-4" style="height: 6px">
+        <div
+          class="progress-bar bg-success progress-bar-animated"
+          role="progressbar"
+          style="width: 0%"
+          id="progressBar"
+        ></div>
+      </div>
+
+      <!-- Mensaje de fallback -->
+      <div id="fallbackMessage" class="d-none">
+        <p class="text-muted">Si no se redirige automáticamente:</p>
+        <a href="{{ redirect_url or '/dashboard' }}" class="btn btn-success">
+          <i class="bi bi-house me-2"></i>
+          Ir al Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const redirectUrl = "{{ redirect_url or '/dashboard' }}";
+    const progressBar = document.getElementById("progressBar");
+    const fallbackMessage = document.getElementById("fallbackMessage");
+
+    let progress = 0;
+    let attempts = 0;
+    const maxAttempts = 10; // 5 segundos de intentos
+
+    // Animar barra de progreso
+    const progressInterval = setInterval(() => {
+      progress += 10;
+      progressBar.style.width = progress + "%";
+
+      if (progress >= 100) {
+        clearInterval(progressInterval);
+      }
+    }, 100);
+
+    // Función para verificar si Firebase está listo y el usuario autenticado
+    function checkAuthStatus() {
+      attempts++;
+
+      // Verificar si Firebase está disponible
+      if (
+        typeof firebase !== "undefined" &&
+        firebase.auth &&
+        firebase.auth().currentUser
+      ) {
+        console.log("✅ Usuario autenticado detectado, redirigiendo...");
+
+        // Hacer una petición rápida para sincronizar sesión
+        fetch("/auth/sync-user", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            idToken: null, // Se puede obtener si es necesario
+          }),
+        }).finally(() => {
+          window.location.href = redirectUrl;
+        });
+
+        return;
+      }
+
+      // Si se agotaron los intentos, mostrar fallback
+      if (attempts >= maxAttempts) {
+        console.log("⏰ Tiempo agotado, mostrando opción manual");
+        fallbackMessage.classList.remove("d-none");
+        return;
+      }
+
+      // Reintentar después de 500ms
+      setTimeout(checkAuthStatus, 500);
+    }
+
+    // Comenzar verificación después de un momento
+    setTimeout(checkAuthStatus, 1000);
+
+    // Fallback: redirigir después de 8 segundos sin importar qué
+    setTimeout(() => {
+      if (attempts < maxAttempts) {
+        console.log("🚀 Redirigiendo por timeout");
+        window.location.href = redirectUrl;
+      }
+    }, 8000);
+  });
+</script>
+{% endblock %}

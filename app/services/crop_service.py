@@ -19,11 +19,12 @@ class CropService:
             user_uid (str): UID del usuario
             
         Returns:
-            List[Dict]: Lista de cultivos del usuario
+            List[Dict]: Lista de cultivos del usuario (vacía si es usuario nuevo)
         """
         try:
             if not self.db:
-                return self.get_demo_crops()
+                # Sin conexión a Firebase, devolver lista vacía para usuarios reales
+                return []
             
             crops_ref = self.db.collection('usuarios').document(user_uid).collection('cultivos')
             docs = crops_ref.where('activo', '==', True).order_by('fecha_siembra', direction='DESCENDING').stream()
@@ -39,8 +40,9 @@ class CropService:
             return cultivos
             
         except Exception as e:
-            print(f"Error obteniendo cultivos del usuario: {e}")
-            return self.get_demo_crops()
+            print(f"Error obteniendo cultivos del usuario {user_uid}: {e}")
+            # Para usuarios reales, devolver lista vacía en lugar de datos demo
+            return []
     
     def create_crop(self, user_uid: str, crop_data: Dict) -> bool:
         """
@@ -255,24 +257,20 @@ class CropService:
             bool: True si puede crear más cultivos
         """
         try:
-            from app.auth.auth_service import UserService
-            from app.utils.helpers import get_plan_limits
+            from app.services.plan_service import PlanService
             
-            user_service = UserService(self.db)
-            plan = user_service.get_user_plan(user_uid)
-            limits = get_plan_limits(plan)
+            plan_service = PlanService(self.db)
             
-            # Si el plan permite cultivos ilimitados
-            if limits['cultivos_max'] is None:
-                return True
+            print(f"🔍 Verificando límites de cultivos para usuario {user_uid[:8]}...")
             
-            # Contar cultivos actuales
-            current_crops = len(self.get_user_crops(user_uid))
+            # Verificar límites usando el servicio de planes
+            can_create = plan_service.check_plan_limits(user_uid, 'crops')
             
-            return current_crops < limits['cultivos_max']
+            print(f"{'✅' if can_create else '❌'} {'Puede' if can_create else 'No puede'} crear más cultivos")
+            return can_create
             
         except Exception as e:
-            print(f"Error verificando límites: {e}")
+            print(f"❌ Error verificando límites: {e}")
             return True  # En caso de error, permitir creación
     
     def _process_cultivo_dates(self, cultivo: Dict) -> Dict:
@@ -291,3 +289,106 @@ class CropService:
                     produccion['fecha'] = produccion['fecha'].to_datetime()
         
         return cultivo
+    
+    # ==========================================
+    # MÉTODOS PARA USUARIOS LOCALES (SIN FIREBASE)
+    # ==========================================
+    
+    def get_local_user_crops(self, user_uid: str) -> List[Dict]:
+        """
+        Obtener cultivos de usuario local (guardados en sesión)
+        
+        Args:
+            user_uid (str): UID del usuario local
+            
+        Returns:
+            List[Dict]: Lista de cultivos del usuario
+        """
+        from flask import session
+        
+        # Obtener cultivos de la sesión
+        session_key = f'crops_{user_uid}'
+        cultivos = session.get(session_key, [])
+        
+        # Procesar fechas y añadir IDs si no los tienen
+        for i, cultivo in enumerate(cultivos):
+            if 'id' not in cultivo:
+                cultivo['id'] = f"local_{i}_{cultivo.get('nombre', 'cultivo')}"
+            
+            # Convertir strings de fecha a datetime si es necesario
+            if isinstance(cultivo.get('fecha_siembra'), str):
+                try:
+                    cultivo['fecha_siembra'] = datetime.datetime.fromisoformat(cultivo['fecha_siembra'])
+                except:
+                    cultivo['fecha_siembra'] = datetime.datetime.utcnow()
+        
+        return cultivos
+    
+    def create_local_crop(self, user_uid: str, crop_data: Dict) -> bool:
+        """
+        Crear cultivo para usuario local (sin Firebase)
+        
+        Args:
+            user_uid (str): UID del usuario local
+            crop_data (Dict): Datos del cultivo
+            
+        Returns:
+            bool: True si se creó exitosamente
+        """
+        try:
+            from flask import session
+            
+            # Preparar datos del cultivo
+            cultivo = {
+                'id': f"local_{len(self.get_local_user_crops(user_uid))}_{crop_data.get('nombre', 'cultivo')}",
+                'nombre': crop_data.get('nombre', '').lower().strip(),
+                'fecha_siembra': datetime.datetime.utcnow(),
+                'fecha_cosecha': None,
+                'precio_por_kilo': float(crop_data.get('precio', 0)),
+                'plantas_sembradas': int(crop_data.get('plantas', 1)),
+                'abonos': [],
+                'produccion_diaria': [],
+                'activo': True,
+                'creado_en': datetime.datetime.utcnow(),
+                'kilos_totales': 0,
+                'beneficio_total': 0
+            }
+            
+            # Obtener cultivos actuales
+            session_key = f'crops_{user_uid}'
+            cultivos = session.get(session_key, [])
+            
+            # Añadir nuevo cultivo
+            cultivos.append(cultivo)
+            
+            # Guardar en sesión
+            session[session_key] = cultivos
+            
+            print(f"✅ Cultivo local '{cultivo['nombre']}' creado para usuario {user_uid}")
+            return True
+            
+        except Exception as e:
+            print(f"Error creando cultivo local: {e}")
+            return False
+    
+    def get_local_user_totals(self, user_uid: str) -> Tuple[float, float]:
+        """
+        Calcular totales para usuario local
+        
+        Args:
+            user_uid (str): UID del usuario local
+            
+        Returns:
+            Tuple[float, float]: (total_kilos, total_beneficios)
+        """
+        cultivos = self.get_local_user_crops(user_uid)
+        total_kilos = 0
+        total_beneficios = 0
+        
+        for cultivo in cultivos:
+            kilos = cultivo.get('kilos_totales', 0)
+            precio = cultivo.get('precio_por_kilo', 0)
+            total_kilos += kilos
+            total_beneficios += kilos * precio
+        
+        return total_kilos, total_beneficios

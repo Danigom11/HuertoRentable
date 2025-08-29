@@ -88,36 +88,88 @@ def onboarding():
 @main_bp.route('/dashboard')
 def dashboard():
     """Dashboard principal con resumen de cultivos"""
-    # Marcar que han elegido el modo demo
-    session['demo_mode_chosen'] = True
-    
     from flask import current_app
+    
+    # Obtener parámetros de URL para determinar el modo
+    demo_mode = request.args.get('demo') == 'true'
+    guest_mode = request.args.get('mode') == 'guest'
+    from_register = request.args.get('from') == 'register'
+    
+    # También verificar si hay sesión activa de modo invitado
+    guest_session_active = session.get('guest_mode_active', False)
+    demo_session_active = session.get('demo_mode_chosen', False)
     
     user = get_current_user()
     
-    # Determinar tipo de usuario y plan
-    if user:
-        user_service = UserService(current_app.db)
-        plan = user_service.get_user_plan(user['uid'])
-        is_authenticated = True
-    else:
+    # Si viene de registro pero no hay usuario, mostrar página de espera
+    if from_register and not user:
+        return render_template('auth/waiting.html', 
+                             message="Configurando tu cuenta...",
+                             redirect_url="/dashboard")
+    
+    # Determinar el tipo de sesión y plan
+    if demo_mode or demo_session_active:
+        # Modo demo con datos de ejemplo
         plan = 'invitado'
         is_authenticated = False
+        use_demo_data = True
+        user_type = 'demo'
+        session['demo_mode_chosen'] = True
+        
+    elif guest_mode or guest_session_active or (user and user.get('isGuest')):
+        # Modo invitado sin datos (vacío)
+        plan = 'invitado'
+        is_authenticated = False
+        use_demo_data = False
+        user_type = 'guest'
+        session['guest_mode_active'] = True
+        
+    elif user:
+        # Usuario autenticado (Firebase o local)
+        if user.get('is_local'):
+            plan = user.get('plan', 'gratuito')
+            user_type = 'local'
+        else:
+            user_service = UserService(current_app.db)
+            plan = user_service.get_user_plan(user['uid'])
+            user_type = 'firebase'
+        is_authenticated = True
+        use_demo_data = False
+        
+    else:
+        # Sin usuario ni modo específico -> redirección al onboarding
+        return redirect(url_for('main.onboarding'))
     
     # Obtener límites del plan
     plan_limits = get_plan_limits(plan)
     
-    # Obtener cultivos según el usuario
+    # Obtener cultivos según el tipo de usuario
     crop_service = CropService(current_app.db)
     
-    if is_authenticated:
-        # Usuario autenticado: datos de Firebase
-        cultivos = crop_service.get_user_crops(user['uid'])
-        total_kilos, total_beneficios = crop_service.get_user_totals(user['uid'])
-    else:
-        # Usuario invitado: datos locales o demo
+    if use_demo_data:
+        # Datos demo con ejemplos
         cultivos = crop_service.get_demo_crops()
         total_kilos, total_beneficios = crop_service.get_demo_totals()
+        
+    elif user_type == 'guest':
+        # Modo invitado vacío (datos desde localStorage en frontend)
+        cultivos = []
+        total_kilos, total_beneficios = 0, 0
+        
+    elif user_type == 'local':
+        # Usuario local registrado
+        cultivos = crop_service.get_local_user_crops(user['uid'])
+        total_kilos, total_beneficios = crop_service.get_local_user_totals(user['uid'])
+        
+    elif user_type == 'firebase':
+        # Usuario Firebase
+        cultivos = crop_service.get_user_crops(user['uid'])
+        total_kilos, total_beneficios = crop_service.get_user_totals(user['uid'])
+        
+    else:
+        # Fallback
+        cultivos = []
+        total_kilos, total_beneficios = 0, 0
     
     # Marcar como visitado
     session['visited_before'] = True
@@ -137,8 +189,11 @@ def dashboard():
         'plan': plan,
         'plan_limits': plan_limits,
         'is_authenticated': is_authenticated,
+        'user_type': user_type,  # Añadir tipo de usuario
+        'is_demo_mode': use_demo_data,  # Para banners específicos
+        'is_guest_mode': user_type == 'guest',  # Para funcionalidad local
         'show_upgrade_banner': should_show_upgrade_banner(plan, len(cultivos)),
-        'demo_mode': not is_authenticated  # Para mostrar banner demo
+        'demo_mode': use_demo_data  # Para mostrar banner demo
     }
     
     return render_template('dashboard.html', **context)

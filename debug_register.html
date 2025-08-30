@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Debug Registro - HuertoRentable</title>
+
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+
+    <style>
+      .debug-panel {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 10px 0;
+        font-family: "Courier New", monospace;
+        font-size: 12px;
+      }
+      .debug-success {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+      }
+      .debug-error {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+      }
+      .debug-warning {
+        background-color: #fff3cd;
+        border-color: #ffeaa7;
+      }
+      .debug-info {
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container py-4">
+      <div class="row">
+        <!-- Panel de Debugging -->
+        <div class="col-md-6">
+          <h4><i class="bi bi-bug me-2"></i>Debug Firebase & AuthService</h4>
+          <div id="debugOutput"></div>
+          <button class="btn btn-secondary btn-sm" onclick="runTests()">
+            🔄 Ejecutar Tests
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="clearDebug()">
+            🗑️ Limpiar
+          </button>
+        </div>
+
+        <!-- Formulario de Registro -->
+        <div class="col-md-6">
+          <h4><i class="bi bi-person-plus me-2"></i>Test de Registro</h4>
+
+          <form id="registrationForm" class="mt-3">
+            <div class="mb-3">
+              <label class="form-label">Email:</label>
+              <input type="email" class="form-control" id="email" required />
+              <small class="text-muted"
+                >Se agregará timestamp automáticamente</small
+              >
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Contraseña:</label>
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                value="123456789"
+                required
+              />
+              <small class="text-muted">Mínimo 6 caracteres</small>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Nombre:</label>
+              <input
+                type="text"
+                class="form-control"
+                id="displayName"
+                value="Usuario Test"
+              />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Plan:</label>
+              <select class="form-control" id="plan">
+                <option value="gratuito">Gratuito</option>
+                <option value="premium">Premium</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn btn-success" id="registerBtn">
+              <i class="bi bi-person-plus me-1"></i>Registrar Usuario
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <!-- Nuestros scripts -->
+    <script src="static/js/firebase-config.js"></script>
+    <script src="static/js/auth-service.js"></script>
+
+    <script>
+      let debugCount = 0;
+
+      function addDebugLog(message, type = "info") {
+        debugCount++;
+        const debugOutput = document.getElementById("debugOutput");
+        const timestamp = new Date().toLocaleTimeString();
+
+        const logDiv = document.createElement("div");
+        logDiv.className = `debug-panel debug-${type}`;
+        logDiv.innerHTML = `<strong>[${debugCount}] ${timestamp}:</strong> ${message}`;
+
+        debugOutput.appendChild(logDiv);
+        logDiv.scrollIntoView({ behavior: "smooth", block: "end" });
+
+        console.log(`[${debugCount}] ${message}`);
+      }
+
+      function clearDebug() {
+        document.getElementById("debugOutput").innerHTML = "";
+        debugCount = 0;
+      }
+
+      async function runTests() {
+        addDebugLog("🚀 Iniciando tests de Firebase y AuthService...", "info");
+
+        // Test 1: Firebase SDK
+        if (typeof firebase !== "undefined") {
+          addDebugLog(
+            `✅ Firebase SDK disponible (v${
+              firebase.SDK_VERSION || "desconocida"
+            })`,
+            "success"
+          );
+        } else {
+          addDebugLog("❌ Firebase SDK NO disponible", "error");
+          return;
+        }
+
+        // Test 2: HuertoFirebase config
+        if (window.HuertoFirebase) {
+          addDebugLog("✅ HuertoFirebase config disponible", "success");
+
+          const status = window.HuertoFirebase.getStatus();
+          addDebugLog(
+            `📊 Estado: SDK=${status.sdkLoaded}, Apps=${status.appsInitialized}`,
+            "info"
+          );
+
+          // Inicializar Firebase
+          addDebugLog("🔥 Inicializando Firebase...", "info");
+          const initialized = window.HuertoFirebase.initialize();
+
+          if (initialized) {
+            addDebugLog("✅ Firebase inicializado correctamente", "success");
+          } else {
+            addDebugLog("❌ Error al inicializar Firebase", "error");
+            return;
+          }
+        } else {
+          addDebugLog("❌ HuertoFirebase config NO disponible", "error");
+          return;
+        }
+
+        // Test 3: Firebase Auth
+        try {
+          const auth = firebase.auth();
+          addDebugLog("✅ Firebase Auth disponible", "success");
+          addDebugLog(`📧 AuthDomain: ${auth.app.options.authDomain}`, "info");
+          addDebugLog(`🆔 ProjectId: ${auth.app.options.projectId}`, "info");
+        } catch (error) {
+          addDebugLog(`❌ Firebase Auth ERROR: ${error.message}`, "error");
+          return;
+        }
+
+        // Test 4: AuthService
+        if (window.authService) {
+          addDebugLog("✅ AuthService disponible", "success");
+
+          // Esperar a que se inicialice
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+
+          addDebugLog(
+            `🔥 AuthService Firebase Ready: ${window.authService.isFirebaseReady}`,
+            window.authService.isFirebaseReady ? "success" : "warning"
+          );
+        } else {
+          addDebugLog("❌ AuthService NO disponible", "error");
+        }
+
+        // Test 5: Conectividad backend
+        try {
+          addDebugLog("🌐 Probando conectividad al backend...", "info");
+          const response = await fetch("/dashboard");
+          addDebugLog(`✅ Backend responde: ${response.status}`, "success");
+        } catch (error) {
+          addDebugLog(`❌ Backend ERROR: ${error.message}`, "error");
+        }
+
+        addDebugLog("🎉 Tests completados", "success");
+      }
+
+      // Formulario de registro
+      document
+        .getElementById("registrationForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const email = document.getElementById("email").value;
+          const password = document.getElementById("password").value;
+          const displayName = document.getElementById("displayName").value;
+          const plan = document.getElementById("plan").value;
+
+          // Generar email único
+          const timestamp = Date.now();
+          const uniqueEmail = email
+            ? email.replace("@", `+${timestamp}@`)
+            : `test${timestamp}@example.com`;
+
+          addDebugLog(`📧 Iniciando registro: ${uniqueEmail}`, "info");
+
+          const registerBtn = document.getElementById("registerBtn");
+          const originalText = registerBtn.innerHTML;
+          registerBtn.innerHTML =
+            '<i class="bi bi-hourglass-split me-1"></i>Registrando...';
+          registerBtn.disabled = true;
+
+          try {
+            if (!window.authService) {
+              throw new Error("AuthService no está disponible");
+            }
+
+            if (!window.authService.isFirebaseReady) {
+              throw new Error("Firebase no está listo en AuthService");
+            }
+
+            addDebugLog("📤 Llamando a authService.register()...", "info");
+            const result = await window.authService.register(
+              uniqueEmail,
+              password,
+              displayName,
+              plan
+            );
+
+            if (result.success) {
+              addDebugLog(`✅ REGISTRO EXITOSO!`, "success");
+              addDebugLog(`👤 Usuario: ${result.user.email}`, "info");
+              addDebugLog(`🆔 UID: ${result.user.uid}`, "info");
+              addDebugLog(`📦 Plan: ${result.user.plan}`, "info");
+
+              if (result.message) {
+                addDebugLog(`💬 Mensaje: ${result.message}`, "info");
+              }
+            } else {
+              addDebugLog(`❌ REGISTRO FALLÓ: ${result.error}`, "error");
+            }
+          } catch (error) {
+            addDebugLog(`❌ ERROR EN REGISTRO: ${error.message}`, "error");
+            console.error("Error completo:", error);
+          } finally {
+            registerBtn.innerHTML = originalText;
+            registerBtn.disabled = false;
+          }
+        });
+
+      // Auto-iniciar tests al cargar
+      window.addEventListener("load", () => {
+        setTimeout(() => {
+          addDebugLog(
+            "🏁 Página cargada, iniciando tests automáticos...",
+            "info"
+          );
+          runTests();
+        }, 1000);
+      });
+    </script>
+  </body>
+</html>

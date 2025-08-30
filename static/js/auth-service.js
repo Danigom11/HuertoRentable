@@ -14,18 +14,37 @@ class AuthService {
    */
   async initialize() {
     try {
+      console.log("🚀 Inicializando AuthService...");
+
+      // Verificar que HuertoFirebase esté disponible
+      if (!window.HuertoFirebase) {
+        console.error("❌ HuertoFirebase no está disponible");
+        this.isFirebaseReady = false;
+        return;
+      }
+
+      console.log("📊 Estado de Firebase:", window.HuertoFirebase.getStatus());
+
       // Intentar inicializar Firebase
-      if (window.HuertoFirebase && window.HuertoFirebase.initialize()) {
+      const initialized = window.HuertoFirebase.initialize();
+
+      if (initialized) {
         this.isFirebaseReady = true;
         console.log("✅ Firebase Authentication listo");
 
         // Escuchar cambios de estado de autenticación
         firebase.auth().onAuthStateChanged((user) => {
           this.currentUser = user;
+          console.log(
+            "👤 Estado de autenticación cambió:",
+            user ? `Usuario: ${user.email}` : "No autenticado"
+          );
           this.onAuthStateChanged(user);
         });
       } else {
-        console.log("⚠️ Firebase no disponible, usando autenticación local");
+        console.log(
+          "⚠️ Firebase no se pudo inicializar, usando autenticación local"
+        );
         this.isFirebaseReady = false;
       }
     } catch (error) {
@@ -39,23 +58,42 @@ class AuthService {
    */
   async register(email, password, displayName = "", plan = "gratuito") {
     try {
+      console.log(`🔥 Iniciando registro: ${email}, plan: ${plan}`);
+      console.log(`📊 Firebase disponible: ${this.isFirebaseReady}`);
+
       if (this.isFirebaseReady) {
         // Registro con Firebase
         console.log("🔥 Registrando usuario con Firebase");
 
+        // Verificar que Firebase Auth esté disponible
+        if (typeof firebase === "undefined" || !firebase.auth) {
+          throw new Error("Firebase Auth no está disponible");
+        }
+
+        console.log("📧 Creando usuario con email y contraseña...");
         const userCredential = await firebase
           .auth()
           .createUserWithEmailAndPassword(email, password);
         const user = userCredential.user;
+        console.log(`✅ Usuario creado en Firebase: ${user.uid}`);
 
         // Actualizar perfil con nombre si se proporcionó
         if (displayName.trim()) {
+          console.log(`📝 Actualizando perfil con nombre: ${displayName}`);
           await user.updateProfile({ displayName: displayName.trim() });
           await user.reload(); // Recargar para obtener los datos actualizados
+          console.log("✅ Perfil actualizado");
         }
 
         // Enviar token al backend para crear usuario en Firestore con plan
+        console.log("🎫 Obteniendo token ID...");
         const idToken = await user.getIdToken();
+        console.log(`✅ Token obtenido: ${idToken.substring(0, 20)}...`);
+
+        console.log("📤 Enviando datos al backend...");
+        // Añadir timeout explícito al fetch para evitar cuelgues
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s
         const response = await fetch("/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -63,13 +101,22 @@ class AuthService {
             idToken: idToken,
             plan: plan,
           }),
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
+
+        console.log(`📥 Respuesta del backend: ${response.status}`);
 
         if (!response.ok) {
-          throw new Error("Error creando perfil de usuario");
+          const errorData = await response.text();
+          console.error("❌ Error en respuesta del backend:", errorData);
+          throw new Error(
+            `Error del servidor: ${response.status} - ${errorData}`
+          );
         }
 
         const result = await response.json();
+        console.log("✅ Registro exitoso en backend:", result);
 
         return {
           success: true,
@@ -108,31 +155,47 @@ class AuthService {
         };
       }
     } catch (error) {
-      console.error("❌ Error en registro:", error);
+      console.error("❌ Error completo en registro:", error);
+      console.error("❌ Stack trace:", error.stack);
 
       // Manejar errores específicos de Firebase
-      let errorMessage = "Error al crear la cuenta";
+      let errorMessage = "Ha ocurrido un error inesperado";
 
       if (error.code) {
+        console.error(`❌ Código de error Firebase: ${error.code}`);
         switch (error.code) {
           case "auth/email-already-in-use":
             errorMessage = "Este email ya está registrado";
             break;
           case "auth/weak-password":
-            errorMessage = "La contraseña es demasiado débil";
+            errorMessage = "La contraseña debe tener al menos 6 caracteres";
             break;
           case "auth/invalid-email":
-            errorMessage = "Email inválido";
+            errorMessage = "El formato del email no es válido";
             break;
           case "auth/operation-not-allowed":
-            errorMessage = "Registro no habilitado. Contacta al administrador";
+            errorMessage =
+              "El registro con email/contraseña no está habilitado en Firebase";
+            break;
+          case "auth/network-request-failed":
+            errorMessage =
+              "Error de conexión. Verifica tu internet y vuelve a intentar";
             break;
           default:
-            errorMessage = error.message;
+            errorMessage = `Error Firebase (${error.code}): ${error.message}`;
         }
-      } else {
-        errorMessage = error.message;
+      } else if (error.message) {
+        // Errores más específicos basados en el mensaje
+        if (error.message.includes("Firebase Auth no está disponible")) {
+          errorMessage = "Error de configuración: Firebase no está disponible";
+        } else if (error.message.includes("Error del servidor")) {
+          errorMessage = error.message;
+        } else {
+          errorMessage = error.message;
+        }
       }
+
+      console.error(`❌ Mensaje final de error: ${errorMessage}`);
 
       return {
         success: false,

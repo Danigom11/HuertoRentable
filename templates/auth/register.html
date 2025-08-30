@@ -234,10 +234,11 @@ endblock %} {% block content %}
           return;
         }
 
+        let originalText = null;
+        const submitBtn = document.querySelector('button[type="submit"]');
         try {
           // Mostrar estado de carga
-          const submitBtn = document.querySelector('button[type="submit"]');
-          const originalText = submitBtn.innerHTML;
+          originalText = submitBtn.innerHTML;
           submitBtn.innerHTML =
             '<i class="bi bi-hourglass-split me-2"></i>Creando cuenta...';
           submitBtn.disabled = true;
@@ -248,12 +249,30 @@ endblock %} {% block content %}
             urlParams.get("plan") || "{{ selected_plan }}" || "gratuito";
 
           // Registrar usuario usando el servicio de autenticación
-          const result = await window.authService.register(
-            email,
-            password,
-            displayName,
-            selectedPlan // Pasar el plan seleccionado
-          );
+          let result;
+
+          // Intentar primero con el servicio simplificado
+          if (window.simpleRegistrationService && window.registerUser) {
+            console.log(
+              "🔧 Usando SimpleRegistrationService como método principal"
+            );
+            result = await window.registerUser(
+              email,
+              password,
+              displayName,
+              selectedPlan
+            );
+          } else if (window.authService) {
+            console.log("🔧 Fallback a AuthService tradicional");
+            result = await window.authService.register(
+              email,
+              password,
+              displayName,
+              selectedPlan // Pasar el plan seleccionado
+            );
+          } else {
+            throw new Error("No hay servicio de registro disponible");
+          }
 
           if (result.success) {
             // Mostrar mensaje de éxito
@@ -283,11 +302,14 @@ endblock %} {% block content %}
             error.message ||
               "Error al crear la cuenta. Por favor, inténtalo de nuevo."
           );
-
-          // Restaurar botón
-          const submitBtn = document.querySelector('button[type="submit"]');
-          submitBtn.innerHTML = originalText;
-          submitBtn.disabled = false;
+        } finally {
+          // Restaurar botón de envío de forma segura
+          if (submitBtn) {
+            submitBtn.innerHTML =
+              originalText ||
+              '<i class="bi bi-person-plus me-2"></i>Crear Cuenta Gratis';
+            submitBtn.disabled = false;
+          }
         }
       });
     }
@@ -343,4 +365,8 @@ endblock %} {% block content %}
     box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
   }
 </style>
+
+<!-- Servicio de registro simplificado como fallback -->
+<script src="{{ url_for('static', filename='js/simple-registration.js') }}"></script>
+
 {% endblock %}

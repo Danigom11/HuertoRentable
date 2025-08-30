@@ -135,7 +135,6 @@ def setup_template_context(app):
     @app.context_processor
     def inject_config():
         return {
-            'PLAN_INVITADO': app.config['PLAN_INVITADO'],
             'PLAN_GRATUITO': app.config['PLAN_GRATUITO'], 
             'PLAN_PREMIUM': app.config['PLAN_PREMIUM'],
             'timestamp': int(time.time())  # Para versionado de assets

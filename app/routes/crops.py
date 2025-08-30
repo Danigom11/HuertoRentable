@@ -2,8 +2,6 @@
 Rutas de gestión de cultivos
 CRUD de cultivos con verificación de planes
 """
-import time
-from datetime import datetime
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
 from app.auth.auth_service import login_required, get_current_user
 from app.services.crop_service import CropService
@@ -16,8 +14,7 @@ def list_crops():
     """Listar cultivos del usuario (modo demo disponible)"""
     from flask import current_app, session
     
-    # Detectar modo invitado desde la sesión o parámetros URL
-    guest_mode = request.args.get('mode') == 'guest' or session.get('guest_mode_active', False)
+    # Detectar modo demo
     demo_mode = request.args.get('demo') == 'true' or session.get('demo_mode_chosen', False)
     
     user = get_current_user()
@@ -26,34 +23,27 @@ def list_crops():
     if demo_mode:
         # Modo demo: cultivos de ejemplo
         cultivos = crop_service.get_demo_crops()
-        return render_template('crops.html', cultivos=cultivos, demo_mode=True, guest_mode=False)
-    elif guest_mode or (user and user.get('isGuest')):
-        # Modo invitado: datos desde localStorage (se manejan en frontend)
-        session['guest_mode_active'] = True
-        return render_template('crops.html', cultivos=[], demo_mode=False, guest_mode=True)
+        return render_template('crops.html', cultivos=cultivos, demo_mode=True)
     elif user:
         # Usuario autenticado: verificar si es local o Firebase
         if user.get('is_local'):
             cultivos = crop_service.get_local_user_crops(user['uid'])
         else:
             cultivos = crop_service.get_user_crops(user['uid'])
-        return render_template('crops.html', cultivos=cultivos, demo_mode=False, guest_mode=False)
+        return render_template('crops.html', cultivos=cultivos, demo_mode=False)
     else:
         # Sin usuario ni modo específico: mostrar demo
         cultivos = crop_service.get_demo_crops()
-        return render_template('crops.html', cultivos=cultivos, demo_mode=True, guest_mode=False)
+        return render_template('crops.html', cultivos=cultivos, demo_mode=True)
 
 @crops_bp.route('/create', methods=['GET', 'POST'])
 def create_crop():
-    """Crear nuevo cultivo (requiere autenticación o modo invitado)"""
+    """Crear nuevo cultivo (requiere autenticación)"""
     from flask import current_app, session
-    
-    # Detectar modo invitado
-    guest_mode = request.args.get('mode') == 'guest' or session.get('guest_mode_active', False)
     
     user = get_current_user()
     
-    if not user and not guest_mode:
+    if not user:
         if request.method == 'POST':
             # En modo demo, mostrar mensaje informativo y redirigir
             flash('🌱 Modo Demo: Para crear cultivos reales, regístrate gratis. ¡Los datos demo son solo para explorar!', 'info')
@@ -63,10 +53,7 @@ def create_crop():
             return redirect(url_for('crops.list_crops'))
     
     if request.method == 'GET':
-        if guest_mode:
-            return render_template('crops.html', guest_mode=True, demo_mode=False)
-        else:
-            return render_template('crops.html', guest_mode=False, demo_mode=False)
+        return render_template('crops.html', demo_mode=False)
     
     # POST request - crear cultivo
     crop_service = CropService(current_app.db)
@@ -74,54 +61,31 @@ def create_crop():
     # Obtener datos del formulario
     crop_data = {
         'nombre': request.form.get('nombre', '').strip(),
-        'precio': request.form.get('precio', 0)
+        'precio': request.form.get('precio', 0),
+        'numero_plantas': request.form.get('numero_plantas', 0)
     }
     
     # Validaciones
     if not crop_data['nombre']:
         flash('El nombre del cultivo es obligatorio', 'error')
-        if guest_mode:
-            return redirect(url_for('crops.list_crops', mode='guest'))
-        else:
-            return redirect(url_for('crops.create_crop'))
+        return redirect(url_for('crops.create_crop'))
     
     try:
         crop_data['precio'] = float(crop_data['precio'])
         if crop_data['precio'] < 0:
             flash('El precio debe ser positivo', 'error')
-            if guest_mode:
-                return redirect(url_for('crops.list_crops', mode='guest'))
-            else:
-                return redirect(url_for('crops.create_crop'))
-    except ValueError:
-        flash('Precio inválido', 'error')
-        if guest_mode:
-            return redirect(url_for('crops.list_crops', mode='guest'))
-        else:
             return redirect(url_for('crops.create_crop'))
+        
+        crop_data['numero_plantas'] = int(crop_data['numero_plantas'])
+        if crop_data['numero_plantas'] <= 0:
+            flash('El número de plantas debe ser mayor a cero', 'error')
+            return redirect(url_for('crops.create_crop'))
+    except ValueError:
+        flash('Precio o número de plantas inválido', 'error')
+        return redirect(url_for('crops.create_crop'))
     
-    # Crear cultivo
-    if guest_mode:
-        # Modo invitado: los datos se manejan con localStorage en el frontend
-        # Solo devolvemos un JSON con los datos para que JavaScript los procese
-        if request.headers.get('Content-Type') == 'application/json':
-            return jsonify({
-                'success': True,
-                'cultivo': {
-                    'id': f'guest_{int(time.time())}',
-                    'nombre': crop_data['nombre'],
-                    'precio': crop_data['precio'],
-                    'fecha_siembra': datetime.now().isoformat(),
-                    'activo': True,
-                    'produccion_total': 0,
-                    'beneficio_total': 0
-                }
-            })
-        else:
-            # Formulario HTML normal: mostrar mensaje y redirigir
-            flash(f'Cultivo "{crop_data["nombre"]}" creado en modo invitado (datos locales)', 'success')
-            return redirect(url_for('crops.list_crops', mode='guest'))
-    elif user.get('is_local'):
+    # Crear cultivo para usuario autenticado
+    if user.get('is_local'):
         # Usuario local: guardar en sesión
         success = crop_service.create_local_crop(user['uid'], crop_data)
     else:

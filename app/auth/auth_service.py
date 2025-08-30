@@ -134,7 +134,8 @@ class UserService:
                 'email': user_data.get('email'),
                 'name': user_data.get('name'),
                 'picture': user_data.get('picture'),
-                'plan': 'gratuito',
+                # Respetar el plan proporcionado si viene en user_data
+                'plan': user_data.get('plan', 'gratuito'),
                 'fecha_registro': datetime.datetime.utcnow(),
                 'ultimo_acceso': datetime.datetime.utcnow(),
                 'configuracion': {

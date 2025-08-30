@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Firebase Authentication - HuertoRentable</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .test-box {
+        border: 1px solid #ccc;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 5px;
+      }
+      .success {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+      }
+      .error {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+      }
+      .info {
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
+      }
+      .warning {
+        background-color: #fff3cd;
+        border-color: #ffeaa7;
+      }
+      .form-group {
+        margin: 10px 0;
+      }
+      input {
+        padding: 8px;
+        margin: 5px;
+        width: 200px;
+      }
+      button {
+        padding: 10px 15px;
+        margin: 5px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🧪 Test Completo Firebase Authentication - HuertoRentable</h1>
+
+    <div id="testResults"></div>
+
+    <div class="test-box">
+      <h3>🔧 Tests Automáticos</h3>
+      <button onclick="runAllTests()" id="runTestsBtn">
+        🚀 Ejecutar Todos los Tests
+      </button>
+    </div>
+
+    <div class="test-box">
+      <h3>📝 Test Manual de Registro</h3>
+      <form id="testForm">
+        <div class="form-group">
+          <label>Email:</label><br />
+          <input
+            type="email"
+            id="testEmail"
+            placeholder="Email de prueba"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label>Contraseña:</label><br />
+          <input
+            type="password"
+            id="testPassword"
+            placeholder="Contraseña (min 6 caracteres)"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label>Nombre:</label><br />
+          <input type="text" id="testName" placeholder="Nombre completo" />
+        </div>
+        <button type="submit">🚀 Probar Registro Manual</button>
+      </form>
+      <p>
+        <small
+          >💡 El email será generado automáticamente con timestamp para evitar
+          duplicados</small
+        >
+      </p>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <!-- Configuración Firebase -->
+    <script src="static/js/firebase-config.js"></script>
+    <script src="static/js/auth-service.js"></script>
+
+    <script>
+      const resultsDiv = document.getElementById("testResults");
+      let testCount = 0;
+
+      function addResult(message, type = "info") {
+        testCount++;
+        const div = document.createElement("div");
+        div.className = `test-box ${type}`;
+        div.innerHTML = `<strong>Test ${testCount}:</strong> ${new Date().toLocaleTimeString()}: ${message}`;
+        resultsDiv.appendChild(div);
+        console.log(`Test ${testCount}: ${message}`);
+
+        // Auto-scroll al último resultado
+        div.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
+
+      async function runAllTests() {
+        const btn = document.getElementById("runTestsBtn");
+        btn.disabled = true;
+        btn.textContent = "⏳ Ejecutando tests...";
+
+        resultsDiv.innerHTML = ""; // Limpiar resultados anteriores
+        testCount = 0;
+
+        try {
+          // Test 1: Verificar que Firebase SDK esté cargado
+          addResult("🔍 Verificando Firebase SDK...", "info");
+          if (typeof firebase !== "undefined") {
+            addResult(
+              `✅ Firebase SDK cargado correctamente (versión: ${
+                firebase.SDK_VERSION || "desconocida"
+              })`,
+              "success"
+            );
+          } else {
+            addResult("❌ Firebase SDK no está disponible", "error");
+            return;
+          }
+
+          // Test 2: Verificar HuertoFirebase config
+          addResult("🔍 Verificando configuración HuertoFirebase...", "info");
+          if (window.HuertoFirebase) {
+            addResult("✅ HuertoFirebase configuración disponible", "success");
+            const status = window.HuertoFirebase.getStatus();
+            addResult(
+              `📊 Estado Firebase: SDK: ${status.sdkLoaded}, Apps: ${status.appsInitialized}`,
+              "info"
+            );
+          } else {
+            addResult("❌ HuertoFirebase configuración no disponible", "error");
+            return;
+          }
+
+          // Test 3: Inicializar Firebase
+          addResult("🔍 Inicializando Firebase...", "info");
+          try {
+            const initialized = window.HuertoFirebase.initialize();
+            if (initialized) {
+              addResult("✅ Firebase inicializado correctamente", "success");
+            } else {
+              addResult("❌ Error al inicializar Firebase", "error");
+              return;
+            }
+          } catch (error) {
+            addResult(
+              `❌ Error al inicializar Firebase: ${error.message}`,
+              "error"
+            );
+            return;
+          }
+
+          // Test 4: Verificar Firebase Auth
+          addResult("🔍 Verificando Firebase Auth...", "info");
+          try {
+            const auth = firebase.auth();
+            addResult("✅ Firebase Auth disponible", "success");
+
+            // Verificar configuración Auth
+            addResult(`📧 AuthDomain: ${auth.app.options.authDomain}`, "info");
+            addResult(`🆔 ProjectId: ${auth.app.options.projectId}`, "info");
+          } catch (error) {
+            addResult(
+              `❌ Firebase Auth no disponible: ${error.message}`,
+              "error"
+            );
+            return;
+          }
+
+          // Test 5: Verificar AuthService
+          addResult("🔍 Verificando AuthService...", "info");
+          if (window.authService) {
+            addResult("✅ AuthService disponible", "success");
+
+            // Inicializar AuthService
+            await window.authService.initialize();
+            addResult(
+              `📊 AuthService Firebase Ready: ${window.authService.isFirebaseReady}`,
+              "info"
+            );
+          } else {
+            addResult("❌ AuthService no disponible", "error");
+          }
+
+          // Test 6: Test de conexión a backend
+          addResult("🔍 Probando conexión al backend...", "info");
+          try {
+            const response = await fetch("/dashboard");
+            if (response.ok) {
+              addResult("✅ Conexión al backend exitosa", "success");
+            } else {
+              addResult(
+                `⚠️ Backend responde pero con status: ${response.status}`,
+                "warning"
+              );
+            }
+          } catch (error) {
+            addResult(
+              `❌ Error de conexión al backend: ${error.message}`,
+              "error"
+            );
+          }
+
+          addResult("🎉 Todos los tests completados", "success");
+        } catch (error) {
+          addResult(`❌ Error durante los tests: ${error.message}`, "error");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "🚀 Ejecutar Todos los Tests";
+        }
+      }
+
+      // Test de registro manual
+      document
+        .getElementById("testForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          // Generar email único con timestamp
+          const timestamp = Date.now();
+          const baseEmail =
+            document.getElementById("testEmail").value || "test@example.com";
+          const uniqueEmail = baseEmail.replace("@", `+${timestamp}@`);
+
+          const password =
+            document.getElementById("testPassword").value || "123456";
+          const name =
+            document.getElementById("testName").value || "Usuario Test";
+
+          addResult(
+            `🧪 Iniciando registro manual con email: ${uniqueEmail}`,
+            "info"
+          );
+
+          try {
+            if (!window.authService) {
+              throw new Error("AuthService no está disponible");
+            }
+
+            addResult("📤 Llamando a authService.register()...", "info");
+            const result = await window.authService.register(
+              uniqueEmail,
+              password,
+              name,
+              "gratuito"
+            );
+
+            if (result.success) {
+              addResult(
+                `✅ Registro exitoso! Usuario: ${result.user.email}`,
+                "success"
+              );
+              addResult(
+                `📝 Detalles: UID: ${result.user.uid}, Plan: ${result.user.plan}`,
+                "info"
+              );
+
+              if (result.message) {
+                addResult(`💬 Mensaje del servidor: ${result.message}`, "info");
+              }
+            } else {
+              addResult(`❌ Registro falló: ${result.error}`, "error");
+            }
+          } catch (error) {
+            addResult(`❌ Error en registro manual: ${error.message}`, "error");
+            console.error("Error completo:", error);
+          }
+        });
+
+      // Ejecutar tests básicos al cargar la página
+      window.addEventListener("load", () => {
+        setTimeout(() => {
+          addResult("🏁 Página cargada, iniciando tests básicos...", "info");
+          runAllTests();
+        }, 1000);
+      });
+    </script>
+  </body>
+</html>

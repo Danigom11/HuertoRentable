@@ -23,16 +23,14 @@ class Config:
     FIREBASE_CLIENT_X509_CERT_URL = os.environ.get('FIREBASE_CLIENT_X509_CERT_URL')
     FIREBASE_UNIVERSE_DOMAIN = os.environ.get('FIREBASE_UNIVERSE_DOMAIN')
     
-    # Planes de suscripción
-    PLAN_INVITADO = {
-        'nombre': 'Invitado',
-        'precio': 0,
-        'cultivos_max': 3,
-        'anuncios': True,
-        'backup': False,
-        'analytics_avanzados': False
-    }
+    # Firebase Web SDK (Frontend) - opcional, para evitar hardcodear claves en JS
+    FIREBASE_WEB_API_KEY = os.environ.get('FIREBASE_WEB_API_KEY')
+    FIREBASE_AUTH_DOMAIN = os.environ.get('FIREBASE_AUTH_DOMAIN')
+    FIREBASE_STORAGE_BUCKET = os.environ.get('FIREBASE_STORAGE_BUCKET')
+    FIREBASE_MESSAGING_SENDER_ID = os.environ.get('FIREBASE_MESSAGING_SENDER_ID')
+    FIREBASE_APP_ID = os.environ.get('FIREBASE_APP_ID')
     
+    # Planes de suscripción
     PLAN_GRATUITO = {
         'nombre': 'Gratuito', 
         'precio': 0,

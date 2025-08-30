@@ -15,83 +15,8 @@ endblock %} {% block content %}
 
       <!-- Planes -->
       <div class="row g-4 mb-5">
-        <!-- Plan Invitado -->
-        <div class="col-lg-4">
-          <div class="card plan-card h-100 border-2" data-plan="invitado">
-            <div class="card-header bg-secondary text-white text-center py-3">
-              <h4 class="mb-0">
-                <i class="bi bi-person me-2"></i>
-                Invitado
-              </h4>
-              <small class="opacity-75">Prueba sin compromiso</small>
-            </div>
-            <div class="card-body d-flex flex-column p-4">
-              <div class="text-center mb-4">
-                <h2 class="display-6 text-secondary mb-0">Gratis</h2>
-                <small class="text-muted">Sin registro</small>
-              </div>
-
-              <div class="mb-4">
-                <h6 class="text-success mb-3">✅ Incluye:</h6>
-                <ul class="list-unstyled">
-                  <li class="mb-2">
-                    <i class="bi bi-check-circle text-success me-2"></i>Hasta 3
-                    cultivos
-                  </li>
-                  <li class="mb-2">
-                    <i class="bi bi-check-circle text-success me-2"></i>Informes
-                    básicos
-                  </li>
-                  <li class="mb-2">
-                    <i class="bi bi-check-circle text-success me-2"></i>Uso
-                    inmediato
-                  </li>
-                </ul>
-              </div>
-
-              <div class="mb-4">
-                <h6 class="text-warning mb-3">⚠️ Limitaciones:</h6>
-                <ul class="list-unstyled">
-                  <li class="mb-2">
-                    <i class="bi bi-exclamation-triangle text-warning me-2"></i
-                    >Datos pueden perderse
-                  </li>
-                  <li class="mb-2">
-                    <i class="bi bi-exclamation-triangle text-warning me-2"></i
-                    >Sin copia de seguridad
-                  </li>
-                  <li class="mb-2">
-                    <i class="bi bi-exclamation-triangle text-warning me-2"></i
-                    >Solo en este dispositivo
-                  </li>
-                </ul>
-              </div>
-
-              <div class="mt-auto">
-                <button
-                  class="btn btn-outline-secondary btn-lg w-100 mb-2"
-                  onclick="activarModoInvitadoSimple()"
-                  type="button"
-                >
-                  <i class="bi bi-eye me-2"></i>
-                  Probar Ahora
-                </button>
-                <!-- Enlace directo como respaldo -->
-                <button 
-                  class="btn btn-outline-info btn-sm w-100"
-                  onclick="activarModoInvitadoEnlace()"
-                  type="button"
-                >
-                  <i class="bi bi-arrow-right me-1"></i>
-                  Acceso directo (si el botón no funciona)
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Plan Gratuito -->
-        <div class="col-lg-4">
+        <div class="col-lg-6">
           <div
             class="card plan-card h-100 border-success border-3 position-relative"
             data-plan="gratuito"
@@ -118,7 +43,7 @@ endblock %} {% block content %}
               </div>
 
               <div class="mb-4">
-                <h6 class="text-success mb-3">✅ Todo lo de Invitado más:</h6>
+                <h6 class="text-success mb-3">✅ Incluye:</h6>
                 <ul class="list-unstyled">
                   <li class="mb-2">
                     <i class="bi bi-check-circle text-success me-2"></i>Cultivos
@@ -167,7 +92,7 @@ endblock %} {% block content %}
         </div>
 
         <!-- Plan Premium -->
-        <div class="col-lg-4">
+        <div class="col-lg-6">
           <div
             class="card plan-card h-100 border-primary border-2"
             data-plan="premium"
@@ -271,11 +196,6 @@ endblock %} {% block content %}
         <p id="planConfirmText">
           ¿Estás seguro de que quieres continuar con este plan?
         </p>
-        <div id="planWarning" class="alert alert-warning d-none">
-          <i class="bi bi-exclamation-triangle me-2"></i>
-          <strong>Importante:</strong> Los datos del plan Invitado se guardan
-          solo en tu navegador y pueden perderse.
-        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -319,54 +239,6 @@ endblock %} {% block content %}
 </style>
 
 <script>
-  // Función simple para modo invitado
-  function activarModoInvitadoSimple() {
-    console.log('🔍 Función activarModoInvitadoSimple ejecutada');
-    
-    try {
-      if (confirm('🔔 Modo Invitado\n\nComenzarás con una cuenta vacía. Tus datos se guardarán solo en este navegador.\n\n¿Continuar?')) {
-        console.log('✅ Usuario confirmó, configurando...');
-        
-        // Configurar localStorage
-        localStorage.setItem('huerto_plan', 'invitado');
-        localStorage.setItem('huerto_user', JSON.stringify({
-          uid: 'guest_' + Date.now(),
-          email: 'invitado@local',
-          name: 'Usuario Invitado',
-          plan: 'invitado',
-          isGuest: true,
-          created_at: new Date().toISOString()
-        }));
-        localStorage.removeItem('huerto_cultivos_local');
-        localStorage.removeItem('demo_data_loaded');
-        
-        console.log('📦 LocalStorage configurado, redirigiendo...');
-        
-        // Intentar redirección JavaScript
-        try {
-          window.location.href = '/dashboard?mode=guest';
-        } catch (redirectError) {
-          console.log('⚠️ Error en redirección JavaScript, usando enlace directo');
-          // Si falla, usar enlace directo del servidor
-          window.location.href = '/auth/guest';
-        }
-      } else {
-        console.log('❌ Usuario canceló');
-      }
-    } catch (error) {
-      console.error('❌ Error en activarModoInvitadoSimple:', error);
-      // Respaldo: usar enlace directo del servidor
-      if (confirm('Hubo un problema con el modo invitado. ¿Intentar con método alternativo?')) {
-        window.location.href = '/auth/guest';
-      }
-    }
-  }
-
-  // Función de respaldo para Simple Browser
-  function activarModoInvitadoEnlace() {
-    window.location.href = '/auth/guest';
-  }
-
   document.addEventListener("DOMContentLoaded", function () {
     console.log('🔍 DOM loaded, página de planes iniciada');
 
@@ -391,8 +263,8 @@ endblock %} {% block content %}
       btn.addEventListener("click", function (e) {
         e.preventDefault();
 
-        // Skip si es el botón de invitado (tiene onclick directo)
-        if (this.dataset.plan === "invitado" || !this.dataset.plan) {
+        // Solo proceder con planes válidos
+        if (!this.dataset.plan) {
           return;
         }
 

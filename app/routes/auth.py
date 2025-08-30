@@ -3,11 +3,73 @@ Rutas de autenticación
 Login, logout, registro con Firebase Auth y selección de planes
 """
 import datetime
-from flask import Blueprint, request, jsonify, session, redirect, url_for, render_template, flash
+from flask import Blueprint, request, jsonify, session, redirect, url_for, render_template, flash, send_from_directory
 from app.auth.auth_service import AuthService, UserService
 from app.services.plan_service import PlanService
 
 auth_bp = Blueprint('auth', __name__)
+
+@auth_bp.route('/debug')
+def debug_register():
+    """Página de debug para registro"""
+    try:
+        from flask import current_app, send_file
+        import os
+        
+        debug_file = os.path.join(current_app.root_path, '..', 'debug_register.html')
+        if os.path.exists(debug_file):
+            return send_file(debug_file)
+        else:
+            return "Archivo de debug no encontrado", 404
+    except Exception as e:
+        return f"Error cargando debug: {e}", 500
+
+@auth_bp.route('/test-completo')
+def test_completo():
+    """Página de test completo para registro"""
+    try:
+        from flask import current_app, send_file
+        import os
+        
+        test_file = os.path.join(current_app.root_path, '..', 'test_registro_completo.html')
+        if os.path.exists(test_file):
+            return send_file(test_file)
+        else:
+            return "Archivo de test no encontrado", 404
+    except Exception as e:
+        return f"Error cargando test: {e}", 500
+
+@auth_bp.route('/test-backend')
+def test_backend():
+    """Endpoint para probar el backend de Firebase"""
+    try:
+        from flask import current_app
+        import firebase_admin
+        from app.auth.auth_service import AuthService
+        
+        # Test básico
+        results = {
+            'firebase_apps': len(firebase_admin._apps),
+            'firebase_initialized': len(firebase_admin._apps) > 0,
+            'timestamp': str(datetime.datetime.now())
+        }
+        
+        # Test de token verification
+        try:
+            result = AuthService.verify_firebase_token("invalid-token")
+            results['token_verification'] = f"Success (result: {result})"
+        except Exception as e:
+            results['token_verification'] = f"Error: {str(e)}"
+        
+        return jsonify(results)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@auth_bp.route('/register-simple', methods=['GET'])
+def register_simple():
+    """Página de registro simplificada para debugging"""
+    return render_template('auth/register_simple.html')
 
 @auth_bp.route('/plans')
 def plan_selection():
@@ -22,67 +84,6 @@ def plan_selection():
     except Exception as e:
         print(f"Error cargando selección de planes: {e}")
         return redirect(url_for('main.onboarding'))
-
-@auth_bp.route('/guest')
-def activate_guest_mode():
-    """Activar modo invitado directamente (enlace directo)"""
-    try:
-        from flask import current_app
-        plan_service = PlanService(current_app.db)
-        
-        # Crear ID de sesión de invitado
-        guest_id = plan_service.create_guest_session()
-        
-        # Configurar sesión local
-        session['user'] = {
-            'uid': guest_id,
-            'email': 'invitado@local',
-            'name': 'Usuario Invitado', 
-            'plan': 'invitado',
-            'isGuest': True,
-            'created_at': datetime.datetime.utcnow().isoformat()
-        }
-        
-        # Marcar modo invitado activo
-        session['guest_mode_active'] = True
-        
-        flash('¡Modo invitado activado! Tus datos se guardan localmente en este navegador.', 'info')
-        return redirect(url_for('main.dashboard', mode='guest'))
-        
-    except Exception as e:
-        print(f"Error activando modo invitado: {e}")
-        flash('Error al activar modo invitado. Inténtalo de nuevo.', 'error')
-        return redirect(url_for('auth.plan_selection'))
-
-@auth_bp.route('/guest-mode', methods=['POST'])
-def create_guest_mode():
-    """Crear sesión de modo invitado"""
-    try:
-        from flask import current_app
-        plan_service = PlanService(current_app.db)
-        
-        # Crear ID de sesión de invitado
-        guest_id = plan_service.create_guest_session()
-        
-        # Configurar sesión local
-        session['user'] = {
-            'uid': guest_id,
-            'email': 'invitado@local',
-            'name': 'Usuario Invitado',
-            'plan': 'invitado',
-            'isGuest': True,
-            'created_at': datetime.datetime.utcnow().isoformat()
-        }
-        
-        return jsonify({
-            'success': True,
-            'message': 'Sesión de invitado creada',
-            'redirect': url_for('main.dashboard')
-        })
-        
-    except Exception as e:
-        print(f"Error creando sesión de invitado: {e}")
-        return jsonify({'error': 'Error creando sesión'}), 500
 
 @auth_bp.route('/sync-user', methods=['POST'])
 def sync_user():
@@ -159,6 +160,16 @@ def login():
         # Guardar en sesión
         session['token'] = session_token
         session['user_uid'] = user_data['uid']
+        session['user'] = {
+            'uid': user_data['uid'],
+            'email': user_data['email'],
+            'name': user_data['name'],
+        }
+        session['is_authenticated'] = True
+
+        # Limpiar flags de modos especiales para evitar entrar en demo/invitado
+        session.pop('demo_mode_chosen', None)
+        session.pop('guest_mode_active', None)
         
         return jsonify({
             'success': True,
@@ -233,6 +244,7 @@ def register():
     
     # POST: Procesar registro
     try:
+        print("📝 [/auth/register] Solicitud recibida")
         data = request.get_json()
         id_token = data.get('idToken')
         selected_plan = data.get('plan', 'gratuito')
@@ -264,7 +276,7 @@ def register():
         
         # Crear token de sesión
         session_token = AuthService.create_custom_token(user_data)
-        
+
         # Guardar en sesión
         session['token'] = session_token
         session['user_uid'] = user_data['uid']
@@ -274,7 +286,13 @@ def register():
             'name': user_data['name'],
             'plan': selected_plan
         }
-        
+        session['is_authenticated'] = True
+
+        # Limpiar flags de modos especiales para evitar entrar en demo/invitado
+        session.pop('demo_mode_chosen', None)
+        session.pop('guest_mode_active', None)
+
+        print("✅ [/auth/register] Registro procesado correctamente")
         return jsonify({
             'success': True,
             'token': session_token,
@@ -286,9 +304,11 @@ def register():
             },
             'message': f'Cuenta creada con plan {selected_plan}'
         })
-        
+
     except Exception as e:
-        print(f"Error en registro: {e}")
+        import traceback
+        print(f"❌ [/auth/register] Error en registro: {e}")
+        traceback.print_exc()
         return jsonify({'error': f'Error en registro: {str(e)}'}), 500
 
 @auth_bp.route('/register-local', methods=['POST'])

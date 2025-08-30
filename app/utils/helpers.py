@@ -6,14 +6,6 @@ from flask import current_app
 
 # Configuración de planes (constantes)
 PLAN_LIMITS = {
-    'invitado': {
-        'max_crops': 3,
-        'firebase_backup': False,
-        'ads': True,
-        'analytics': 'basic',
-        'export': False,
-        'notifications': False
-    },
     'gratuito': {
         'max_crops': -1,  # Sin límite
         'firebase_backup': True,
@@ -37,12 +29,12 @@ def get_plan_limits(plan_name: str) -> dict:
     Obtener límites y características de un plan
     
     Args:
-        plan_name (str): Nombre del plan ('invitado', 'gratuito', 'premium')
+        plan_name (str): Nombre del plan ('gratuito', 'premium')
         
     Returns:
         dict: Configuración del plan
     """
-    return PLAN_LIMITS.get(plan_name, PLAN_LIMITS['invitado'])
+    return PLAN_LIMITS.get(plan_name, PLAN_LIMITS['gratuito'])
 
 def format_currency(amount: float) -> str:
     """
@@ -103,10 +95,6 @@ def should_show_ads(plan: str, action_count: int = 0) -> bool:
     """
     if plan == 'premium':
         return False
-    
-    if plan == 'invitado':
-        # Anuncios cada 3 acciones para invitados
-        return action_count > 0 and action_count % 3 == 0
     
     if plan == 'gratuito':
         # Solo banner inferior para usuarios gratuitos
@@ -197,11 +185,6 @@ def get_user_tier_benefits(plan: str) -> list:
         list: Lista de beneficios
     """
     benefits = {
-        'invitado': [
-            'Hasta 3 cultivos',
-            'Datos en local', 
-            'Funciones básicas'
-        ],
         'gratuito': [
             'Cultivos ilimitados',
             'Backup en la nube',
@@ -219,7 +202,7 @@ def get_user_tier_benefits(plan: str) -> list:
         ]
     }
     
-    return benefits.get(plan, benefits['invitado'])
+    return benefits.get(plan, benefits['gratuito'])
 
 def calculate_roi(inversion: float, beneficios: float) -> float:
     """

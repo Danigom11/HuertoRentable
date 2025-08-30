@@ -63,6 +63,20 @@ def check_version():
     
     return response
 
+@main_bp.route('/config/firebase')
+def firebase_web_config():
+    """Devolver configuración Firebase Web para el frontend"""
+    from flask import current_app
+    cfg = current_app.config
+    return jsonify({
+        'apiKey': cfg.get('FIREBASE_WEB_API_KEY'),
+        'authDomain': cfg.get('FIREBASE_AUTH_DOMAIN'),
+        'projectId': cfg.get('FIREBASE_PROJECT_ID'),
+        'storageBucket': cfg.get('FIREBASE_STORAGE_BUCKET'),
+        'messagingSenderId': cfg.get('FIREBASE_MESSAGING_SENDER_ID'),
+        'appId': cfg.get('FIREBASE_APP_ID'),
+    })
+
 @main_bp.route('/')
 def home():
     """Página principal - redirecciona según estado del usuario"""
@@ -107,8 +121,25 @@ def dashboard():
                              message="Configurando tu cuenta...",
                              redirect_url="/dashboard")
     
-    # Determinar el tipo de sesión y plan
-    if demo_mode or demo_session_active:
+    # Determinar el tipo de sesión y plan (priorizar usuario autenticado)
+    if user:
+        # Usuario autenticado (Firebase o local)
+        if user.get('is_local'):
+            plan = user.get('plan', 'gratuito')
+            user_type = 'local'
+        else:
+            # Preferir el plan del token/sesión si está presente (más fiable justo tras registro)
+            token_plan = user.get('plan')
+            if token_plan:
+                plan = token_plan
+            else:
+                user_service = UserService(current_app.db)
+                plan = user_service.get_user_plan(user['uid'])
+            user_type = 'firebase'
+        is_authenticated = True
+        use_demo_data = False
+    
+    elif demo_mode or demo_session_active:
         # Modo demo con datos de ejemplo
         plan = 'invitado'
         is_authenticated = False
@@ -123,18 +154,6 @@ def dashboard():
         use_demo_data = False
         user_type = 'guest'
         session['guest_mode_active'] = True
-        
-    elif user:
-        # Usuario autenticado (Firebase o local)
-        if user.get('is_local'):
-            plan = user.get('plan', 'gratuito')
-            user_type = 'local'
-        else:
-            user_service = UserService(current_app.db)
-            plan = user_service.get_user_plan(user['uid'])
-            user_type = 'firebase'
-        is_authenticated = True
-        use_demo_data = False
         
     else:
         # Sin usuario ni modo específico -> redirección al onboarding

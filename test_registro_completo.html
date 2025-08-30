@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Específico de Registro - HuertoRentable</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background: #f5f5f5;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+      }
+      .test-section {
+        border: 1px solid #ddd;
+        margin: 15px 0;
+        padding: 15px;
+        border-radius: 5px;
+      }
+      .success {
+        background: #d4edda;
+        border-color: #c3e6cb;
+      }
+      .error {
+        background: #f8d7da;
+        border-color: #f5c6cb;
+      }
+      .warning {
+        background: #fff3cd;
+        border-color: #ffeaa7;
+      }
+      .info {
+        background: #d1ecf1;
+        border-color: #bee5eb;
+      }
+      input,
+      button {
+        padding: 8px;
+        margin: 5px;
+      }
+      button {
+        cursor: pointer;
+      }
+      #logs {
+        height: 300px;
+        overflow-y: auto;
+        background: #f8f9fa;
+        padding: 10px;
+        font-family: monospace;
+        font-size: 12px;
+      }
+      .log-entry {
+        margin: 2px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🧪 Test Completo de Registro Firebase</h1>
+
+      <!-- Logs en tiempo real -->
+      <div class="test-section">
+        <h3>📊 Logs en Tiempo Real</h3>
+        <div id="logs"></div>
+        <button onclick="clearLogs()">🗑️ Limpiar Logs</button>
+      </div>
+
+      <!-- Test automático -->
+      <div class="test-section">
+        <h3>🔧 Tests Automáticos</h3>
+        <button onclick="runFullTest()" id="testBtn">
+          🚀 Ejecutar Test Completo
+        </button>
+        <div id="testResults"></div>
+      </div>
+
+      <!-- Registro manual -->
+      <div class="test-section">
+        <h3>📝 Registro Manual</h3>
+        <form id="manualForm">
+          <input
+            type="email"
+            placeholder="Email (se agregará timestamp)"
+            id="testEmail"
+            value="test@example.com"
+          /><br />
+          <input
+            type="password"
+            placeholder="Contraseña"
+            id="testPassword"
+            value="123456789"
+          /><br />
+          <input
+            type="text"
+            placeholder="Nombre"
+            id="testName"
+            value="Usuario Test"
+          /><br />
+          <select id="testPlan">
+            <option value="gratuito">Gratuito</option>
+            <option value="premium">Premium</option></select
+          ><br />
+          <button type="submit">✅ Registrar Usuario</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <!-- Nuestros servicios -->
+    <script src="/static/js/firebase-config.js"></script>
+    <script src="/static/js/auth-service.js"></script>
+
+    <script>
+      let logCount = 0;
+
+      // Función para agregar logs
+      function addLog(message, type = "info") {
+        logCount++;
+        const logs = document.getElementById("logs");
+        const time = new Date().toLocaleTimeString();
+        const logEntry = document.createElement("div");
+        logEntry.className = `log-entry ${type}`;
+        logEntry.innerHTML = `<span style="color: #666;">[${logCount}] ${time}:</span> ${message}`;
+        logs.appendChild(logEntry);
+        logs.scrollTop = logs.scrollHeight;
+        console.log(`[${logCount}] ${message}`);
+      }
+
+      function clearLogs() {
+        document.getElementById("logs").innerHTML = "";
+        logCount = 0;
+      }
+
+      // Función para mostrar resultados de test
+      function showTestResult(message, success = true) {
+        const results = document.getElementById("testResults");
+        const div = document.createElement("div");
+        div.className = `test-section ${success ? "success" : "error"}`;
+        div.innerHTML = message;
+        results.appendChild(div);
+      }
+
+      // Test completo
+      async function runFullTest() {
+        const btn = document.getElementById("testBtn");
+        btn.disabled = true;
+        btn.textContent = "⏳ Ejecutando...";
+
+        document.getElementById("testResults").innerHTML = "";
+        clearLogs();
+
+        try {
+          addLog("🚀 Iniciando test completo de registro", "info");
+
+          // Step 1: Verificar Firebase SDK
+          addLog("1️⃣ Verificando Firebase SDK...", "info");
+          if (typeof firebase === "undefined") {
+            throw new Error("Firebase SDK no disponible");
+          }
+          addLog(
+            `✅ Firebase SDK v${firebase.SDK_VERSION || "unknown"} cargado`,
+            "success"
+          );
+          showTestResult("✅ Firebase SDK disponible", true);
+
+          // Step 2: Verificar configuración
+          addLog("2️⃣ Verificando configuración Firebase...", "info");
+          if (!window.HuertoFirebase) {
+            throw new Error("HuertoFirebase config no disponible");
+          }
+          addLog("✅ Configuración HuertoFirebase disponible", "success");
+
+          // Step 3: Inicializar Firebase
+          addLog("3️⃣ Inicializando Firebase...", "info");
+          const initialized = window.HuertoFirebase.initialize();
+          if (!initialized) {
+            throw new Error("Error al inicializar Firebase");
+          }
+          addLog("✅ Firebase inicializado correctamente", "success");
+          showTestResult("✅ Firebase inicializado", true);
+
+          // Step 4: Verificar Auth
+          addLog("4️⃣ Verificando Firebase Auth...", "info");
+          const auth = firebase.auth();
+          addLog(
+            `✅ Firebase Auth disponible - Domain: ${auth.app.options.authDomain}`,
+            "success"
+          );
+          showTestResult("✅ Firebase Auth funcional", true);
+
+          // Step 5: Verificar AuthService
+          addLog("5️⃣ Verificando AuthService...", "info");
+          if (!window.authService) {
+            throw new Error("AuthService no disponible");
+          }
+
+          // Esperar inicialización
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+
+          if (window.authService.isFirebaseReady) {
+            addLog("✅ AuthService listo para Firebase", "success");
+            showTestResult("✅ AuthService funcional", true);
+          } else {
+            addLog("⚠️ AuthService no está listo para Firebase", "warning");
+            showTestResult("⚠️ AuthService no listo", false);
+          }
+
+          // Step 6: Test de backend
+          addLog("6️⃣ Probando conectividad al backend...", "info");
+          const response = await fetch("/dashboard");
+          if (response.ok) {
+            addLog("✅ Backend responde correctamente", "success");
+            showTestResult("✅ Backend accesible", true);
+          } else {
+            addLog(
+              `⚠️ Backend responde con status: ${response.status}`,
+              "warning"
+            );
+          }
+
+          // Step 7: Test de registro simulado
+          addLog("7️⃣ Probando registro simulado...", "info");
+          const timestamp = Date.now();
+          const testEmail = `autotest${timestamp}@test.com`;
+          const testPassword = "123456789";
+
+          addLog(`📧 Registrando usuario: ${testEmail}`, "info");
+
+          const registrationResult = await window.authService.register(
+            testEmail,
+            testPassword,
+            "Usuario AutoTest",
+            "gratuito"
+          );
+
+          if (registrationResult.success) {
+            addLog("✅ REGISTRO AUTOMÁTICO EXITOSO!", "success");
+            addLog(`👤 Usuario: ${registrationResult.user.email}`, "info");
+            addLog(`🆔 UID: ${registrationResult.user.uid}`, "info");
+            showTestResult("✅ Registro automático exitoso", true);
+          } else {
+            addLog(
+              `❌ Registro automático falló: ${registrationResult.error}`,
+              "error"
+            );
+            showTestResult(
+              `❌ Registro falló: ${registrationResult.error}`,
+              false
+            );
+          }
+
+          addLog("🎉 Test completo finalizado", "success");
+        } catch (error) {
+          addLog(`❌ Error en test: ${error.message}`, "error");
+          showTestResult(`❌ Test falló: ${error.message}`, false);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "🚀 Ejecutar Test Completo";
+        }
+      }
+
+      // Registro manual
+      document
+        .getElementById("manualForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const email = document.getElementById("testEmail").value;
+          const password = document.getElementById("testPassword").value;
+          const name = document.getElementById("testName").value;
+          const plan = document.getElementById("testPlan").value;
+
+          // Generar email único
+          const timestamp = Date.now();
+          const uniqueEmail = email.replace("@", `+manual${timestamp}@`);
+
+          addLog(`📝 Registro manual iniciado: ${uniqueEmail}`, "info");
+
+          try {
+            const result = await window.authService.register(
+              uniqueEmail,
+              password,
+              name,
+              plan
+            );
+
+            if (result.success) {
+              addLog("✅ REGISTRO MANUAL EXITOSO!", "success");
+              addLog(`👤 Usuario: ${result.user.email}`, "success");
+              addLog(`🆔 UID: ${result.user.uid}`, "info");
+              addLog(`📦 Plan: ${result.user.plan}`, "info");
+              showTestResult("✅ Registro manual exitoso", true);
+            } else {
+              addLog(`❌ Registro manual falló: ${result.error}`, "error");
+              showTestResult(
+                `❌ Registro manual falló: ${result.error}`,
+                false
+              );
+            }
+          } catch (error) {
+            addLog(`❌ Error en registro manual: ${error.message}`, "error");
+            showTestResult(`❌ Error manual: ${error.message}`, false);
+          }
+        });
+
+      // Auto-iniciar test al cargar
+      window.addEventListener("load", () => {
+        addLog("🏁 Página de test cargada", "info");
+        setTimeout(() => {
+          runFullTest();
+        }, 1000);
+      });
+    </script>
+  </body>
+</html>

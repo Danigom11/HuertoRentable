@@ -69,12 +69,21 @@ endblock %} {% block content %}
 
               <div class="mt-auto">
                 <button
-                  class="btn btn-outline-secondary btn-lg w-100"
+                  class="btn btn-outline-secondary btn-lg w-100 mb-2"
                   onclick="activarModoInvitadoSimple()"
                   type="button"
                 >
                   <i class="bi bi-eye me-2"></i>
                   Probar Ahora
+                </button>
+                <!-- Enlace directo como respaldo -->
+                <button 
+                  class="btn btn-outline-info btn-sm w-100"
+                  onclick="activarModoInvitadoEnlace()"
+                  type="button"
+                >
+                  <i class="bi bi-arrow-right me-1"></i>
+                  Acceso directo (si el botón no funciona)
                 </button>
               </div>
             </div>
@@ -314,26 +323,48 @@ endblock %} {% block content %}
   function activarModoInvitadoSimple() {
     console.log('🔍 Función activarModoInvitadoSimple ejecutada');
     
-    if (confirm('🔔 Modo Invitado\n\nComenzarás con una cuenta vacía. Tus datos se guardarán solo en este navegador.\n\n¿Continuar?')) {
-      console.log('✅ Usuario confirmó, configurando...');
-      
-      localStorage.setItem('huerto_plan', 'invitado');
-      localStorage.setItem('huerto_user', JSON.stringify({
-        uid: 'guest_' + Date.now(),
-        email: 'invitado@local',
-        name: 'Usuario Invitado',
-        plan: 'invitado',
-        isGuest: true,
-        created_at: new Date().toISOString()
-      }));
-      localStorage.removeItem('huerto_cultivos_local');
-      localStorage.removeItem('demo_data_loaded');
-      
-      console.log('📦 LocalStorage configurado, redirigiendo...');
-      window.location.href = '/dashboard?mode=guest';
-    } else {
-      console.log('❌ Usuario canceló');
+    try {
+      if (confirm('🔔 Modo Invitado\n\nComenzarás con una cuenta vacía. Tus datos se guardarán solo en este navegador.\n\n¿Continuar?')) {
+        console.log('✅ Usuario confirmó, configurando...');
+        
+        // Configurar localStorage
+        localStorage.setItem('huerto_plan', 'invitado');
+        localStorage.setItem('huerto_user', JSON.stringify({
+          uid: 'guest_' + Date.now(),
+          email: 'invitado@local',
+          name: 'Usuario Invitado',
+          plan: 'invitado',
+          isGuest: true,
+          created_at: new Date().toISOString()
+        }));
+        localStorage.removeItem('huerto_cultivos_local');
+        localStorage.removeItem('demo_data_loaded');
+        
+        console.log('📦 LocalStorage configurado, redirigiendo...');
+        
+        // Intentar redirección JavaScript
+        try {
+          window.location.href = '/dashboard?mode=guest';
+        } catch (redirectError) {
+          console.log('⚠️ Error en redirección JavaScript, usando enlace directo');
+          // Si falla, usar enlace directo del servidor
+          window.location.href = '/auth/guest';
+        }
+      } else {
+        console.log('❌ Usuario canceló');
+      }
+    } catch (error) {
+      console.error('❌ Error en activarModoInvitadoSimple:', error);
+      // Respaldo: usar enlace directo del servidor
+      if (confirm('Hubo un problema con el modo invitado. ¿Intentar con método alternativo?')) {
+        window.location.href = '/auth/guest';
+      }
     }
+  }
+
+  // Función de respaldo para Simple Browser
+  function activarModoInvitadoEnlace() {
+    window.location.href = '/auth/guest';
   }
 
   document.addEventListener("DOMContentLoaded", function () {

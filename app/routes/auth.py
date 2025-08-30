@@ -3,7 +3,7 @@ Rutas de autenticación
 Login, logout, registro con Firebase Auth y selección de planes
 """
 import datetime
-from flask import Blueprint, request, jsonify, session, redirect, url_for, render_template
+from flask import Blueprint, request, jsonify, session, redirect, url_for, render_template, flash
 from app.auth.auth_service import AuthService, UserService
 from app.services.plan_service import PlanService
 
@@ -22,6 +22,37 @@ def plan_selection():
     except Exception as e:
         print(f"Error cargando selección de planes: {e}")
         return redirect(url_for('main.onboarding'))
+
+@auth_bp.route('/guest')
+def activate_guest_mode():
+    """Activar modo invitado directamente (enlace directo)"""
+    try:
+        from flask import current_app
+        plan_service = PlanService(current_app.db)
+        
+        # Crear ID de sesión de invitado
+        guest_id = plan_service.create_guest_session()
+        
+        # Configurar sesión local
+        session['user'] = {
+            'uid': guest_id,
+            'email': 'invitado@local',
+            'name': 'Usuario Invitado', 
+            'plan': 'invitado',
+            'isGuest': True,
+            'created_at': datetime.datetime.utcnow().isoformat()
+        }
+        
+        # Marcar modo invitado activo
+        session['guest_mode_active'] = True
+        
+        flash('¡Modo invitado activado! Tus datos se guardan localmente en este navegador.', 'info')
+        return redirect(url_for('main.dashboard', mode='guest'))
+        
+    except Exception as e:
+        print(f"Error activando modo invitado: {e}")
+        flash('Error al activar modo invitado. Inténtalo de nuevo.', 'error')
+        return redirect(url_for('auth.plan_selection'))
 
 @auth_bp.route('/guest-mode', methods=['POST'])
 def create_guest_mode():

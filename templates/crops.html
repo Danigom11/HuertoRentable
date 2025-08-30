@@ -13,6 +13,18 @@ HuertoRentable{% endblock %} {% block content %}
 </div>
 {% endif %}
 
+<!-- Banner de modo invitado -->
+{% if guest_mode %}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+  <i class="bi bi-person-circle me-2"></i>
+  <strong>Modo Invitado</strong> - Tus cultivos se guardan localmente en este
+  navegador.
+  <a href="{{ url_for('auth.login') }}" class="alert-link">Regístrate gratis</a>
+  para sincronizar tus datos en la nube y acceder desde cualquier dispositivo.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
 <div class="row">
   <div class="col-12">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -325,6 +337,15 @@ HuertoRentable{% endblock %} {% block content %}
             <i class="bi bi-plus-circle me-1"></i>
             Crear Cultivo
           </button>
+          {% elif guest_mode %}
+          <button
+            type="button"
+            class="btn btn-success"
+            onclick="crearCultivoModoInvitado()"
+          >
+            <i class="bi bi-plus-circle me-1"></i>
+            Crear Cultivo
+          </button>
           {% else %}
           <button type="submit" class="btn btn-success">
             <i class="bi bi-plus-circle me-1"></i>
@@ -473,6 +494,9 @@ HuertoRentable{% endblock %} {% block content %}
   let modalProduccion, modalAbono, modalNuevoCultivo;
 
   document.addEventListener("DOMContentLoaded", function () {
+    // Configurar variables de modo
+    const guestMode = {{ 'true' if guest_mode else 'false' }};
+
     // Inicializar modales
     modalProduccion = new bootstrap.Modal(
       document.getElementById("modalProduccion")
@@ -486,6 +510,11 @@ HuertoRentable{% endblock %} {% block content %}
     const hoy = new Date().toISOString().split("T")[0];
     document.getElementById("fechaProduccion").value = hoy;
     document.getElementById("fechaAbono").value = hoy;
+
+    // Cargar cultivos del localStorage en modo invitado
+    if (guestMode) {
+      cargarCultivosLocalStorage();
+    }
 
     console.log("✅ Gestión de cultivos cargada");
   });
@@ -636,6 +665,82 @@ HuertoRentable{% endblock %} {% block content %}
     mostrarAlerta("info", "✏️ Función de editar cultivo - En desarrollo");
   }
 
+  function cargarCultivosLocalStorage() {
+    const cultivos = JSON.parse(localStorage.getItem('huerto_cultivos_local') || '[]');
+
+    if (cultivos.length === 0) {
+      return; // La tabla ya muestra el estado vacío
+    }
+
+    // Buscar el tbody de la tabla
+    const tbody = document.querySelector('table tbody');
+    if (!tbody) {
+      console.error('No se encontró la tabla de cultivos');
+      return;
+    }
+
+    // Limpiar contenido actual
+    tbody.innerHTML = '';
+
+    // Generar filas para cada cultivo
+    cultivos.forEach(cultivo => {
+      const fechaSiembra = new Date(cultivo.fecha_siembra).toLocaleDateString('es-ES');
+      const row = `
+        <tr>
+          <td>
+            <div class="d-flex align-items-center">
+              <div class="bg-success rounded-circle p-2 me-2">
+                <i class="bi bi-seedling text-white"></i>
+              </div>
+              <div>
+                <strong class="text-capitalize">${cultivo.nombre}</strong>
+                <span class="badge bg-success ms-2">Activo (Local)</span>
+              </div>
+            </div>
+          </td>
+          <td>${fechaSiembra}</td>
+          <td>${cultivo.plantas || 0}</td>
+          <td>€${cultivo.precio.toFixed(2)}</td>
+          <td>
+            <span class="badge bg-info">${cultivo.produccion_total || 0} kg</span>
+          </td>
+          <td>
+            <span class="badge bg-secondary">${(cultivo.abonos || []).length} abonos</span>
+          </td>
+          <td>
+            <div class="btn-group" role="group">
+              <button class="btn btn-sm btn-outline-info"
+                      onclick="mostrarAlerta('info', 'Funcionalidad en desarrollo para modo invitado')"
+                      title="Registrar producción">
+                <i class="bi bi-basket"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-secondary"
+                      onclick="mostrarAlerta('info', 'Funcionalidad en desarrollo para modo invitado')"
+                      title="Añadir abono">
+                <i class="bi bi-droplet"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-primary"
+                      onclick="editarCultivo('${cultivo.id}')"
+                      title="Editar cultivo">
+                <i class="bi bi-pencil"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+      tbody.innerHTML += row;
+    });
+
+    // Actualizar contador de cultivos
+    const contador = document.querySelector('h5');
+    if (contador) {
+      contador.innerHTML = `
+        <i class="bi bi-list-ul me-2"></i>
+        Cultivos Registrados (${cultivos.length})
+      `;
+    }
+  }
+
   function mostrarMensajeModoDemo() {
     // Cerrar el modal primero
     modalNuevoCultivo.hide();
@@ -646,6 +751,59 @@ HuertoRentable{% endblock %} {% block content %}
         "🌱 Modo Demo\n\nNo puedes añadir cultivos reales en el modo demostración.\n\n✨ Para crear y gestionar tus propios cultivos, regístrate gratis y disfruta de todas las funcionalidades."
       );
     }, 300);
+  }
+
+  function crearCultivoModoInvitado() {
+    const form = document.getElementById('formNuevoCultivo');
+    const formData = new FormData(form);
+
+    // Validaciones
+    const nombre = formData.get('nombre')?.trim();
+    const precio = parseFloat(formData.get('precio') || 0);
+
+    if (!nombre) {
+      mostrarAlerta('error', 'El nombre del cultivo es obligatorio');
+      return;
+    }
+
+    if (precio < 0) {
+      mostrarAlerta('error', 'El precio debe ser positivo');
+      return;
+    }
+
+    // Crear objeto cultivo
+    const nuevoCultivo = {
+      id: `guest_${Date.now()}`,
+      nombre: nombre.toLowerCase(),
+      precio: precio,
+      fecha_siembra: new Date().toISOString(),
+      activo: true,
+      produccion_total: 0,
+      beneficio_total: 0,
+      plantas: 0,
+      abonos: [],
+      producciones: []
+    };
+
+    // Obtener cultivos existentes del localStorage
+    let cultivos = JSON.parse(localStorage.getItem('huerto_cultivos_local') || '[]');
+
+    // Agregar el nuevo cultivo
+    cultivos.push(nuevoCultivo);
+
+    // Guardar en localStorage
+    localStorage.setItem('huerto_cultivos_local', JSON.stringify(cultivos));
+
+    // Cerrar modal
+    modalNuevoCultivo.hide();
+
+    // Mostrar mensaje de éxito
+    mostrarAlerta('success', `Cultivo "${nombre}" creado exitosamente en modo invitado`);
+
+    // Actualizar la tabla de cultivos
+    setTimeout(() => {
+      location.reload();
+    }, 1000);
   }
 </script>
 {% endblock %}

@@ -10,6 +10,18 @@ class Config:
     # Flask
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
     
+    # Session configuration - MÁS AGRESIVA para desarrollo
+    SESSION_COOKIE_SECURE = False  # False para desarrollo sin HTTPS
+    SESSION_COOKIE_HTTPONLY = False  # Permitir JS para debug
+    SESSION_COOKIE_SAMESITE = 'Lax'  # Más compatible que None
+    SESSION_COOKIE_DOMAIN = None  # Permitir localhost y 127.0.0.1
+    SESSION_COOKIE_PATH = '/'  # Asegurar que funciona en toda la app
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
+    SESSION_PERMANENT = True
+    SESSION_COOKIE_NAME = 'huerto_session'  # Nombre específico para debug
+    SESSION_REFRESH_EACH_REQUEST = True  # Refrescar en cada request
+    SESSION_USE_SIGNER = True  # Firmar cookies para seguridad
+    
     # Firebase
     FIREBASE_TYPE = os.environ.get('FIREBASE_TYPE')
     FIREBASE_PROJECT_ID = os.environ.get('FIREBASE_PROJECT_ID')
@@ -70,6 +82,13 @@ class DevelopmentConfig(Config):
     """Configuración para desarrollo"""
     DEBUG = True
     FLASK_ENV = 'development'
+    
+    # Session configuration específica para desarrollo
+    SESSION_COOKIE_SECURE = False
+    SESSION_COOKIE_DOMAIN = None
+    SESSION_COOKIE_PATH = '/'
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
 
 class ProductionConfig(Config):
     """Configuración para producción"""

@@ -163,12 +163,23 @@ class PlanService:
             user_service = UserService(self.db)
             crop_service = CropService(self.db)
             
+            print(f"🔍 get_plan_usage para usuario {uid[:8]}...")
+            
             # Obtener plan del usuario
             plan = user_service.get_user_plan(uid)
+            print(f"📋 Plan del usuario: {plan}")
+            
             plan_info = self.get_plan_info(plan)
+            print(f"📊 Info del plan: {plan_info.get('limits', {})}")
             
             # Obtener uso actual
             crops_count = len(crop_service.get_user_crops(uid))
+            print(f"🌱 Cultivos actuales: {crops_count}")
+            
+            max_crops = plan_info['limits']['max_crops']
+            unlimited = max_crops == -1
+            
+            print(f"🎯 Límite de cultivos: {'ilimitado' if unlimited else max_crops}")
             
             return {
                 'plan': plan,
@@ -176,14 +187,16 @@ class PlanService:
                 'usage': {
                     'crops': {
                         'current': crops_count,
-                        'limit': plan_info['limits']['max_crops'],
-                        'unlimited': plan_info['limits']['max_crops'] == -1
+                        'limit': max_crops,
+                        'unlimited': unlimited
                     }
                 }
             }
             
         except Exception as e:
-            print(f"Error obteniendo uso del plan: {e}")
+            print(f"❌ Error obteniendo uso del plan: {e}")
+            import traceback
+            traceback.print_exc()
             return {}
     
     def check_plan_limits(self, uid: str, feature: str) -> bool:
@@ -198,17 +211,35 @@ class PlanService:
             bool: True si puede usar la característica
         """
         try:
+            print(f"🔍 check_plan_limits para {uid[:8]}... feature: {feature}")
+            
             usage = self.get_plan_usage(uid)
             
+            if not usage:
+                print("❌ No se pudo obtener información de uso del plan")
+                # Para usuarios con plan gratuito, permitir creación por defecto
+                return True
+            
             if feature == 'crops':
-                if usage['usage']['crops']['unlimited']:
+                unlimited = usage.get('usage', {}).get('crops', {}).get('unlimited', True)
+                if unlimited:
+                    print("✅ Plan con cultivos ilimitados")
                     return True
-                return usage['usage']['crops']['current'] < usage['usage']['crops']['limit']
+                    
+                current = usage.get('usage', {}).get('crops', {}).get('current', 0)
+                limit = usage.get('usage', {}).get('crops', {}).get('limit', -1)
+                
+                can_create = current < limit
+                print(f"📊 Cultivos: {current}/{limit} - {'Puede' if can_create else 'No puede'} crear más")
+                return can_create
             
             # Para otras características, verificar en plan_info
-            plan_limits = usage['plan_info']['limits']
+            plan_limits = usage.get('plan_info', {}).get('limits', {})
             return plan_limits.get(feature, False)
             
         except Exception as e:
-            print(f"Error verificando límites: {e}")
-            return True  # En caso de error, permitir
+            print(f"❌ Error verificando límites: {e}")
+            import traceback
+            traceback.print_exc()
+            # En caso de error, permitir para evitar bloquear usuarios
+            return True

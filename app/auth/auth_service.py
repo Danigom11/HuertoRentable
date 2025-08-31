@@ -4,6 +4,7 @@ Manejo de usuarios, sesiones y planes de suscripción
 """
 import jwt
 import datetime
+import json
 from functools import wraps
 from flask import request, jsonify, session, current_app, g
 from firebase_admin import auth as firebase_auth
@@ -28,7 +29,7 @@ class AuthService:
                 'uid': decoded_token['uid'],
                 'email': decoded_token.get('email'),
                 'email_verified': decoded_token.get('email_verified', False),
-                'name': decoded_token.get('name'),
+                'name': decoded_token.get('name') or decoded_token.get('email', '').split('@')[0],
                 'picture': decoded_token.get('picture')
             }
         except Exception as e:
@@ -175,14 +176,21 @@ class UserService:
         Returns:
             str: Nombre del plan ('invitado', 'gratuito', 'premium')
         """
-        user = self.get_user_by_uid(uid)
-        print(f"🔍 get_user_plan para {uid[:8]}... - Usuario encontrado: {user is not None}")
-        if user:
-            plan = user.get('plan', 'gratuito')
-            print(f"🔍 Plan del usuario: {plan}")
-            return plan
-        print(f"⚠️ Usuario no encontrado en Firestore, devolviendo plan 'invitado'")
-        return 'invitado'
+        try:
+            user = self.get_user_by_uid(uid)
+            print(f"🔍 get_user_plan para {uid[:8]}... - Usuario encontrado: {user is not None}")
+            if user:
+                plan = user.get('plan', 'gratuito')
+                print(f"🔍 Plan del usuario: {plan}")
+                return plan
+            else:
+                print(f"⚠️ Usuario no encontrado en Firestore, devolviendo plan 'gratuito'")
+                return 'gratuito'  # Cambiado de 'invitado' a 'gratuito' para nuevos usuarios
+        except Exception as e:
+            print(f"❌ Error obteniendo plan del usuario: {e}")
+            import traceback
+            traceback.print_exc()
+            return 'gratuito'  # Fallback seguro
     
     def upgrade_to_premium(self, uid):
         """Actualizar usuario a plan premium"""
@@ -268,5 +276,144 @@ def get_current_user():
         user_data = AuthService.verify_custom_token(session['token'])
         if user_data:
             return user_data
+    
+    # Fallback 1: Cookie con datos completos del usuario creada en /auth/sync-user
+    user_cookie = request.cookies.get('huerto_user_data')
+    if user_cookie:
+        try:
+            data = json.loads(user_cookie)
+            if data.get('authenticated') and data.get('uid'):
+                # Reconstruir usuario y sesión
+                user = {
+                    'uid': data['uid'],
+                    'email': data.get('email'),
+                    'name': data.get('name') or (data.get('email') or 'Usuario').split('@')[0],
+                    'plan': data.get('plan', 'gratuito')
+                }
+                session.permanent = True
+                session['user'] = user
+                session['user_uid'] = user['uid']
+                session['is_authenticated'] = True
+                # Limpiar flags de demo si estuvieran activos
+                session.pop('demo_mode_chosen', None)
+                session.pop('guest_mode_active', None)
+                session.modified = True
+                print(f"✅ [Auth] Usuario reconstruido desde cookie de datos: {user['uid']}")
+                return user
+        except Exception as e:
+            print(f"❌ [Auth] Error leyendo cookie de usuario: {e}")
+    
+    # Fallback 1b: Cookie simple con UID
+    simple_uid = request.cookies.get('huerto_user_uid')
+    if simple_uid:
+        try:
+            # Usar email y nombre temporales si no hay más datos
+            user = {
+                'uid': simple_uid,
+                'email': f'user-{simple_uid[:8]}@huerto.com',
+                'name': f'Usuario {simple_uid[:8]}',
+                'plan': 'gratuito'
+            }
+            session.permanent = True
+            session['user'] = user
+            session['user_uid'] = simple_uid
+            session['is_authenticated'] = True
+            session.pop('demo_mode_chosen', None)
+            session.pop('guest_mode_active', None)
+            session.modified = True
+            print(f"✅ [Auth] Usuario reconstruido desde cookie simple UID: {simple_uid}")
+            return user
+        except Exception as e:
+            print(f"❌ [Auth] Error reconstruyendo desde UID cookie: {e}")
+    
+    # Verificar token Firebase en cookies como respaldo
+    firebase_token = request.cookies.get('firebase_id_token')
+    if firebase_token:
+        try:
+            user_data = AuthService.verify_firebase_token(firebase_token)
+            if user_data:
+                print(f"✅ [Auth] Usuario obtenido de cookie Firebase: {user_data['uid']}")
+                # Reconstruir sesión básica
+                session.permanent = True
+                session['user'] = {
+                    'uid': user_data['uid'],
+                    'email': user_data.get('email'),
+                    'name': user_data.get('name') or (user_data.get('email') or 'Usuario').split('@')[0],
+                    'plan': user_data.get('plan', 'gratuito')
+                }
+                session['user_uid'] = user_data['uid']
+                session['is_authenticated'] = True
+                session.pop('demo_mode_chosen', None)
+                session.pop('guest_mode_active', None)
+                session.modified = True
+                return user_data
+        except Exception as e:
+            print(f"❌ [Auth] Error verificando cookie Firebase: {e}")
+    
+    # Fallback 2a: Si viene con from=register y uid en la URL, aceptar temporalmente
+    try:
+        if request.args.get('from') == 'register' and request.args.get('uid'):
+            uid = request.args.get('uid')
+            user = {
+                'uid': uid,
+                'email': f'user-{uid[:8]}@huerto.com',
+                'name': f'Usuario {uid[:8]}',
+                'plan': 'gratuito'
+            }
+            session.permanent = True
+            session['user'] = user
+            session['user_uid'] = uid
+            session['is_authenticated'] = True
+            session.pop('demo_mode_chosen', None)
+            session.pop('guest_mode_active', None)
+            session.modified = True
+            print(f"✅ [Auth] Usuario reconstruido desde parámetros de registro: {uid}")
+            return user
+    except Exception as e:
+        print(f"❌ [Auth] Error en fallback desde registro: {e}")
+    
+    # Fallback 2b: Si hay uid en la URL, aunque no sea 'from=register', reconstruir de forma básica
+    try:
+        if request.args.get('uid'):
+            uid = request.args.get('uid')
+            user = {
+                'uid': uid,
+                'email': f'user-{uid[:8]}@huerto.com',
+                'name': f'Usuario {uid[:8]}',
+                'plan': 'gratuito'
+            }
+            session.permanent = True
+            session['user'] = user
+            session['user_uid'] = uid
+            session['is_authenticated'] = True
+            session.pop('demo_mode_chosen', None)
+            session.pop('guest_mode_active', None)
+            session.modified = True
+            print(f"✅ [Auth] Usuario reconstruido desde uid en URL: {uid}")
+            return user
+    except Exception as e:
+        print(f"❌ [Auth] Error en fallback desde uid URL: {e}")
+    
+    # Fallback 2c: Si viene un uid en el cuerpo del formulario (POST), reconstruir básica
+    try:
+        if request.method == 'POST' and request.form.get('uid'):
+            uid = request.form.get('uid')
+            user = {
+                'uid': uid,
+                'email': f'user-{uid[:8]}@huerto.com',
+                'name': f'Usuario {uid[:8]}',
+                'plan': 'gratuito'
+            }
+            session.permanent = True
+            session['user'] = user
+            session['user_uid'] = uid
+            session['is_authenticated'] = True
+            session.pop('demo_mode_chosen', None)
+            session.pop('guest_mode_active', None)
+            session.modified = True
+            print(f"✅ [Auth] Usuario reconstruido desde uid en FORM: {uid}")
+            return user
+    except Exception as e:
+        print(f"❌ [Auth] Error en fallback desde uid FORM: {e}")
     
     return None

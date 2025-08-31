@@ -214,8 +214,8 @@ main {
 }
 
 .alert-success {
-  background-color: var(--huerto-green-light);
-  color: var(--huerto-green-dark);
+  background-color: var(--huerto-green) !important;
+  color: #ffffff !important;
 }
 
 /* ================================

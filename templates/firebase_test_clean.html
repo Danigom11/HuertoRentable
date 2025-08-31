@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Firebase Test - Clean Version</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .test {
+        margin: 10px 0;
+        padding: 10px;
+        border: 1px solid #ccc;
+      }
+      .success {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+      }
+      .error {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Firebase Configuration Test - Clean Version</h1>
+    <div id="results"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+    <!-- Our config -->
+    <script src="/static/js/firebase-config-final.js"></script>
+
+    <script>
+      function addResult(message, type = "info") {
+        const div = document.createElement("div");
+        div.className = "test " + type;
+        div.textContent = message;
+        document.getElementById("results").appendChild(div);
+      }
+
+      function runTests() {
+        addResult("=== PRUEBAS FIREBASE LIMPIA ===", "info");
+
+        // Test 1: Firebase SDK
+        addResult(
+          "1. Firebase SDK: " +
+            (typeof firebase !== "undefined" ? "LOADED ✓" : "NOT LOADED ✗"),
+          typeof firebase !== "undefined" ? "success" : "error"
+        );
+
+        // Test 2: HuertoFirebase object
+        addResult(
+          "2. HuertoFirebase: " +
+            (typeof window.HuertoFirebase !== "undefined"
+              ? "AVAILABLE ✓"
+              : "NOT AVAILABLE ✗"),
+          typeof window.HuertoFirebase !== "undefined" ? "success" : "error"
+        );
+
+        if (window.HuertoFirebase) {
+          // Test 3: Status
+          const status = window.HuertoFirebase.getStatus();
+          addResult(
+            "3. SDK Loaded: " + (status.sdkLoaded ? "YES ✓" : "NO ✗"),
+            status.sdkLoaded ? "success" : "error"
+          );
+
+          addResult(
+            "4. App Initialized: " + (status.appInitialized ? "YES ✓" : "NO ✗"),
+            status.appInitialized ? "success" : "error"
+          );
+
+          addResult(
+            "5. Auth Initialized: " +
+              (status.authInitialized ? "YES ✓" : "NO ✗"),
+            status.authInitialized ? "success" : "error"
+          );
+
+          addResult(
+            "6. Config Present: " + (status.config ? "YES ✓" : "NO ✗"),
+            status.config ? "success" : "error"
+          );
+
+          // Test 7: Try creating user
+          if (status.authInitialized) {
+            const testEmail = "test" + Date.now() + "@test.com";
+            const testPassword = "test123456";
+
+            addResult("7. Probando creación de usuario...", "info");
+
+            window.HuertoFirebase.auth
+              .createUserWithEmailAndPassword(testEmail, testPassword)
+              .then((userCredential) => {
+                addResult(
+                  "8. Usuario creado ✓ UID: " + userCredential.user.uid,
+                  "success"
+                );
+                // Limpiar el usuario de prueba
+                return userCredential.user.delete();
+              })
+              .then(() => {
+                addResult("9. Usuario de prueba eliminado ✓", "success");
+              })
+              .catch((error) => {
+                addResult(
+                  "8. Error creando usuario: " + error.message,
+                  "error"
+                );
+              });
+          }
+        }
+      }
+
+      // Ejecutar tests cuando todo esté listo
+      setTimeout(runTests, 1500);
+    </script>
+  </body>
+</html>

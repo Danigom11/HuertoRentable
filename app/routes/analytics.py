@@ -14,7 +14,7 @@ from app.services.crop_service import CropService
 analytics_bp = Blueprint('analytics', __name__)
 
 @analytics_bp.route('/')
-def dashboard():
+def analytics_dashboard():
     """Dashboard de analytics básico - también funciona en modo demo"""
     from flask import current_app
     

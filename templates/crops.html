@@ -104,9 +104,11 @@ HuertoRentable{% endblock %} {% block content %}
                   >
                 </td>
                 <td>
-                  {% set total_kilos =
-                  cultivo.produccion_diaria|sum(attribute='kilos') if
-                  cultivo.produccion_diaria else 0 %}
+                  {# Calcular kilos totales de forma robusta: solo sumar
+                  entradas que tengan la clave 'kilos' #} {% set total_kilos =
+                  (cultivo.produccion_diaria | selectattr('kilos', 'defined') |
+                  map(attribute='kilos') | sum) if cultivo.produccion_diaria
+                  else 0 %}
                   <div class="mb-2">
                     <span class="badge bg-primary me-2"
                       >{{ "%.1f"|format(total_kilos) }} kg</span
@@ -121,7 +123,7 @@ HuertoRentable{% endblock %} {% block content %}
                   </div>
 
                   <!-- Controles para añadir producción diaria -->
-                  {% if modo_demo %}
+                  {% if demo_mode %}
                   <div class="text-muted small">
                     <i class="bi bi-info-circle me-1"></i>
                     Disponible con Firebase
@@ -163,9 +165,10 @@ HuertoRentable{% endblock %} {% block content %}
                 </td>
                 <td>
                   <span class="badge bg-info"
-                    >{{ cultivo.abonos|length }} abonos</span
+                    >{{ (cultivo.abonos | default([], true)) | length }}
+                    abonos</span
                   >
-                  {% if cultivo.abonos|length > 0 %}
+                  {% if (cultivo.abonos | default([], true)) | length > 0 %}
                   <button
                     class="btn btn-sm btn-outline-info ms-1"
                     onclick="mostrarAbonos('{{ cultivo.id }}', '{{ cultivo.nombre }}')"
@@ -193,10 +196,21 @@ HuertoRentable{% endblock %} {% block content %}
                     </button>
                     <button
                       class="btn btn-sm btn-outline-warning"
-                      onclick="editarCultivo('{{ cultivo.id }}')"
+                      data-id="{{ cultivo.id }}"
+                      data-nombre="{{ cultivo.nombre }}"
+                      data-precio="{{ cultivo.precio_por_kilo or 0 }}"
+                      data-plantas="{{ cultivo.numero_plantas or 1 }}"
+                      onclick="editarCultivoDesdeBoton(this)"
                       title="Editar cultivo"
                     >
                       <i class="bi bi-pencil"></i>
+                    </button>
+                    <button
+                      class="btn btn-sm btn-outline-danger"
+                      onclick="eliminarCultivo('{{ cultivo.id }}', '{{ cultivo.nombre }}')"
+                      title="Eliminar cultivo"
+                    >
+                      <i class="bi bi-trash"></i>
                     </button>
                   </div>
                 </td>
@@ -244,11 +258,91 @@ HuertoRentable{% endblock %} {% block content %}
           data-bs-dismiss="modal"
         ></button>
       </div>
+      <!-- Modal para editar cultivo -->
+      <div class="modal fade" id="modalEditarCultivo" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+              <h5 class="modal-title">
+                <i class="bi bi-pencil me-2"></i>
+                Editar Cultivo
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <form id="formEditarCultivo" action="#" method="POST">
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label for="editar_nombre" class="form-label">Nombre</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="editar_nombre"
+                    name="nombre"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="editar_precio" class="form-label"
+                    >Precio por Kilo (€)</label
+                  >
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="form-control"
+                    id="editar_precio"
+                    name="precio"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="editar_numero_plantas" class="form-label"
+                    >Número de Plantas</label
+                  >
+                  <input
+                    type="number"
+                    min="1"
+                    class="form-control"
+                    id="editar_numero_plantas"
+                    name="numero_plantas"
+                    required
+                  />
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  data-bs-dismiss="modal"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  class="btn btn-warning"
+                  onclick="guardarEdicion(event)"
+                >
+                  <i class="bi bi-check-circle me-1"></i>
+                  Guardar Cambios
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
       <form
         id="formNuevoCultivo"
-        action="{{ url_for('crops.create_crop') }}"
+        action="{{ url_for('crops.create_crop') }}{% if user_uid %}?uid={{ user_uid }}{% endif %}"
         method="POST"
       >
+        {% if user_uid %}
+        <input type="hidden" name="uid" value="{{ user_uid }}" />
+        {% endif %}
         <div class="modal-body">
           <div class="mb-3">
             <label for="nombre" class="form-label">
@@ -302,6 +396,27 @@ HuertoRentable{% endblock %} {% block content %}
             />
             <div class="form-text">
               Cantidad de plantas sembradas en este cultivo
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="peso_promedio" class="form-label">
+              <i class="bi bi-calculator me-1"></i>
+              Peso Promedio por Unidad (g)
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="peso_promedio"
+              name="peso_promedio"
+              step="0.1"
+              min="0.1"
+              placeholder="ej: 150.0"
+              required
+            />
+            <div class="form-text">
+              Peso en gramos de cada unidad (tomate, lechuga, etc.) para
+              calcular automáticamente los kilos
             </div>
           </div>
 
@@ -523,36 +638,31 @@ HuertoRentable{% endblock %} {% block content %}
 
   // Función para guardar producción mediante API
   async function guardarProduccion() {
-    const formData = {
-      cultivo_id: document.getElementById("cultivoIdProduccion").value,
-      fecha: document.getElementById("fechaProduccion").value,
-      kilos: parseFloat(document.getElementById("kilosProduccion").value),
-    };
+    const cultivoId = document.getElementById("cultivoIdProduccion").value;
+    const kilos = parseFloat(document.getElementById("kilosProduccion").value);
 
-    if (!formData.fecha || !formData.kilos || formData.kilos <= 0) {
+    if (!kilos || kilos <= 0) {
       alert("Por favor, completa todos los campos correctamente");
       return;
     }
 
     try {
-      const response = await fetch("/api/agregar-produccion", {
+      const response = await fetch(`/crops/${cultivoId}/production`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ kilos: String(kilos) }).toString(),
       });
 
-      const result = await response.json();
-
       if (response.ok) {
-        // Mostrar mensaje de éxito
         mostrarAlerta("success", "✅ Producción añadida correctamente");
         modalProduccion.hide();
-        // Recargar página para mostrar cambios
-        setTimeout(() => location.reload(), 1000);
+        setTimeout(() => location.reload(), 800);
       } else {
-        mostrarAlerta("danger", "❌ Error: " + result.error);
+        const result = await response.json().catch(() => ({}));
+        mostrarAlerta(
+          "danger",
+          "❌ Error: " + (result.error || response.status)
+        );
       }
     } catch (error) {
       console.error("Error:", error);
@@ -647,8 +757,41 @@ HuertoRentable{% endblock %} {% block content %}
     );
   }
 
-  function editarCultivo(cultivoId) {
-    mostrarAlerta("info", "✏️ Función de editar cultivo - En desarrollo");
+  function editarCultivo(cultivoId, nombre, precio, plantas) {
+    // Setear acción del formulario y valores
+    const form = document.getElementById("formEditarCultivo");
+    form.action = `/crops/${cultivoId}/edit`;
+    document.getElementById("editar_nombre").value = nombre || "";
+    document.getElementById("editar_precio").value = precio || 0;
+    document.getElementById("editar_numero_plantas").value = plantas || 1;
+    modalEditarCultivo.show();
+  }
+
+  function editarCultivoDesdeBoton(btn) {
+    const id = btn.getAttribute("data-id");
+    const nombre = btn.getAttribute("data-nombre");
+    const precio = parseFloat(btn.getAttribute("data-precio") || "0");
+    const plantas = parseInt(btn.getAttribute("data-plantas") || "1");
+    editarCultivo(id, nombre, precio, plantas);
+  }
+
+  function guardarEdicion(event) {
+    // Enviar el formulario de edición
+    event.preventDefault();
+    const form = document.getElementById("formEditarCultivo");
+    form.submit();
+  }
+
+  function eliminarCultivo(cultivoId, nombre) {
+    if (!confirm(`¿Seguro que deseas eliminar el cultivo "${nombre}"?`)) {
+      return;
+    }
+    // Crear y enviar formulario POST para borrar
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = `/crops/${cultivoId}/delete`;
+    document.body.appendChild(form);
+    form.submit();
   }
 
   function mostrarMensajeModoDemo() {

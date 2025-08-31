@@ -7,9 +7,9 @@ endblock %} {% block content %}
         <div class="card-header bg-success text-white text-center">
           <h4 class="mb-0">
             <i class="bi bi-person-plus me-2"></i>
-            Crear Cuenta - Plan {{ selected_plan|title }}
+            Crear Cuenta - Plan {{ plan|title }}
           </h4>
-          {% if selected_plan == 'premium' %}
+          {% if plan == 'premium' %}
           <small class="opacity-75">
             <i class="bi bi-star me-1"></i>
             Con 7 días de prueba gratis
@@ -23,9 +23,9 @@ endblock %} {% block content %}
         </div>
         <div class="card-body p-4">
           <!-- Plan seleccionado -->
-          {% if selected_plan %}
+          {% if plan %}
           <div class="alert alert-info d-flex align-items-center mb-4">
-            {% if selected_plan == 'premium' %}
+            {% if plan == 'premium' %}
             <i class="bi bi-crown text-primary me-2 fs-4"></i>
             <div>
               <strong>Plan Premium seleccionado</strong>
@@ -246,7 +246,7 @@ endblock %} {% block content %}
           // Obtener plan seleccionado de la URL o formulario
           const urlParams = new URLSearchParams(window.location.search);
           const selectedPlan =
-            urlParams.get("plan") || "{{ selected_plan }}" || "gratuito";
+            urlParams.get("plan") || "{{ plan }}" || "gratuito";
 
           // Registrar usuario usando el servicio de autenticación
           let result;
@@ -288,10 +288,52 @@ endblock %} {% block content %}
               );
             }
 
-            // Redirigir al dashboard después de un momento
+            // Guardar información del usuario en localStorage como respaldo
+            localStorage.setItem(
+              "userRegistered",
+              JSON.stringify({
+                uid: result.user.uid,
+                email: result.user.email,
+                plan: selectedPlan,
+                timestamp: Date.now(),
+              })
+            );
+
+            // Guardar token Firebase como cookie para que el servidor pueda leerlo
+            const idToken = await firebase.auth().currentUser.getIdToken();
+            document.cookie = `firebase_id_token=${idToken}; path=/; max-age=3600; SameSite=Lax`;
+
+            // SINCRONIZACIÓN INMEDIATA: Hacer una llamada al backend para asegurar la sesión
+            console.log("🔄 Sincronizando sesión con backend...");
+            try {
+              await fetch("/auth/sync-user", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                credentials: "include",
+                body: JSON.stringify({
+                  idToken: idToken,
+                }),
+              });
+              console.log("✅ Sesión sincronizada");
+            } catch (syncError) {
+              console.warn("⚠️ Error sincronizando sesión:", syncError);
+            }
+
+            // REDIRECCIÓN INMEDIATA AL DASHBOARD tras registro exitoso
+            console.log("✅ Registro completado - redirigiendo al dashboard");
+
+            // Mostrar mensaje de éxito brevemente y redirigir
+            showAlert(
+              "success",
+              `¡Bienvenido/a ${result.user.name}! Redirigiendo al dashboard...`
+            );
+
+            // Redirigir con parámetros para identificar origen
             setTimeout(() => {
-              window.location.href = "/dashboard?from=register";
-            }, 2500);
+              window.location.href = `/dashboard?from=register&welcome=true&uid=${result.user.uid}`;
+            }, 1000);
           } else {
             throw new Error(result.error);
           }
@@ -363,6 +405,18 @@ endblock %} {% block content %}
   .btn-success:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  }
+
+  /* Mejorar contraste de alertas de éxito */
+  .alert-success {
+    background-color: #d1e7dd !important;
+    border-color: #badbcc !important;
+    color: #0a3622 !important;
+  }
+
+  .alert-success .btn-close {
+    filter: invert(1) grayscale(100%) brightness(0) sepia(100%) saturate(1000%)
+      hue-rotate(0deg);
   }
 </style>
 

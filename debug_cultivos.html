@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Debug Cultivos - HuertoRentable</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container mt-4">
+      <h1>🧪 Diagnóstico de Cultivos</h1>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header">
+              <h5>🔧 Test Diagnóstico</h5>
+            </div>
+            <div class="card-body">
+              <button id="runDiagnostic" class="btn btn-primary">
+                Ejecutar Diagnóstico
+              </button>
+              <div id="diagnosticResults" class="mt-3"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header">
+              <h5>🌱 Test Crear Cultivo</h5>
+            </div>
+            <div class="card-body">
+              <form id="testCropForm">
+                <div class="mb-3">
+                  <label class="form-label">Nombre:</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    name="nombre"
+                    value="tomates test"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Precio por kilo:</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    name="precio"
+                    value="3.50"
+                    step="0.01"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Número de plantas:</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    name="numero_plantas"
+                    value="10"
+                    required
+                  />
+                </div>
+                <button type="submit" class="btn btn-success">
+                  Crear Cultivo de Prueba
+                </button>
+              </form>
+              <div id="cropResults" class="mt-3"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document
+        .getElementById("runDiagnostic")
+        .addEventListener("click", async () => {
+          const resultsDiv = document.getElementById("diagnosticResults");
+          resultsDiv.innerHTML =
+            '<div class="spinner-border spinner-border-sm" role="status"></div> Ejecutando diagnóstico...';
+
+          try {
+            const response = await fetch("/auth/debug-cultivo");
+            const data = await response.json();
+
+            let html =
+              '<div class="alert alert-info"><h6>Resultados del Diagnóstico:</h6>';
+            html += "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+            html += "</div>";
+
+            resultsDiv.innerHTML = html;
+          } catch (error) {
+            resultsDiv.innerHTML =
+              '<div class="alert alert-danger">Error: ' +
+              error.message +
+              "</div>";
+          }
+        });
+
+      document
+        .getElementById("testCropForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const resultsDiv = document.getElementById("cropResults");
+          resultsDiv.innerHTML =
+            '<div class="spinner-border spinner-border-sm" role="status"></div> Creando cultivo...';
+
+          const formData = new FormData(e.target);
+
+          try {
+            const response = await fetch("/auth/test-crear-cultivo", {
+              method: "POST",
+              body: formData,
+            });
+
+            const data = await response.json();
+
+            let alertClass = data.success ? "alert-success" : "alert-danger";
+            let html = `<div class="alert ${alertClass}">`;
+            html += `<h6>${data.success ? "✅ Éxito" : "❌ Error"}:</h6>`;
+            html += `<p>${data.message}</p>`;
+            if (data.error) {
+              html += `<p><strong>Error:</strong> ${data.error}</p>`;
+            }
+            if (data.traceback) {
+              html += `<details><summary>Traceback</summary><pre>${data.traceback}</pre></details>`;
+            }
+            html += "</div>";
+
+            resultsDiv.innerHTML = html;
+          } catch (error) {
+            resultsDiv.innerHTML =
+              '<div class="alert alert-danger">Error de red: ' +
+              error.message +
+              "</div>";
+          }
+        });
+    </script>
+  </body>
+</html>

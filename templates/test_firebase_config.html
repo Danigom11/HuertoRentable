@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Test Firebase Config</title>
+  </head>
+  <body>
+    <h1>Test de Carga Firebase Config</h1>
+    <div id="resultado"></div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+    <!-- Nuestro archivo -->
+    <script src="/static/js/firebase-config.js"></script>
+
+    <script>
+      function log(mensaje) {
+        document.getElementById("resultado").innerHTML +=
+          "<p>" + mensaje + "</p>";
+        console.log(mensaje);
+      }
+
+      // Esperamos un poco para que se cargue todo
+      setTimeout(function () {
+        log("=== TEST FIREBASE CONFIG ===");
+
+        // Test 1: Firebase SDK
+        log(
+          "1. Firebase SDK: " +
+            (typeof firebase !== "undefined" ? "✅ Cargado" : "❌ No cargado")
+        );
+
+        // Test 2: HuertoFirebase
+        log(
+          "2. HuertoFirebase: " +
+            (typeof window.HuertoFirebase !== "undefined"
+              ? "✅ Disponible"
+              : "❌ No disponible")
+        );
+
+        if (typeof window.HuertoFirebase !== "undefined") {
+          log(
+            "3. HuertoFirebase.config: " +
+              (window.HuertoFirebase.config ? "✅ Presente" : "❌ Falta")
+          );
+          log(
+            "4. HuertoFirebase.initialize: " +
+              (window.HuertoFirebase.initialize ? "✅ Presente" : "❌ Falta")
+          );
+
+          if (window.HuertoFirebase.config) {
+            log("5. API Key: " + window.HuertoFirebase.config.apiKey);
+            log("6. Project ID: " + window.HuertoFirebase.config.projectId);
+          }
+
+          // Test de inicialización
+          if (window.HuertoFirebase.initialize) {
+            log("7. Probando inicialización...");
+            try {
+              const result = window.HuertoFirebase.initialize();
+              log(
+                "8. Resultado inicialización: " +
+                  (result ? "✅ Éxito" : "❌ Fallo")
+              );
+            } catch (error) {
+              log("8. Error en inicialización: " + error.message);
+            }
+          }
+        }
+      }, 2000);
+    </script>
+  </body>
+</html>

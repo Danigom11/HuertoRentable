@@ -27,7 +27,9 @@ class CropService:
                 return []
             
             crops_ref = self.db.collection('usuarios').document(user_uid).collection('cultivos')
-            docs = crops_ref.where('activo', '==', True).order_by('fecha_siembra', direction='DESCENDING').stream()
+            # Evitar order_by que puede requerir índices si combinamos con where.
+            # Obtenemos activos y ordenamos en memoria por fecha_siembra descendente.
+            docs = crops_ref.where('activo', '==', True).stream()
             
             cultivos = []
             for doc in docs:
@@ -37,6 +39,11 @@ class CropService:
                 cultivo = self._process_cultivo_dates(cultivo)
                 cultivos.append(cultivo)
             
+            # Ordenar por fecha_siembra descendente si está disponible
+            try:
+                cultivos.sort(key=lambda c: c.get('fecha_siembra') or c.get('creado_en') or datetime.datetime.min, reverse=True)
+            except Exception:
+                pass
             return cultivos
             
         except Exception as e:
@@ -70,6 +77,7 @@ class CropService:
                 'fecha_cosecha': None,
                 'precio_por_kilo': float(crop_data.get('precio', 0)),
                 'numero_plantas': int(crop_data.get('numero_plantas', 1)),
+                'peso_promedio_gramos': float(crop_data.get('peso_promedio', 100)),  # Peso en gramos por unidad
                 'abonos': [],
                 'produccion_diaria': [],
                 'activo': True,
@@ -77,15 +85,29 @@ class CropService:
                 'actualizado_en': datetime.datetime.utcnow()
             }
             
+            # Asegurar que el documento del usuario existe antes de escribir subcolecciones
+            user_ref = self.db.collection('usuarios').document(user_uid)
+            user_doc = user_ref.get()
+            if not user_doc.exists:
+                # Crear documento mínimo del usuario si no existe (fallback seguro)
+                user_ref.set({
+                    'uid': user_uid,
+                    'plan': 'gratuito',
+                    'fecha_registro': datetime.datetime.utcnow(),
+                    'ultimo_acceso': datetime.datetime.utcnow()
+                }, merge=True)
+
             # Guardar en Firestore
-            crops_ref = self.db.collection('usuarios').document(user_uid).collection('cultivos')
+            crops_ref = user_ref.collection('cultivos')
             doc_ref = crops_ref.add(cultivo)
             
             print(f"✅ Cultivo '{cultivo['nombre']}' creado para usuario {user_uid}")
             return True
             
         except Exception as e:
+            import traceback
             print(f"Error creando cultivo: {e}")
+            traceback.print_exc()
             return False
     
     def update_production(self, user_uid: str, crop_id: str, kilos: float) -> bool:
@@ -100,40 +122,158 @@ class CropService:
         Returns:
             bool: True si se actualizó exitosamente
         """
+        # Mantener compatibilidad con APIs existentes
+        return self.update_production_generic(user_uid, crop_id, kilos=kilos, unidades=None)
+
+    def update_production_generic(self, user_uid: str, crop_id: str, kilos: float | None = None, unidades: int | None = None) -> bool:
+        """
+        Actualizar producción diaria (kilos y/o unidades) de un cultivo.
+        Si se proporciona uno de los dos, se añade un único registro con los campos presentes.
+        Soporta Firestore y almacenamiento local (sesión) cuando no hay DB.
+        """
         try:
-            if not self.db:
+            # Validación mínima
+            has_kilos = kilos is not None and float(kilos) > 0
+            has_units = unidades is not None and int(unidades) > 0
+            if not has_kilos and not has_units:
                 return False
-            
-            # Referencia al cultivo
+
+            nueva_produccion = { 'fecha': datetime.datetime.utcnow() }
+            if has_kilos:
+                try:
+                    nueva_produccion['kilos'] = float(kilos)
+                except Exception:
+                    pass
+            if has_units:
+                try:
+                    nueva_produccion['unidades'] = int(unidades)
+                    # Si solo se proporcionan unidades, calcular kilos automáticamente
+                    if not has_kilos:
+                        # Necesitamos obtener el peso promedio del cultivo
+                        peso_promedio = self._get_peso_promedio_cultivo(user_uid, crop_id)
+                        if peso_promedio > 0:
+                            kilos_calculados = (int(unidades) * peso_promedio) / 1000  # gramos a kilos
+                            nueva_produccion['kilos'] = round(kilos_calculados, 2)
+                except Exception:
+                    pass
+
+            if not self.db:
+                # Almacenamiento local en sesión
+                from flask import session
+                session_key = f'crops_{user_uid}'
+                cultivos = session.get(session_key, [])
+                # Buscar cultivo por id
+                for c in cultivos:
+                    if c.get('id') == crop_id:
+                        produccion = c.get('produccion_diaria', [])
+                        produccion.append(nueva_produccion)
+                        c['produccion_diaria'] = produccion
+                        break
+                session[session_key] = cultivos
+                return True
+
+            # Firestore
             crop_ref = self.db.collection('usuarios').document(user_uid).collection('cultivos').document(crop_id)
-            
-            # Obtener cultivo actual
             crop_doc = crop_ref.get()
             if not crop_doc.exists:
                 return False
-            
             cultivo = crop_doc.to_dict()
-            
-            # Añadir nueva producción
-            nueva_produccion = {
-                'fecha': datetime.datetime.utcnow(),
-                'kilos': float(kilos)
-            }
-            
+
             produccion_actual = cultivo.get('produccion_diaria', [])
             produccion_actual.append(nueva_produccion)
-            
-            # Actualizar en Firestore
+
             crop_ref.update({
                 'produccion_diaria': produccion_actual,
                 'actualizado_en': datetime.datetime.utcnow()
             })
-            
-            print(f"✅ Producción actualizada: {kilos}kg para cultivo {crop_id}")
+            print(f"✅ Producción actualizada para cultivo {crop_id}: kilos={nueva_produccion.get('kilos')}, unidades={nueva_produccion.get('unidades')}")
             return True
-            
         except Exception as e:
-            print(f"Error actualizando producción: {e}")
+            print(f"Error actualizando producción (genérica): {e}")
+            return False
+
+    def _get_peso_promedio_cultivo(self, user_uid: str, crop_id: str) -> float:
+        """
+        Obtener el peso promedio de un cultivo específico
+        
+        Args:
+            user_uid (str): UID del usuario
+            crop_id (str): ID del cultivo
+            
+        Returns:
+            float: Peso promedio en gramos (por defecto 100g si no se encuentra)
+        """
+        try:
+            if not self.db:
+                # Almacenamiento local en sesión
+                from flask import session
+                session_key = f'crops_{user_uid}'
+                cultivos = session.get(session_key, [])
+                for cultivo in cultivos:
+                    if cultivo.get('id') == crop_id:
+                        return cultivo.get('peso_promedio_gramos', 100.0)
+                return 100.0  # Valor por defecto
+            
+            # Firestore
+            crop_ref = self.db.collection('usuarios').document(user_uid).collection('cultivos').document(crop_id)
+            crop_doc = crop_ref.get()
+            if crop_doc.exists:
+                cultivo = crop_doc.to_dict()
+                return cultivo.get('peso_promedio_gramos', 100.0)
+            
+            return 100.0  # Valor por defecto
+        except Exception as e:
+            print(f"Error obteniendo peso promedio del cultivo {crop_id}: {e}")
+            return 100.0
+
+    def undo_last_production(self, user_uid: str, crop_id: str) -> bool:
+        """
+        Deshacer (eliminar) el último registro de producción del cultivo indicado.
+        Soporta Firestore y almacenamiento local de sesión cuando no hay DB.
+        """
+        try:
+            if not self.db:
+                # Almacenamiento local en sesión
+                from flask import session
+                session_key = f'crops_{user_uid}'
+                cultivos = session.get(session_key, [])
+                for c in cultivos:
+                    if c.get('id') == crop_id:
+                        produccion = c.get('produccion_diaria', [])
+                        if not produccion:
+                            return False
+                        produccion.pop()
+                        c['produccion_diaria'] = produccion
+                        # Recalcular agregados locales si existen
+                        try:
+                            kilos_total = sum(p.get('kilos', 0) for p in produccion)
+                            c['kilos_totales'] = kilos_total
+                            c['beneficio_total'] = kilos_total * c.get('precio_por_kilo', 0)
+                        except Exception:
+                            pass
+                        session[session_key] = cultivos
+                        return True
+                return False
+
+            # Firestore
+            crop_ref = self.db.collection('usuarios').document(user_uid).collection('cultivos').document(crop_id)
+            crop_doc = crop_ref.get()
+            if not crop_doc.exists:
+                return False
+            cultivo = crop_doc.to_dict()
+            produccion_actual = cultivo.get('produccion_diaria', [])
+            if not produccion_actual:
+                return False
+            # Eliminar último elemento
+            produccion_actual.pop()
+            crop_ref.update({
+                'produccion_diaria': produccion_actual,
+                'actualizado_en': datetime.datetime.utcnow()
+            })
+            print(f"↩️ Deshecha última producción para cultivo {crop_id}")
+            return True
+        except Exception as e:
+            print(f"Error deshaciendo última producción: {e}")
             return False
     
     def get_user_totals(self, user_uid: str) -> Tuple[float, float]:
@@ -166,6 +306,39 @@ class CropService:
         except Exception as e:
             print(f"Error calculando totales: {e}")
             return 0, 0
+    
+    def _get_peso_promedio_cultivo(self, user_uid: str, crop_id: str) -> float:
+        """
+        Obtener el peso promedio en gramos de un cultivo específico
+        
+        Args:
+            user_uid (str): UID del usuario
+            crop_id (str): ID del cultivo
+            
+        Returns:
+            float: Peso promedio en gramos, 100 por defecto si no se encuentra
+        """
+        try:
+            if not self.db:
+                # Modo local
+                from flask import session
+                cultivos = session.get(f'crops_{user_uid}', [])
+                for c in cultivos:
+                    if c.get('id') == crop_id:
+                        return float(c.get('peso_promedio_gramos', 100))
+                return 100.0
+            
+            # Firestore
+            crop_ref = self.db.collection('usuarios').document(user_uid).collection('cultivos').document(crop_id)
+            crop_doc = crop_ref.get()
+            if crop_doc.exists:
+                cultivo = crop_doc.to_dict()
+                return float(cultivo.get('peso_promedio_gramos', 100))
+            return 100.0
+            
+        except Exception as e:
+            print(f"Error obteniendo peso promedio: {e}")
+            return 100.0
     
     def get_demo_crops(self) -> List[Dict]:
         """Datos demo completos para mostrar funcionalidades premium - 10 plantas distintas"""
@@ -272,22 +445,51 @@ class CropService:
             
         except Exception as e:
             print(f"❌ Error verificando límites: {e}")
-            return True  # En caso de error, permitir creación
+            import traceback
+            traceback.print_exc()
+            # SOLUCIÓN TEMPORAL MEJORADA: Si hay error en la verificación, permitir crear cultivos
+            # Esto evita que usuarios con plan gratuito tengan problemas
+            print("🔧 Aplicando solución temporal: permitiendo creación de cultivo por error en verificación")
+            return True
     
     def _process_cultivo_dates(self, cultivo: Dict) -> Dict:
         """Procesar fechas de cultivo para compatibilidad"""
-        # Convertir timestamps de Firestore a datetime si es necesario
+        import datetime as _dt
+        # Helper local para convertir a datetime cuando sea posible
+        def _to_dt(value):
+            try:
+                # Si es objeto Timestamp de Firestore
+                if hasattr(value, 'to_datetime') and callable(getattr(value, 'to_datetime')):
+                    return value.to_datetime()
+            except Exception:
+                pass
+            # Si ya es datetime, devolver tal cual
+            if isinstance(value, _dt.datetime):
+                return value
+            # Si viene como string ISO
+            if isinstance(value, str):
+                try:
+                    return _dt.datetime.fromisoformat(value)
+                except Exception:
+                    return value
+            return value
+
+        # Convertir timestamps/strings de Firestore a datetime si es necesario
         for field in ['fecha_siembra', 'fecha_cosecha', 'creado_en', 'actualizado_en']:
             if field in cultivo and cultivo[field]:
-                if hasattr(cultivo[field], 'timestamp'):
-                    # Es un timestamp de Firestore
-                    cultivo[field] = cultivo[field].to_datetime()
+                cultivo[field] = _to_dt(cultivo[field])
         
         # Procesar fechas en produccion_diaria
         if 'produccion_diaria' in cultivo:
             for produccion in cultivo['produccion_diaria']:
-                if 'fecha' in produccion and hasattr(produccion['fecha'], 'timestamp'):
-                    produccion['fecha'] = produccion['fecha'].to_datetime()
+                if 'fecha' in produccion and produccion['fecha']:
+                    produccion['fecha'] = _to_dt(produccion['fecha'])
+                # Normalizar kilos a float
+                if 'kilos' in produccion:
+                    try:
+                        produccion['kilos'] = float(produccion['kilos'])
+                    except Exception:
+                        pass
         
         return cultivo
     
@@ -347,6 +549,7 @@ class CropService:
                 'fecha_cosecha': None,
                 'precio_por_kilo': float(crop_data.get('precio', 0)),
                 'numero_plantas': int(crop_data.get('numero_plantas', 1)),
+                'peso_promedio_gramos': float(crop_data.get('peso_promedio', 100)),
                 'abonos': [],
                 'produccion_diaria': [],
                 'activo': True,

@@ -14,7 +14,7 @@ app.db = db
 def main():
     """Función principal de la aplicación"""
     # Configurar host y puerto
-    port = int(os.environ.get('PORT', 5001))
+    port = int(os.environ.get('PORT', 5000))
     host = '0.0.0.0' if os.environ.get('FLASK_ENV') == 'production' else '127.0.0.1'
     
     # Información de inicio

@@ -101,6 +101,7 @@ class AuthService {
             idToken: idToken,
             plan: plan,
           }),
+          credentials: "include",
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
@@ -117,6 +118,29 @@ class AuthService {
 
         const result = await response.json();
         console.log("✅ Registro exitoso en backend:", result);
+
+        // Cookies de respaldo para navegadores con problemas de sesión
+        try {
+          const uid = user.uid;
+          const userCookie = {
+            uid,
+            email: user.email,
+            name: user.displayName || displayName || email.split("@")[0],
+            plan,
+            authenticated: true,
+          };
+          this._setCookie("huerto_user_uid", uid, 86400);
+          this._setCookie(
+            "huerto_user_data",
+            JSON.stringify(userCookie),
+            86400
+          );
+          // Guardar también el idToken por 1h
+          this._setCookie("firebase_id_token", idToken, 3600);
+          console.log("🍪 Cookies de respaldo establecidas tras registro");
+        } catch (e) {
+          console.warn("No se pudieron establecer cookies de respaldo:", e);
+        }
 
         return {
           success: true,
@@ -140,6 +164,7 @@ class AuthService {
             email: email,
             name: displayName || email.split("@")[0],
           }),
+          credentials: "include",
         });
 
         const result = await response.json();
@@ -224,10 +249,33 @@ class AuthService {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ idToken: idToken }),
+          credentials: "include",
         });
 
         if (!response.ok) {
           throw new Error("Error en autenticación del servidor");
+        }
+
+        // Cookies de respaldo
+        try {
+          const uid = user.uid;
+          const userCookie = {
+            uid,
+            email: user.email,
+            name: user.displayName || email.split("@")[0],
+            plan: "gratuito",
+            authenticated: true,
+          };
+          this._setCookie("huerto_user_uid", uid, 86400);
+          this._setCookie(
+            "huerto_user_data",
+            JSON.stringify(userCookie),
+            86400
+          );
+          this._setCookie("firebase_id_token", idToken, 3600);
+          console.log("🍪 Cookies de respaldo establecidas tras login");
+        } catch (e) {
+          console.warn("No se pudieron establecer cookies de respaldo:", e);
         }
 
         return {
@@ -314,6 +362,7 @@ class AuthService {
       const response = await fetch("/auth/logout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
       });
 
       this.currentUser = null;
@@ -356,6 +405,16 @@ class AuthService {
    */
   isAuthenticated() {
     return !!this.getCurrentUser();
+  }
+
+  _setCookie(name, value, maxAgeSeconds) {
+    try {
+      document.cookie = `${name}=${encodeURIComponent(
+        value
+      )}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax`;
+    } catch (e) {
+      console.warn("No se pudo escribir cookie", name, e);
+    }
   }
 }
 

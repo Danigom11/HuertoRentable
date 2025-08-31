@@ -8,6 +8,15 @@ from app.services.crop_service import CropService
 
 api_bp = Blueprint('api', __name__)
 
+@api_bp.route('/health')
+def health():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'HuertoRentable',
+        'version': '2.0'
+    })
+
 @api_bp.route('/status')
 def status():
     """Estado de la API y la aplicación"""

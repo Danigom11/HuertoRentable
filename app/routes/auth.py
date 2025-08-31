@@ -3,7 +3,9 @@ Rutas de autenticación
 Login, logout, registro con Firebase Auth y selección de planes
 """
 import datetime
-from flask import Blueprint, request, jsonify, session, redirect, url_for, render_template, flash, send_from_directory
+import time
+import json
+from flask import Blueprint, request, jsonify, session, redirect, url_for, render_template, flash, send_from_directory, make_response
 from app.auth.auth_service import AuthService, UserService
 from app.services.plan_service import PlanService
 
@@ -15,8 +17,22 @@ def debug_register():
     try:
         from flask import current_app, send_file
         import os
-        
         debug_file = os.path.join(current_app.root_path, '..', 'debug_register.html')
+        if os.path.exists(debug_file):
+            return send_file(debug_file)
+        else:
+            return "Archivo de debug no encontrado", 404
+    except Exception as e:
+        return f"Error cargando debug: {e}", 500
+
+@auth_bp.route('/debug-cultivos-page')
+def debug_cultivos_page():
+    """Página de debug para cultivos"""
+    try:
+        from flask import current_app, send_file
+        import os
+        
+        debug_file = os.path.join(current_app.root_path, '..', 'debug_cultivos.html')
         if os.path.exists(debug_file):
             return send_file(debug_file)
         else:
@@ -66,6 +82,224 @@ def test_backend():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@auth_bp.route('/test-crear-cultivo', methods=['POST'])
+def test_crear_cultivo():
+    """Endpoint para probar la creación de cultivos directamente"""
+    try:
+        from flask import current_app
+        from app.services.crop_service import CropService
+        from app.auth.auth_service import UserService
+        
+        # Simular usuario autenticado
+        test_uid = "test_user_real"
+        
+        # Datos del cultivo
+        crop_data = {
+            'nombre': request.form.get('nombre', 'tomates test'),
+            'precio': float(request.form.get('precio', 3.5)),
+            'numero_plantas': int(request.form.get('numero_plantas', 10))
+        }
+        
+        print(f"🧪 Test crear cultivo para UID: {test_uid}")
+        print(f"🌱 Datos: {crop_data}")
+        
+        # Asegurar que el usuario existe
+        user_service = UserService(current_app.db)
+        user = user_service.get_user_by_uid(test_uid)
+        
+        if not user:
+            print("📝 Creando usuario de prueba...")
+            user_data = {
+                'uid': test_uid,
+                'email': 'test@real.com',
+                'name': 'Test User Real',
+                'plan': 'gratuito'
+            }
+            created = user_service.create_user(test_uid, user_data)
+            print(f"Usuario creado: {created}")
+        
+        # Crear cultivo
+        crop_service = CropService(current_app.db)
+        success = crop_service.create_crop(test_uid, crop_data)
+        
+        return jsonify({
+            'success': success,
+            'message': 'Cultivo creado exitosamente' if success else 'Error al crear cultivo',
+            'uid': test_uid,
+            'crop_data': crop_data
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"Error en test crear cultivo: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@auth_bp.route('/debug-cultivo')
+def debug_cultivo():
+    """Endpoint para diagnosticar problemas de creación de cultivos"""
+    try:
+        from flask import current_app
+        from app.services.crop_service import CropService
+        from app.auth.auth_service import UserService
+        from app.services.plan_service import PlanService
+        
+        results = {}
+        
+        # Estado básico
+        results['firebase_connected'] = current_app.db is not None
+        results['timestamp'] = str(datetime.datetime.now())
+        
+        if not current_app.db:
+            results['error'] = 'No hay conexión a Firebase'
+            return jsonify(results)
+        
+        # Datos de prueba
+        test_uid = "debug_user_123"
+        crop_data = {
+            'nombre': 'tomates debug',
+            'precio': 3.50,
+            'numero_plantas': 10
+        }
+        
+        # Servicios
+        user_service = UserService(current_app.db)
+        crop_service = CropService(current_app.db)
+        plan_service = PlanService(current_app.db)
+        
+        # Test 1: Verificar usuario
+        user = user_service.get_user_by_uid(test_uid)
+        results['user_exists'] = user is not None
+        
+        if not user:
+            # Crear usuario de prueba
+            user_data = {
+                'uid': test_uid,
+                'email': 'debug@test.com',
+                'name': 'Debug User',
+                'plan': 'gratuito'
+            }
+            created = user_service.create_user(test_uid, user_data)
+            results['user_created'] = created
+        
+        # Test 2: Verificar plan
+        plan = user_service.get_user_plan(test_uid)
+        results['user_plan'] = plan
+        
+        # Test 3: Verificar límites
+        can_create = plan_service.check_plan_limits(test_uid, 'crops')
+        results['can_create_crops'] = can_create
+        
+        # Test 4: Obtener cultivos existentes
+        existing_crops = crop_service.get_user_crops(test_uid)
+        results['existing_crops_count'] = len(existing_crops)
+        
+        # Test 5: Intentar crear cultivo
+        try:
+            success = crop_service.create_crop(test_uid, crop_data)
+            results['crop_creation_success'] = success
+            
+            if success:
+                updated_crops = crop_service.get_user_crops(test_uid)
+                results['crops_after_creation'] = len(updated_crops)
+            
+        except Exception as e:
+            results['crop_creation_error'] = str(e)
+            import traceback
+            results['crop_creation_traceback'] = traceback.format_exc()
+        
+        return jsonify(results)
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+    """Endpoint para diagnosticar problemas de creación de cultivos"""
+    try:
+        from flask import current_app
+        from app.services.crop_service import CropService
+        from app.auth.auth_service import UserService
+        from app.services.plan_service import PlanService
+        
+        results = {}
+        
+        # Estado básico
+        results['firebase_connected'] = current_app.db is not None
+        results['timestamp'] = str(datetime.datetime.now())
+        
+        if not current_app.db:
+            results['error'] = 'No hay conexión a Firebase'
+            return jsonify(results)
+        
+        # Datos de prueba
+        test_uid = "debug_user_123"
+        crop_data = {
+            'nombre': 'tomates debug',
+            'precio': 3.50,
+            'numero_plantas': 10
+        }
+        
+        # Servicios
+        user_service = UserService(current_app.db)
+        crop_service = CropService(current_app.db)
+        plan_service = PlanService(current_app.db)
+        
+        # Test 1: Verificar usuario
+        user = user_service.get_user_by_uid(test_uid)
+        results['user_exists'] = user is not None
+        
+        if not user:
+            # Crear usuario de prueba
+            user_data = {
+                'uid': test_uid,
+                'email': 'debug@test.com',
+                'name': 'Debug User',
+                'plan': 'gratuito'
+            }
+            created = user_service.create_user(test_uid, user_data)
+            results['user_created'] = created
+        
+        # Test 2: Verificar plan
+        plan = user_service.get_user_plan(test_uid)
+        results['user_plan'] = plan
+        
+        # Test 3: Verificar límites
+        can_create = plan_service.check_plan_limits(test_uid, 'crops')
+        results['can_create_crops'] = can_create
+        
+        # Test 4: Obtener cultivos existentes
+        existing_crops = crop_service.get_user_crops(test_uid)
+        results['existing_crops_count'] = len(existing_crops)
+        
+        # Test 5: Intentar crear cultivo
+        try:
+            success = crop_service.create_crop(test_uid, crop_data)
+            results['crop_creation_success'] = success
+            
+            if success:
+                updated_crops = crop_service.get_user_crops(test_uid)
+                results['crops_after_creation'] = len(updated_crops)
+            
+        except Exception as e:
+            results['crop_creation_error'] = str(e)
+            import traceback
+            results['crop_creation_traceback'] = traceback.format_exc()
+        
+        return jsonify(results)
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
 @auth_bp.route('/register-simple', methods=['GET'])
 def register_simple():
     """Página de registro simplificada para debugging"""
@@ -87,7 +321,7 @@ def plan_selection():
 
 @auth_bp.route('/sync-user', methods=['POST'])
 def sync_user():
-    """Sincronizar usuario de Firebase con Firestore"""
+    """Sincronizar usuario de Firebase con Firestore y crear sesión persistente"""
     try:
         data = request.get_json()
         id_token = data.get('idToken')
@@ -113,20 +347,106 @@ def sync_user():
             # Usuario ya existe
             print(f"✅ Usuario ya existe en Firestore: {user_data['uid']}")
         
-        return jsonify({
+        # FORZAR CREACIÓN DE SESIÓN AGRESIVA
+        session.permanent = True
+        session.clear()  # Limpiar sesión anterior
+        
+        # Crear datos de usuario completos
+        user_session_data = {
+            'uid': user_data['uid'],
+            'email': user_data['email'],
+            'name': user_data.get('name', user_data['email'].split('@')[0]),
+            'plan': user_data.get('plan', 'gratuito'),
+            'created_at': user_data.get('created_at'),
+            'last_login': user_data.get('last_login')
+        }
+        
+        # Establecer múltiples formas de identificación
+        session['user'] = user_session_data
+        session['is_authenticated'] = True
+        session['user_uid'] = user_data['uid']
+        session['firebase_uid'] = user_data['uid']
+        session['auth_method'] = 'firebase'
+        session['login_timestamp'] = int(time.time())
+        
+        # Forzar modificación de sesión
+        session.modified = True
+        
+        print(f"✅ [sync-user] Sesión creada para {user_data['uid']}")
+        print(f"🔍 [sync-user] Session data: {dict(session)}")
+        
+        # Crear respuesta con cookie adicional como backup
+        response = make_response(jsonify({
             'success': True,
             'user': user_data,
-            'created': not existing_user
+            'created': not existing_user,
+            'session_created': True,
+            'redirect_url': f'/dashboard?from=register&welcome=true&uid={user_data["uid"]}'
+        }))
+        
+        # FORZAR cookies de sesión manualmente
+        import uuid
+        session_id = str(uuid.uuid4())
+        
+        # Cookie de sesión Flask (forzar escritura)
+        response.set_cookie(
+            'huerto_session',
+            session_id,
+            max_age=86400,  # 24 horas
+            secure=False,   # False para desarrollo
+            httponly=False, # Permitir JS
+            samesite='Lax',
+            path='/'
+        )
+        
+        # Cookie adicional como backup
+        response.set_cookie(
+            'huerto_user_uid',
+            user_data['uid'],
+            max_age=86400,  # 24 horas
+            secure=False,   # False para desarrollo
+            httponly=False, # Permitir JS
+            samesite='Lax',
+            path='/'
+        )
+        
+        # Cookie con datos completos del usuario
+        import json
+        user_cookie_data = json.dumps({
+            'uid': user_data['uid'],
+            'email': user_data['email'],
+            'name': user_data.get('name', user_data['email'].split('@')[0]),
+            'plan': user_data.get('plan', 'gratuito'),
+            'authenticated': True
         })
         
+        response.set_cookie(
+            'huerto_user_data',
+            user_cookie_data,
+            max_age=86400,  # 24 horas
+            secure=False,   # False para desarrollo
+            httponly=False, # Permitir JS
+            samesite='Lax',
+            path='/'
+        )
+        
+        return response
+        
     except Exception as e:
-        print(f"Error sincronizando usuario: {e}")
+        print(f"❌ Error sincronizando usuario: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': 'Error interno del servidor'}), 500
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     """Página e endpoint de login"""
     if request.method == 'GET':
+        # Verificar si viene del registro sin sesión
+        message = request.args.get('message')
+        if message == 'complete_auth':
+            flash('Por favor, inicia sesión para completar el proceso de registro.', 'info')
+        
         return render_template('auth/login.html')
     
     # POST: Procesar login
@@ -157,29 +477,58 @@ def login():
         # Crear token de sesión personalizado
         session_token = AuthService.create_custom_token(user_data)
         
-        # Guardar en sesión
+        # Guardar en sesión y hacer permanente
+        session.permanent = True
         session['token'] = session_token
         session['user_uid'] = user_data['uid']
         session['user'] = {
             'uid': user_data['uid'],
             'email': user_data['email'],
-            'name': user_data['name'],
+            'name': user_data.get('name', user_data['email'].split('@')[0]),
         }
         session['is_authenticated'] = True
+
+        # Debug: Verificar que la sesión se guardó
+        print(f"🔍 [Login] Sesión creada: {dict(session)}")
 
         # Limpiar flags de modos especiales para evitar entrar en demo/invitado
         session.pop('demo_mode_chosen', None)
         session.pop('guest_mode_active', None)
         
-        return jsonify({
+        # Preparar respuesta JSON y setear cookies de respaldo
+        response = make_response(jsonify({
             'success': True,
             'token': session_token,
             'user': {
                 'uid': user_data['uid'],
                 'email': user_data['email'],
-                'name': user_data['name']
+                'name': user_data.get('name', user_data['email'].split('@')[0])
             }
-        })
+        }))
+
+        import uuid, json as _json
+        session_id = str(uuid.uuid4())
+        response.set_cookie('huerto_session', session_id, max_age=86400, secure=False, httponly=False, samesite='Lax', path='/')
+        response.set_cookie('huerto_user_uid', user_data['uid'], max_age=86400, secure=False, httponly=False, samesite='Lax', path='/')
+        response.set_cookie('huerto_user_data', _json.dumps({
+            'uid': user_data['uid'],
+            'email': user_data['email'],
+            'name': user_data.get('name', user_data['email'].split('@')[0]),
+            'plan': 'gratuito',
+            'authenticated': True
+        }), max_age=86400, secure=False, httponly=False, samesite='Lax', path='/')
+        try:
+            id_token_val = data.get('idToken')
+            if id_token_val:
+                response.set_cookie('firebase_id_token', id_token_val, max_age=3600, secure=False, httponly=False, samesite='Lax', path='/')
+        except Exception:
+            pass
+
+        # Asegurar que la sesión Flask se persista
+        session.permanent = True
+        session.modified = True
+
+        return response
         
     except Exception as e:
         return jsonify({'error': f'Error en login: {str(e)}'}), 500
@@ -240,7 +589,8 @@ def register():
         if selected_plan not in ['gratuito', 'premium']:
             selected_plan = 'gratuito'
         
-        return render_template('auth/register.html', selected_plan=selected_plan)
+        print(f"DEBUG: Pasando 'plan={selected_plan}' a register.html")
+        return render_template('auth/register.html', plan=selected_plan)
     
     # POST: Procesar registro
     try:
@@ -277,39 +627,203 @@ def register():
         # Crear token de sesión
         session_token = AuthService.create_custom_token(user_data)
 
-        # Guardar en sesión
+        # Guardar en sesión y hacer permanente
+        session.permanent = True
         session['token'] = session_token
         session['user_uid'] = user_data['uid']
         session['user'] = {
             'uid': user_data['uid'],
             'email': user_data['email'],
-            'name': user_data['name'],
+            'name': user_data.get('name', user_data['email'].split('@')[0]),
             'plan': selected_plan
         }
         session['is_authenticated'] = True
+
+        # Debug: Verificar que la sesión se guardó
+        print(f"🔍 [Register] Sesión creada: {dict(session)}")
 
         # Limpiar flags de modos especiales para evitar entrar en demo/invitado
         session.pop('demo_mode_chosen', None)
         session.pop('guest_mode_active', None)
 
         print("✅ [/auth/register] Registro procesado correctamente")
-        return jsonify({
+        # Preparar respuesta JSON
+        response = make_response(jsonify({
             'success': True,
             'token': session_token,
             'user': {
                 'uid': user_data['uid'],
                 'email': user_data['email'],
-                'name': user_data['name'],
+                'name': user_data.get('name', user_data['email'].split('@')[0]),
                 'plan': selected_plan
             },
-            'message': f'Cuenta creada con plan {selected_plan}'
-        })
+            'message': f'Cuenta creada con plan {selected_plan}',
+            'redirect_url': f"/dashboard?from=register&welcome=true&uid={user_data['uid']}"
+        }))
+
+        # Establecer cookies de respaldo para navegadores con problemas de sesión
+        import uuid, json as _json
+        session_id = str(uuid.uuid4())
+        response.set_cookie('huerto_session', session_id, max_age=86400, secure=False, httponly=False, samesite='Lax', path='/')
+        response.set_cookie('huerto_user_uid', user_data['uid'], max_age=86400, secure=False, httponly=False, samesite='Lax', path='/')
+        response.set_cookie('huerto_user_data', _json.dumps({
+                'uid': user_data['uid'],
+                'email': user_data['email'],
+                'name': user_data.get('name', user_data['email'].split('@')[0]),
+                'plan': selected_plan,
+                'authenticated': True
+        }), max_age=86400, secure=False, httponly=False, samesite='Lax', path='/')
+        # Si el frontend nos envió id_token, guardarlo también para reconstrucción
+        try:
+            id_token_val = data.get('idToken')
+            if id_token_val:
+                response.set_cookie('firebase_id_token', id_token_val, max_age=3600, secure=False, httponly=False, samesite='Lax', path='/')
+        except Exception:
+            pass
+        session.permanent = True
+        session.modified = True
+
+        return response
 
     except Exception as e:
         import traceback
         print(f"❌ [/auth/register] Error en registro: {e}")
         traceback.print_exc()
         return jsonify({'error': f'Error en registro: {str(e)}'}), 500
+
+@auth_bp.route('/test-simple-session', methods=['GET', 'POST'])
+def test_simple_session():
+    """
+    Test ultra simple de sesión con formulario HTML normal
+    Para debuggear si el problema es con AJAX o con las sesiones en general
+    """
+    if request.method == 'GET':
+        # Mostrar formulario simple
+        return '''
+        <html>
+        <head><title>Test Sesión</title></head>
+        <body>
+            <h1>Test de Sesión Simple</h1>
+            <form method="POST">
+                <input type="text" name="test_value" placeholder="Escribe algo" required>
+                <button type="submit">Crear Sesión</button>
+            </form>
+            <hr>
+            <a href="/auth/test-check-session">Ver Sesión Actual</a>
+        </body>
+        </html>
+        '''
+    
+    # POST: Crear sesión
+    test_value = request.form.get('test_value', 'valor por defecto')
+    
+    # Crear sesión de test
+    session.permanent = True
+    session['test_data'] = test_value
+    session['timestamp'] = str(datetime.datetime.now())
+    session['is_test'] = True
+    session.modified = True
+    
+    print(f"🧪 [TEST-SIMPLE] Sesión creada: {dict(session)}")
+    
+    return f'''
+    <html>
+    <head><title>Sesión Creada</title></head>
+    <body>
+        <h1>✅ Sesión Creada</h1>
+        <p>Valor guardado: {test_value}</p>
+        <p>Timestamp: {session.get('timestamp')}</p>
+        <hr>
+        <a href="/auth/test-check-session">Ver Sesión Actual</a><br>
+        <a href="/dashboard">Ir al Dashboard</a>
+    </body>
+    </html>
+    '''
+
+@auth_bp.route('/test-check-session')
+def test_check_session():
+    """Verificar el estado actual de la sesión"""
+    session_data = dict(session)
+    
+    print(f"🔍 [CHECK-SESSION] Sesión actual: {session_data}")
+    
+    return f'''
+    <html>
+    <head><title>Estado de Sesión</title></head>
+    <body>
+        <h1>Estado Actual de la Sesión</h1>
+        <pre>{json.dumps(session_data, indent=2, default=str)}</pre>
+        <hr>
+        <a href="/auth/test-simple-session">Crear Nueva Sesión</a><br>
+        <a href="/dashboard">Ir al Dashboard</a>
+    </body>
+    </html>
+    '''
+
+@auth_bp.route('/test-session-flow', methods=['POST'])
+def test_session_flow():
+    """
+    Endpoint para probar el flujo completo de sesión sin Firebase real
+    Simula el registro completo y verifica la persistencia de sesión
+    """
+    try:
+        print("🧪 [TEST-SESSION-FLOW] Iniciando test de sesión completa")
+        
+        # Simular datos de usuario como si vinieran de Firebase
+        fake_user_data = {
+            'uid': 'test-user-123',
+            'email': 'test@huertorentable.com',
+            'name': 'Usuario Test',
+            'email_verified': True
+        }
+        
+        selected_plan = 'premium'
+        
+        # Simular token de sesión
+        session_token = f"session-token-{int(time.time())}"
+        
+        # Crear sesión exactamente como en el registro real
+        session.permanent = True
+        session['token'] = session_token
+        session['user_uid'] = fake_user_data['uid']
+        session['user'] = {
+            'uid': fake_user_data['uid'],
+            'email': fake_user_data['email'],
+            'name': fake_user_data.get('name', fake_user_data['email'].split('@')[0]),
+            'plan': selected_plan
+        }
+        session['is_authenticated'] = True
+        
+        # Limpiar flags de modo especial
+        session.pop('demo_mode_chosen', None)
+        session.pop('guest_mode_active', None)
+        
+        # Forzar modificación de sesión
+        session.modified = True
+        
+        print(f"🔍 [TEST] Sesión creada: {dict(session)}")
+        
+        # Crear respuesta con middleware
+        response_data = {
+            'success': True,
+            'test_mode': True,
+            'message': 'Sesión de test creada exitosamente',
+            'session_created': dict(session),
+            'next_step': 'Hacer GET a /dashboard para verificar persistencia'
+        }
+        
+        response = jsonify(response_data)
+        response = make_response(response)
+        
+        print(f"✅ [TEST] Respuesta de test preparada")
+        
+        return response
+        
+    except Exception as e:
+        import traceback
+        print(f"❌ [TEST] Error en test de sesión: {e}")
+        traceback.print_exc()
+        return jsonify({'error': f'Error en test: {str(e)}'}), 500
 
 @auth_bp.route('/register-local', methods=['POST'])
 def register_local():

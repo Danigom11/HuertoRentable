@@ -1,0 +1,238 @@
+{% extends "base.html" %} {% block title %}Historial de {{ cultivo.nombre }} -
+HuertoRentable{% endblock %} {% block chart_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %} {% block content %}
+<div class="row mb-3">
+  <div class="col-12 d-flex align-items-center justify-content-between">
+    <h1 class="h4 text-success mb-0">
+      <i class="bi bi-clock-history me-2"></i>
+      Historial: <span class="text-capitalize">{{ cultivo.nombre }}</span>
+    </h1>
+    <button
+      type="button"
+      class="btn btn-outline-secondary"
+      onclick="window.history.back()"
+    >
+      <i class="bi bi-arrow-left me-1"></i> Volver
+    </button>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-success text-white">
+    <i class="bi bi-graph-up me-2"></i>
+    Producción por fecha
+  </div>
+  <div class="card-body">
+    <canvas
+      id="historyChart"
+      height="90"
+      data-labels="{{ labels|tojson }}"
+      data-unidades="{{ unidades|tojson }}"
+      data-kilos="{{ kilos|tojson }}"
+    ></canvas>
+    {% if not labels %}
+    <div class="text-muted mt-2">No hay registros de producción aún.</div>
+    {% else %}
+    <div class="mt-2 text-muted small">
+      {% if unidades and unidades|sum > 0 %} 📊 Mostrando unidades recolectadas
+      por fecha {% elif kilos and kilos|sum > 0 %} 📊 Mostrando kilos
+      recolectados por fecha {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header bg-light">
+    <i class="bi bi-list-ul me-2"></i>
+    Registros de producción
+  </div>
+  <div class="card-body">
+    {% if registros_view %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>Fecha</th>
+            <th>Hora</th>
+            <th class="text-end">Unidades</th>
+            <th class="text-end">Kilos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in registros_view %}
+          <tr>
+            <td>{{ r.fecha_str }}</td>
+            <td>{{ r.hora_str }}</td>
+            <td class="text-end">{{ r.unidades }}</td>
+            <td class="text-end">{{ r.kilos }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-muted">
+      No hay entradas de producción para este cultivo.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %} {% block page_js %}
+<script>
+  (function setupHistoryChartRenderer() {
+    function renderChart() {
+      try {
+        const canvas = document.getElementById("historyChart");
+        if (!canvas) return;
+
+        let labels = [];
+        let unidades = [];
+        let kilos = [];
+        try {
+          const rawLabels = canvas.getAttribute("data-labels") || "[]";
+          const rawUnits = canvas.getAttribute("data-unidades") || "[]";
+          const rawKilos = canvas.getAttribute("data-kilos") || "[]";
+          labels = JSON.parse(rawLabels);
+          unidades = JSON.parse(rawUnits);
+          kilos = JSON.parse(rawKilos);
+        } catch (e) {
+          console.warn("No se pudieron parsear los datos del gráfico", e);
+          labels = [];
+          unidades = [];
+          kilos = [];
+        }
+
+        if (!window.Chart) {
+          console.warn("Chart.js no está disponible");
+          return;
+        }
+
+        if (labels.length === 0) return;
+
+        const ctx = canvas.getContext("2d");
+        // Destruir gráfico previo si existe para evitar fugas o no-repintado
+        if (canvas._hrChartInstance) {
+          try {
+            canvas._hrChartInstance.destroy();
+          } catch (e) {}
+          canvas._hrChartInstance = null;
+        }
+        const datasets = [];
+        const maxUnidades = unidades.reduce((m, v) => Math.max(m, v || 0), 0);
+        const maxKilos = kilos.reduce((m, v) => Math.max(m, v || 0), 0);
+
+        // Determinar qué datos mostrar basado en lo que está disponible
+        const hasUnidades = unidades.some((v) => (v || 0) > 0);
+        const hasKilos = kilos.some((v) => (v || 0) > 0);
+
+        if (hasUnidades) {
+          // Priorizar unidades si están disponibles
+          datasets.push({
+            label: "Unidades",
+            data: unidades,
+            borderColor: "#198754",
+            backgroundColor: "rgba(25, 135, 84, 0.15)",
+            tension: 0.2,
+            fill: true,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            yAxisID: "y",
+          });
+
+          // Añadir kilos como eje secundario si también están disponibles
+          if (hasKilos) {
+            datasets.push({
+              label: "Kilos",
+              data: kilos,
+              borderColor: "#0d6efd",
+              backgroundColor: "rgba(13, 110, 253, 0.15)",
+              tension: 0.2,
+              fill: false,
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              yAxisID: "y2",
+            });
+          }
+        } else if (hasKilos) {
+          // Si solo hay kilos, mostrar solo kilos
+          datasets.push({
+            label: "Kilos",
+            data: kilos,
+            borderColor: "#198754",
+            backgroundColor: "rgba(25, 135, 84, 0.15)",
+            tension: 0.2,
+            fill: true,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            yAxisID: "y",
+          });
+        }
+
+        const chart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: datasets,
+          },
+          options: {
+            responsive: true,
+            scales: {
+              x: { title: { display: true, text: "Fecha" } },
+              y: {
+                title: {
+                  display: true,
+                  text: hasUnidades ? "Unidades" : "Kilos",
+                },
+                beginAtZero: true,
+                suggestedMax: Math.max(1, hasUnidades ? maxUnidades : maxKilos),
+              },
+              y2: {
+                position: "right",
+                title: { display: hasUnidades && hasKilos, text: "Kilos" },
+                beginAtZero: true,
+                grid: { drawOnChartArea: false },
+                suggestedMax: Math.max(1, maxKilos),
+                display: hasUnidades && hasKilos, // Solo mostrar si hay ambos
+              },
+            },
+            plugins: {
+              legend: { display: true },
+              tooltip: {
+                enabled: true,
+                callbacks: {
+                  title: function (tooltipItems) {
+                    return tooltipItems[0].label;
+                  },
+                  label: function (context) {
+                    const label = context.dataset.label || "";
+                    const value = context.raw;
+                    if (label === "Unidades") {
+                      return `${label}: ${value} unidades`;
+                    } else if (label === "Kilos") {
+                      return `${label}: ${value} kg`;
+                    }
+                    return `${label}: ${value}`;
+                  },
+                },
+              },
+            },
+          },
+        });
+        canvas._hrChartInstance = chart;
+      } catch (err) {
+        console.error("Error renderizando gráfico de historial", err);
+      }
+    }
+    // Pintar al cargar y al volver con BFCache (pageshow persistente)
+    document.addEventListener("DOMContentLoaded", renderChart);
+    window.addEventListener("pageshow", function (event) {
+      // Si viene del cache del navegador, re-render
+      if (event.persisted) {
+        renderChart();
+      }
+    });
+  })();
+</script>
+{% endblock %}

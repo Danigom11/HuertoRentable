@@ -98,6 +98,7 @@ class SimpleRegistrationService {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", // CRÍTICO: Incluir cookies para sesiones
         body: JSON.stringify({
           idToken: idToken,
           plan: plan,

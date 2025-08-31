@@ -5,8 +5,12 @@ Inicialización modular y profesional de HuertoRentable
 import os
 import firebase_admin
 from firebase_admin import credentials, firestore
-from flask import Flask
+from flask import Flask, session, request
 from config.settings import config
+
+# Cargar variables de entorno desde .env
+from dotenv import load_dotenv
+load_dotenv()
 
 def create_app(config_name=None):
     """
@@ -29,6 +33,53 @@ def create_app(config_name=None):
     
     # Cargar configuración
     app.config.from_object(config[config_name])
+    
+    # Debug: Verificar configuración de sesiones
+    print(f"🔍 SECRET_KEY configurado: {bool(app.config.get('SECRET_KEY'))}")
+    print(f"🔍 SESSION_PERMANENT: {app.config.get('SESSION_PERMANENT')}")
+    print(f"🔍 PERMANENT_SESSION_LIFETIME: {app.config.get('PERMANENT_SESSION_LIFETIME')}")
+    
+    # Configurar Flask para que siempre envíe cookies de sesión
+    # Nota: SameSite=None requiere Secure en navegadores modernos; en dev usamos 'Lax' para evitar rechazo
+    app.config['SESSION_COOKIE_HTTPONLY'] = False  # Permitir acceso desde JS para debug
+    app.config['SESSION_COOKIE_SECURE'] = False    # No HTTPS en desarrollo
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Envío en navegación same-site (formularios POST)
+    
+    @app.before_request
+    def before_request():
+        """Preparar cada request para manejar sesiones correctamente"""
+        # LOG TODAS LAS PETICIONES
+        print(f"🌐 [{request.method}] {request.url} - IP: {request.remote_addr}")
+        print(f"   Headers: {dict(request.headers)}")
+        print(f"   Session antes: {dict(session)}")
+        
+        # Forzar inicialización de sesión
+        session.permanent = True
+        # Crear una clave dummy para forzar creación de cookie
+        if '_init' not in session:
+            session['_init'] = True
+    
+    @app.after_request
+    def after_request(response):
+        """Middleware para forzar envío de cookies de sesión"""
+        # CORS sólo si hay Origin explícito; evitar '*'+credentials que algunos navegadores rechazan
+        origin = request.headers.get('Origin')
+        if origin:
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Vary'] = 'Origin'
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        
+        # FORZAR envío de cookie de sesión en TODAS las respuestas
+        session.permanent = True
+        session.modified = True
+        
+        # Debug mejorado
+        has_session_data = len([k for k in session.keys() if not k.startswith('_')]) > 0
+        print(f"🍪 Session data: {has_session_data}, Response: {response.status_code}")
+        
+        return response
     
     # Inicializar Firebase
     db = init_firebase(app.config)
@@ -152,3 +203,8 @@ def setup_template_context(app):
                 response.headers['Pragma'] = 'no-cache'
                 response.headers['Expires'] = '0'
         return response
+
+def setup_auth_middleware(app):
+    """Configurar middleware de autenticación automática"""
+    from app.middleware.auth_middleware import auto_auth_middleware
+    auto_auth_middleware(app)

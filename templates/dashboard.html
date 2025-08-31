@@ -1,5 +1,5 @@
-{% extends "base.html" %} {% block title %}Dashboard - HuertoRentable{% endblock
-%} {% block content %}
+{% extends "base.html" %} {% block title %}Inicio - HuertoRentable{% endblock %}
+{% block content %}
 
 <!-- Banner específico según el modo -->
 {% if is_demo_mode %}
@@ -51,7 +51,7 @@
 </div>
 {% endif %}
 
-<!-- Header del dashboard -->
+<!-- Header de inicio -->
 <div class="row mb-4">
   <div class="col-md-8">
     <h1 class="display-6 text-success mb-2">
@@ -324,13 +324,28 @@
                     </button>
                   </div>
 
-                  <!-- Botón de añadir -->
-                  <button
-                    class="btn btn-success btn-sm w-100 mt-2 fw-bold"
-                    onclick="añadirRecoleccion('{{ cultivo.id }}')"
+                  <!-- Botones de acciones de recolección -->
+                  <div class="d-flex gap-2 mt-2">
+                    <button
+                      class="btn btn-success btn-sm w-100 fw-bold"
+                      onclick="añadirRecoleccion('{{ cultivo.id }}')"
+                    >
+                      <i class="bi bi-check-lg me-1"></i> AÑADIR
+                    </button>
+                    <button
+                      class="btn btn-outline-secondary btn-sm fw-bold"
+                      onclick="deshacerRecoleccion('{{ cultivo.id }}')"
+                      title="Deshacer última recolección"
+                    >
+                      <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                  </div>
+                  <a
+                    class="btn btn-outline-info btn-sm w-100 mt-2"
+                    href="{{ url_for('crops.crop_history', crop_id=cultivo.id, uid=(user.uid if user else request.args.get('uid') or request.cookies.get('huerto_user_uid')), demo='true' if is_demo_mode else None) }}"
                   >
-                    <i class="bi bi-check-lg me-1"></i>AÑADIR RECOLECCIÓN
-                  </button>
+                    <i class="bi bi-clock-history me-1"></i> Ver historial
+                  </a>
                 </div>
                 {% else %}
                 <!-- Cultivo finalizado -->
@@ -392,7 +407,7 @@
           entre cultivos
         </p>
         <a
-          href="{{ url_for('analytics.dashboard') }}"
+          href="{{ url_for('analytics.analytics_dashboard') }}"
           class="btn btn-outline-success"
         >
           <i class="bi bi-bar-chart me-2"></i>
@@ -525,7 +540,7 @@
       card.classList.add("animate__animated", "animate__fadeInUp");
     });
 
-    console.log("✅ Dashboard cargado correctamente");
+    console.log("✅ Inicio cargado correctamente");
   });
 
   // =====================================
@@ -548,52 +563,73 @@
 
   function añadirRecoleccion(cultivoId) {
     const input = document.getElementById(`unidades_${cultivoId}`);
-
     if (!input) {
-      alert("Error: No se encontró el campo de unidades");
+      alert("Error: No se encontró el campo de cantidad");
       return;
     }
 
-    const unidades = parseInt(input.value);
-
-    if (!unidades || unidades <= 0) {
-      alert("Por favor, especifica un número válido de unidades");
+    const cantidad = parseInt(input.value, 10);
+    if (!cantidad || cantidad <= 0) {
+      alert("Por favor, especifica una cantidad válida (> 0)");
       return;
     }
 
-    // Mostrar confirmación
-    if (!confirm(`¿Añadir ${unidades} unidades recolectadas?`)) {
-      return;
-    }
+    // UID de respaldo para contextos sin cookie de sesión
+    const uidParam =
+      "{{ (user.uid if user else request.args.get('uid') or request.cookies.get('huerto_user_uid'))|default('', true) }}";
+    const url = `/crops/${cultivoId}/production${
+      uidParam ? `?uid=${uidParam}` : ""
+    }`;
 
-    // Determinar la URL según el modo (demo o Firebase)
-    const baseUrl = "{% if modo_demo %}/demo{% endif %}/cultivo";
-    const url = `${baseUrl}/${cultivoId}/recolectar`;
+    const body = new URLSearchParams({ unidades: String(cantidad) }).toString();
 
-    // Crear formulario para envío
-    const formData = new FormData();
-    formData.append("unidades", unidades);
-
-    // Realizar petición POST
     fetch(url, {
       method: "POST",
-      body: formData,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
     })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.success) {
-          // Mostrar mensaje de éxito
-          alert(data.message);
-
-          // Recargar página para mostrar datos actualizados
-          location.reload();
-        } else {
-          alert(`Error: ${data.error}`);
+      .then((response) => {
+        // El endpoint devuelve redirect/HTML; tratamos cualquier 2xx/3xx como éxito visual
+        if (response.ok || response.redirected) {
+          // Pequeña pausa para mostrar feedback si fuese necesario
+          setTimeout(() => location.reload(), 400);
+          return;
         }
+        // Intentar leer JSON de error si lo hubiera
+        return response
+          .json()
+          .then((data) => {
+            throw new Error(data.error || `Error ${response.status}`);
+          })
+          .catch(() => {
+            throw new Error("Error al procesar la recolección");
+          });
       })
       .catch((error) => {
         console.error("Error:", error);
-        alert("Error al procesar la recolección");
+        alert(error.message || "Error al procesar la recolección");
+      });
+  }
+
+  function deshacerRecoleccion(cultivoId) {
+    // UID de respaldo para contextos sin cookie de sesión
+    const uidParam =
+      "{{ (user.uid if user else request.args.get('uid') or request.cookies.get('huerto_user_uid'))|default('', true) }}";
+    const url = `/crops/${cultivoId}/production/undo${
+      uidParam ? `?uid=${uidParam}` : ""
+    }`;
+
+    fetch(url, { method: "POST" })
+      .then((response) => {
+        if (response.ok || response.redirected) {
+          setTimeout(() => location.reload(), 300);
+          return;
+        }
+        throw new Error("No se pudo deshacer la última recolección");
+      })
+      .catch((error) => {
+        console.error(error);
+        alert(error.message || "Error al deshacer");
       });
   }
 </script>
@@ -693,7 +729,7 @@
     }
 
     function updateDashboardStats(summary) {
-      // Actualizar contadores en el dashboard
+      // Actualizar contadores en inicio
       const totalCropsEl = document.querySelector('[data-stat="total-crops"]');
       const totalKilosEl = document.querySelector('[data-stat="total-kilos"]');
       const totalBeneficiosEl = document.querySelector(

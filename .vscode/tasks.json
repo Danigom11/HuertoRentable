@@ -1,0 +1,33 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run Flask (dev)",
+			"type": "shell",
+			"command": "$env:FLASK_ENV='development'; $env:PYTHONUNBUFFERED='1'; $env:FLASK_APP='run.py'; C:/Users/danig/Documentos/GitHub/HuertoRentable/.venv/Scripts/python.exe run.py",
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Run Flask (dev)",
+			"type": "shell",
+			"command": "$env:FLASK_ENV='development'; $env:PYTHONUNBUFFERED='1'; $env:FLASK_APP='run.py'; C:/Users/danig/Documentos/GitHub/HuertoRentable/.venv/Scripts/python.exe run.py",
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Run verify_unidades",
+			"type": "shell",
+			"command": "C:/Users/danig/Documentos/GitHub/HuertoRentable/.venv/Scripts/python.exe scripts/verify_unidades.py",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Run verify_unidades (pass 2)",
+			"type": "shell",
+			"command": "C:/Users/danig/Documentos/GitHub/HuertoRentable/.venv/Scripts/python.exe scripts/verify_unidades.py",
+			"isBackground": false,
+			"group": "build"
+		}
+	]
+}

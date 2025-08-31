@@ -6,6 +6,14 @@ from flask import current_app
 
 # Configuración de planes (constantes)
 PLAN_LIMITS = {
+    'invitado': {
+        'max_crops': 3,  # Limitado a 3 cultivos
+        'firebase_backup': False,
+        'ads': True,
+        'analytics': 'basic',
+        'export': False,
+        'notifications': False
+    },
     'gratuito': {
         'max_crops': -1,  # Sin límite
         'firebase_backup': True,
@@ -29,7 +37,7 @@ def get_plan_limits(plan_name: str) -> dict:
     Obtener límites y características de un plan
     
     Args:
-        plan_name (str): Nombre del plan ('gratuito', 'premium')
+        plan_name (str): Nombre del plan ('invitado', 'gratuito', 'premium')
         
     Returns:
         dict: Configuración del plan

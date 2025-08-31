@@ -24,13 +24,15 @@ HuertoRentable{% endblock %} {% block chart_js %}
     Producción por fecha
   </div>
   <div class="card-body">
-    <canvas
-      id="historyChart"
-      height="90"
-      data-labels="{{ labels|tojson }}"
-      data-unidades="{{ unidades|tojson }}"
-      data-kilos="{{ kilos|tojson }}"
-    ></canvas>
+    <div class="position-relative" style="height:320px;">
+      <canvas
+        id="historyChart"
+        class="w-100 h-100"
+        data-labels="{{ labels|tojson }}"
+        data-unidades="{{ unidades|tojson }}"
+        data-kilos="{{ kilos|tojson }}"
+      ></canvas>
+    </div>
     {% if not labels %}
     <div class="text-muted mt-2">No hay registros de producción aún.</div>
     {% else %}
@@ -93,28 +95,46 @@ HuertoRentable{% endblock %} {% block chart_js %}
           let raw = String(attrVal).trim();
           const attempts = [];
           attempts.push((s) => JSON.parse(s));
-          attempts.push((s) => JSON.parse(
-            s
-              .replaceAll('&quot;', '"')
-              .replaceAll('&#34;', '"')
-              .replaceAll('&amp;', '&')
-          ));
+          attempts.push((s) =>
+            JSON.parse(
+              s
+                .replaceAll("&quot;", '"')
+                .replaceAll("&#34;", '"')
+                .replaceAll("&amp;", "&")
+            )
+          );
           attempts.push((s) => {
             // A veces viene entrecomillado: "[1,2]" => [1,2]
-            if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+            if (
+              (s.startsWith('"') && s.endsWith('"')) ||
+              (s.startsWith("'") && s.endsWith("'"))
+            ) {
               return JSON.parse(s.slice(1, -1));
             }
-            throw new Error('No quoted JSON');
+            throw new Error("No quoted JSON");
           });
           for (const attempt of attempts) {
-            try { return attempt(raw); } catch (_) {}
+            try {
+              return attempt(raw);
+            } catch (_) {}
           }
           return [];
         };
 
-        const labels = parseJsonAttr(canvas.getAttribute("data-labels") || "[]");
-        const unidades = parseJsonAttr(canvas.getAttribute("data-unidades") || "[]");
+        const labels = parseJsonAttr(
+          canvas.getAttribute("data-labels") || "[]"
+        );
+        const unidades = parseJsonAttr(
+          canvas.getAttribute("data-unidades") || "[]"
+        );
         const kilos = parseJsonAttr(canvas.getAttribute("data-kilos") || "[]");
+    // Normalizar arrays a numéricos y alinear longitudes con labels
+    const toNumeric = (arr) => Array.isArray(arr) ? arr.map((v) => (v === null || v === undefined || v === "" ? null : Number(v))) : [];
+    const n = Array.isArray(labels) ? labels.length : 0;
+    const unidadesNum = toNumeric(unidades).slice(0, n);
+    const kilosNum = toNumeric(kilos).slice(0, n);
+    while (unidadesNum.length < n) unidadesNum.push(null);
+    while (kilosNum.length < n) kilosNum.push(null);
 
         if (!window.Chart) {
           console.warn("Chart.js no está disponible");
@@ -131,19 +151,23 @@ HuertoRentable{% endblock %} {% block chart_js %}
           } catch (e) {}
           canvas._hrChartInstance = null;
         }
-  const datasets = [];
-  const maxUnidades = unidades.reduce((m, v) => Math.max(m, Number(v) || 0), 0);
-  const maxKilos = kilos.reduce((m, v) => Math.max(m, Number(v) || 0), 0);
+        const datasets = [];
+    const maxUnidades = unidadesNum.reduce(
+          (m, v) => Math.max(m, Number(v) || 0),
+          0
+        );
+    const maxKilos = kilosNum.reduce((m, v) => Math.max(m, Number(v) || 0), 0);
 
         // Determinar qué datos mostrar basado en lo que está disponible
-        const hasUnidades = unidades.some((v) => (v || 0) > 0);
-        const hasKilos = kilos.some((v) => (v || 0) > 0);
+  const hasUnidades = unidadesNum.some((v) => (Number(v) || 0) > 0);
+  const hasKilos = kilosNum.some((v) => (Number(v) || 0) > 0);
 
         if (hasUnidades) {
           // Priorizar unidades si están disponibles
           datasets.push({
             label: "Unidades",
             data: unidades,
+              data: unidadesNum,
             borderColor: "#198754",
             backgroundColor: "rgba(25, 135, 84, 0.15)",
             tension: 0.2,
@@ -158,6 +182,7 @@ HuertoRentable{% endblock %} {% block chart_js %}
             datasets.push({
               label: "Kilos",
               data: kilos,
+                data: kilosNum,
               borderColor: "#0d6efd",
               backgroundColor: "rgba(13, 110, 253, 0.15)",
               tension: 0.2,
@@ -172,6 +197,7 @@ HuertoRentable{% endblock %} {% block chart_js %}
           datasets.push({
             label: "Kilos",
             data: kilos,
+              data: kilosNum,
             borderColor: "#198754",
             backgroundColor: "rgba(25, 135, 84, 0.15)",
             tension: 0.2,
@@ -182,7 +208,7 @@ HuertoRentable{% endblock %} {% block chart_js %}
           });
         }
 
-  const chart = new Chart(ctx, {
+        const chart = new Chart(ctx, {
           type: "line",
           data: {
             labels: labels,
@@ -190,6 +216,7 @@ HuertoRentable{% endblock %} {% block chart_js %}
           },
           options: {
             responsive: true,
+              maintainAspectRatio: false,
             scales: {
               x: { title: { display: true, text: "Fecha" } },
               y: {
@@ -198,14 +225,17 @@ HuertoRentable{% endblock %} {% block chart_js %}
                   text: hasUnidades ? "Unidades" : "Kilos",
                 },
                 beginAtZero: true,
-    suggestedMax: Math.max(1, (hasUnidades ? maxUnidades : maxKilos) * 1.2),
+                suggestedMax: Math.max(
+                  1,
+                  (hasUnidades ? maxUnidades : maxKilos) * 1.2
+                ),
               },
               y2: {
                 position: "right",
                 title: { display: hasUnidades && hasKilos, text: "Kilos" },
                 beginAtZero: true,
                 grid: { drawOnChartArea: false },
-    suggestedMax: Math.max(1, maxKilos * 1.2),
+                suggestedMax: Math.max(1, maxKilos * 1.2),
                 display: hasUnidades && hasKilos, // Solo mostrar si hay ambos
               },
             },
@@ -238,7 +268,7 @@ HuertoRentable{% endblock %} {% block chart_js %}
       }
     }
     // Pintar al cargar y al volver con BFCache (pageshow persistente)
-    document.addEventListener("DOMContentLoaded", function(){
+    document.addEventListener("DOMContentLoaded", function () {
       // Pequeño retraso para asegurar que estilos y fuentes estén aplicados
       setTimeout(renderChart, 0);
     });
@@ -251,7 +281,11 @@ HuertoRentable{% endblock %} {% block chart_js %}
     // Fallback: reintento si datasets quedaron vacíos por cualquier motivo
     setTimeout(() => {
       const canvas = document.getElementById("historyChart");
-      if (canvas && (!canvas._hrChartInstance || canvas._hrChartInstance.data.datasets.length === 0)) {
+      if (
+        canvas &&
+        (!canvas._hrChartInstance ||
+          canvas._hrChartInstance.data.datasets.length === 0)
+      ) {
         renderChart();
       }
     }, 300);

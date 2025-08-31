@@ -24,23 +24,16 @@ HuertoRentable{% endblock %} {% block chart_js %}
     Producción por fecha
   </div>
   <div class="card-body">
-    <div class="position-relative" style="height:320px;">
+    <div class="chart-container" style="position: relative; height: 350px">
       <canvas
         id="historyChart"
-        class="w-100 h-100"
-        data-labels="{{ labels|tojson }}"
-        data-unidades="{{ unidades|tojson }}"
-        data-kilos="{{ kilos|tojson }}"
+        data-labels="{{ chart_data.labels|tojson }}"
+        data-unidades="{{ chart_data.unidades|tojson }}"
+        data-kilos="{{ chart_data.kilos|tojson }}"
       ></canvas>
     </div>
-    {% if not labels %}
-    <div class="text-muted mt-2">No hay registros de producción aún.</div>
-    {% else %}
-    <div class="mt-2 text-muted small">
-      {% if unidades and unidades|sum > 0 %} 📊 Mostrando unidades recolectadas
-      por fecha {% elif kilos and kilos|sum > 0 %} 📊 Mostrando kilos
-      recolectados por fecha {% endif %}
-    </div>
+    {% if chart_data.labels|length == 0 %}
+    <p class="text-muted mt-2 mb-0">No hay registros de producción todavía.</p>
     {% endif %}
   </div>
 </div>
@@ -50,16 +43,16 @@ HuertoRentable{% endblock %} {% block chart_js %}
     <i class="bi bi-list-ul me-2"></i>
     Registros de producción
   </div>
-  <div class="card-body">
-    {% if registros_view %}
+  <div class="card-body p-0">
+    {% if registros_view and registros_view|length > 0 %}
     <div class="table-responsive">
-      <table class="table table-hover align-middle">
-        <thead class="table-dark">
+      <table class="table table-striped table-hover mb-0">
+        <thead>
           <tr>
-            <th>Fecha</th>
-            <th>Hora</th>
-            <th class="text-end">Unidades</th>
-            <th class="text-end">Kilos</th>
+            <th style="width: 25%">Fecha</th>
+            <th style="width: 15%">Hora</th>
+            <th style="width: 20%">Unidades</th>
+            <th style="width: 20%">Kilos</th>
           </tr>
         </thead>
         <tbody>
@@ -67,228 +60,120 @@ HuertoRentable{% endblock %} {% block chart_js %}
           <tr>
             <td>{{ r.fecha_str }}</td>
             <td>{{ r.hora_str }}</td>
-            <td class="text-end">{{ r.unidades }}</td>
-            <td class="text-end">{{ r.kilos }}</td>
+            <td>{{ r.unidades }}</td>
+            <td>{{ '%.2f'|format(r.kilos) }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
     {% else %}
-    <div class="text-muted">
-      No hay entradas de producción para este cultivo.
-    </div>
+    <p class="text-muted m-3">No hay registros para mostrar.</p>
     {% endif %}
   </div>
 </div>
 {% endblock %} {% block page_js %}
 <script>
-  (function setupHistoryChartRenderer() {
-    function renderChart() {
-      try {
-        const canvas = document.getElementById("historyChart");
-        if (!canvas) return;
-
-        // Parser robusto que maneja entidades HTML y dobles serializaciones
-        const parseJsonAttr = (attrVal) => {
-          if (!attrVal) return [];
-          let raw = String(attrVal).trim();
-          const attempts = [];
-          attempts.push((s) => JSON.parse(s));
-          attempts.push((s) =>
-            JSON.parse(
-              s
-                .replaceAll("&quot;", '"')
-                .replaceAll("&#34;", '"')
-                .replaceAll("&amp;", "&")
-            )
-          );
-          attempts.push((s) => {
-            // A veces viene entrecomillado: "[1,2]" => [1,2]
-            if (
-              (s.startsWith('"') && s.endsWith('"')) ||
-              (s.startsWith("'") && s.endsWith("'"))
-            ) {
-              return JSON.parse(s.slice(1, -1));
-            }
-            throw new Error("No quoted JSON");
-          });
-          for (const attempt of attempts) {
-            try {
-              return attempt(raw);
-            } catch (_) {}
-          }
-          return [];
-        };
-
-        const labels = parseJsonAttr(
-          canvas.getAttribute("data-labels") || "[]"
-        );
-        const unidades = parseJsonAttr(
-          canvas.getAttribute("data-unidades") || "[]"
-        );
-        const kilos = parseJsonAttr(canvas.getAttribute("data-kilos") || "[]");
-    // Normalizar arrays a numéricos y alinear longitudes con labels
-    const toNumeric = (arr) => Array.isArray(arr) ? arr.map((v) => (v === null || v === undefined || v === "" ? null : Number(v))) : [];
-    const n = Array.isArray(labels) ? labels.length : 0;
-    const unidadesNum = toNumeric(unidades).slice(0, n);
-    const kilosNum = toNumeric(kilos).slice(0, n);
-    while (unidadesNum.length < n) unidadesNum.push(null);
-    while (kilosNum.length < n) kilosNum.push(null);
-
-        if (!window.Chart) {
-          console.warn("Chart.js no está disponible");
-          return;
-        }
-
-        if (labels.length === 0) return;
-
-        const ctx = canvas.getContext("2d");
-        // Destruir gráfico previo si existe para evitar fugas o no-repintado
-        if (canvas._hrChartInstance) {
-          try {
-            canvas._hrChartInstance.destroy();
-          } catch (e) {}
-          canvas._hrChartInstance = null;
-        }
-        const datasets = [];
-    const maxUnidades = unidadesNum.reduce(
-          (m, v) => Math.max(m, Number(v) || 0),
-          0
-        );
-    const maxKilos = kilosNum.reduce((m, v) => Math.max(m, Number(v) || 0), 0);
-
-        // Determinar qué datos mostrar basado en lo que está disponible
-  const hasUnidades = unidadesNum.some((v) => (Number(v) || 0) > 0);
-  const hasKilos = kilosNum.some((v) => (Number(v) || 0) > 0);
-
-        if (hasUnidades) {
-          // Priorizar unidades si están disponibles
-          datasets.push({
-            label: "Unidades",
-            data: unidades,
-              data: unidadesNum,
-            borderColor: "#198754",
-            backgroundColor: "rgba(25, 135, 84, 0.15)",
-            tension: 0.2,
-            fill: true,
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            yAxisID: "y",
-          });
-
-          // Añadir kilos como eje secundario si también están disponibles
-          if (hasKilos) {
-            datasets.push({
-              label: "Kilos",
-              data: kilos,
-                data: kilosNum,
-              borderColor: "#0d6efd",
-              backgroundColor: "rgba(13, 110, 253, 0.15)",
-              tension: 0.2,
-              fill: false,
-              pointRadius: 3,
-              pointHoverRadius: 5,
-              yAxisID: "y2",
-            });
-          }
-        } else if (hasKilos) {
-          // Si solo hay kilos, mostrar solo kilos
-          datasets.push({
-            label: "Kilos",
-            data: kilos,
-              data: kilosNum,
-            borderColor: "#198754",
-            backgroundColor: "rgba(25, 135, 84, 0.15)",
-            tension: 0.2,
-            fill: true,
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            yAxisID: "y",
-          });
-        }
-
-        const chart = new Chart(ctx, {
-          type: "line",
-          data: {
-            labels: labels,
-            datasets: datasets,
-          },
-          options: {
-            responsive: true,
-              maintainAspectRatio: false,
-            scales: {
-              x: { title: { display: true, text: "Fecha" } },
-              y: {
-                title: {
-                  display: true,
-                  text: hasUnidades ? "Unidades" : "Kilos",
-                },
-                beginAtZero: true,
-                suggestedMax: Math.max(
-                  1,
-                  (hasUnidades ? maxUnidades : maxKilos) * 1.2
-                ),
-              },
-              y2: {
-                position: "right",
-                title: { display: hasUnidades && hasKilos, text: "Kilos" },
-                beginAtZero: true,
-                grid: { drawOnChartArea: false },
-                suggestedMax: Math.max(1, maxKilos * 1.2),
-                display: hasUnidades && hasKilos, // Solo mostrar si hay ambos
-              },
-            },
-            plugins: {
-              legend: { display: true },
-              tooltip: {
-                enabled: true,
-                callbacks: {
-                  title: function (tooltipItems) {
-                    return tooltipItems[0].label;
-                  },
-                  label: function (context) {
-                    const label = context.dataset.label || "";
-                    const value = context.raw;
-                    if (label === "Unidades") {
-                      return `${label}: ${value} unidades`;
-                    } else if (label === "Kilos") {
-                      return `${label}: ${value} kg`;
-                    }
-                    return `${label}: ${value}`;
-                  },
-                },
-              },
-            },
-          },
-        });
-        canvas._hrChartInstance = chart;
-      } catch (err) {
-        console.error("Error renderizando gráfico de historial", err);
-      }
+  // Igual que en analytics: consumimos chart_data seguro y dibujamos la gráfica
+  document.addEventListener("DOMContentLoaded", function () {
+    const chartDataEl = document.getElementById("chartData");
+    let chartData = null;
+    try {
+      chartData = chartDataEl ? JSON.parse(chartDataEl.textContent) : null;
+    } catch (e) {
+      chartData = null;
     }
-    // Pintar al cargar y al volver con BFCache (pageshow persistente)
-    document.addEventListener("DOMContentLoaded", function () {
-      // Pequeño retraso para asegurar que estilos y fuentes estén aplicados
-      setTimeout(renderChart, 0);
-    });
-    window.addEventListener("pageshow", function (event) {
-      // Si viene del cache del navegador, re-render
-      if (event.persisted) {
-        renderChart();
+    if (!chartData || !chartData.labels || chartData.labels.length === 0) {
+      return;
+    }
+
+    const labels = chartData.labels;
+    const toNumeric = (arr) =>
+      Array.isArray(arr)
+        ? arr.map((v) =>
+            v === null || v === undefined || v === "" ? null : Number(v)
+          )
+        : [];
+    const n = labels.length;
+    let unidades = toNumeric(chartData.unidades || []).slice(0, n);
+    let kilos = toNumeric(chartData.kilos || []).slice(0, n);
+    while (unidades.length < n) unidades.push(null);
+    while (kilos.length < n) kilos.push(null);
+
+    const hasUnidades = unidades.some((v) => (Number(v) || 0) > 0);
+    const hasKilos = kilos.some((v) => (Number(v) || 0) > 0);
+
+    const datasets = [];
+    if (hasUnidades) {
+      datasets.push({
+        label: "Unidades",
+        data: unidades,
+        backgroundColor: "rgba(25, 135, 84, 0.15)",
+        borderColor: "rgba(25, 135, 84, 1)",
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        yAxisID: "y",
+        pointRadius: 4,
+      });
+      if (hasKilos) {
+        datasets.push({
+          label: "Kilos",
+          data: kilos,
+          backgroundColor: "rgba(13, 110, 253, 0.15)",
+          borderColor: "rgba(13, 110, 253, 1)",
+          borderWidth: 2,
+          fill: false,
+          tension: 0.3,
+          yAxisID: "y2",
+          pointRadius: 3,
+        });
       }
+    } else if (hasKilos) {
+      datasets.push({
+        label: "Kilos",
+        data: kilos,
+        backgroundColor: "rgba(25, 135, 84, 0.15)",
+        borderColor: "rgba(25, 135, 84, 1)",
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        yAxisID: "y",
+        pointRadius: 4,
+      });
+    }
+
+    const el = document.getElementById("historyChart");
+    if (!el) return;
+    const ctx = el.getContext("2d");
+    new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: datasets,
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "top" } },
+        scales: {
+          x: { title: { display: true, text: "Fecha" } },
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: hasUnidades ? "Unidades" : "Kilos" },
+          },
+          y2: {
+            position: "right",
+            grid: { drawOnChartArea: false },
+            display: hasUnidades && hasKilos,
+            title: { display: hasUnidades && hasKilos, text: "Kilos" },
+          },
+        },
+      },
     });
-    // Fallback: reintento si datasets quedaron vacíos por cualquier motivo
-    setTimeout(() => {
-      const canvas = document.getElementById("historyChart");
-      if (
-        canvas &&
-        (!canvas._hrChartInstance ||
-          canvas._hrChartInstance.data.datasets.length === 0)
-      ) {
-        renderChart();
-      }
-    }, 300);
-  })();
+  });
+</script>
+<script id="chartData" type="application/json">
+  {{ chart_data|tojson }}
 </script>
 {% endblock %}

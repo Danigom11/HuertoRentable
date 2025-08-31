@@ -311,12 +311,17 @@ def crop_history(crop_id):
             'kilos': kilos_val
         })
 
+    # Construir objeto chart_data al estilo analytics para robustez en front
+    chart_data = {
+        'labels': labels,
+        'unidades': unidades,
+        'kilos': kilos_list,
+    }
+
     return render_template(
         'crop_history.html',
         cultivo=cultivo,
-        labels=labels,
-        unidades=unidades,
-        kilos=kilos_list,
+        chart_data=chart_data,
         registros_view=registros_view,
         uid=uid
     )

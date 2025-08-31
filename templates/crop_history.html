@@ -87,22 +87,34 @@ HuertoRentable{% endblock %} {% block chart_js %}
         const canvas = document.getElementById("historyChart");
         if (!canvas) return;
 
-        let labels = [];
-        let unidades = [];
-        let kilos = [];
-        try {
-          const rawLabels = canvas.getAttribute("data-labels") || "[]";
-          const rawUnits = canvas.getAttribute("data-unidades") || "[]";
-          const rawKilos = canvas.getAttribute("data-kilos") || "[]";
-          labels = JSON.parse(rawLabels);
-          unidades = JSON.parse(rawUnits);
-          kilos = JSON.parse(rawKilos);
-        } catch (e) {
-          console.warn("No se pudieron parsear los datos del gráfico", e);
-          labels = [];
-          unidades = [];
-          kilos = [];
-        }
+        // Parser robusto que maneja entidades HTML y dobles serializaciones
+        const parseJsonAttr = (attrVal) => {
+          if (!attrVal) return [];
+          let raw = String(attrVal).trim();
+          const attempts = [];
+          attempts.push((s) => JSON.parse(s));
+          attempts.push((s) => JSON.parse(
+            s
+              .replaceAll('&quot;', '"')
+              .replaceAll('&#34;', '"')
+              .replaceAll('&amp;', '&')
+          ));
+          attempts.push((s) => {
+            // A veces viene entrecomillado: "[1,2]" => [1,2]
+            if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+              return JSON.parse(s.slice(1, -1));
+            }
+            throw new Error('No quoted JSON');
+          });
+          for (const attempt of attempts) {
+            try { return attempt(raw); } catch (_) {}
+          }
+          return [];
+        };
+
+        const labels = parseJsonAttr(canvas.getAttribute("data-labels") || "[]");
+        const unidades = parseJsonAttr(canvas.getAttribute("data-unidades") || "[]");
+        const kilos = parseJsonAttr(canvas.getAttribute("data-kilos") || "[]");
 
         if (!window.Chart) {
           console.warn("Chart.js no está disponible");
@@ -119,9 +131,9 @@ HuertoRentable{% endblock %} {% block chart_js %}
           } catch (e) {}
           canvas._hrChartInstance = null;
         }
-        const datasets = [];
-        const maxUnidades = unidades.reduce((m, v) => Math.max(m, v || 0), 0);
-        const maxKilos = kilos.reduce((m, v) => Math.max(m, v || 0), 0);
+  const datasets = [];
+  const maxUnidades = unidades.reduce((m, v) => Math.max(m, Number(v) || 0), 0);
+  const maxKilos = kilos.reduce((m, v) => Math.max(m, Number(v) || 0), 0);
 
         // Determinar qué datos mostrar basado en lo que está disponible
         const hasUnidades = unidades.some((v) => (v || 0) > 0);
@@ -170,7 +182,7 @@ HuertoRentable{% endblock %} {% block chart_js %}
           });
         }
 
-        const chart = new Chart(ctx, {
+  const chart = new Chart(ctx, {
           type: "line",
           data: {
             labels: labels,
@@ -186,14 +198,14 @@ HuertoRentable{% endblock %} {% block chart_js %}
                   text: hasUnidades ? "Unidades" : "Kilos",
                 },
                 beginAtZero: true,
-                suggestedMax: Math.max(1, hasUnidades ? maxUnidades : maxKilos),
+    suggestedMax: Math.max(1, (hasUnidades ? maxUnidades : maxKilos) * 1.2),
               },
               y2: {
                 position: "right",
                 title: { display: hasUnidades && hasKilos, text: "Kilos" },
                 beginAtZero: true,
                 grid: { drawOnChartArea: false },
-                suggestedMax: Math.max(1, maxKilos),
+    suggestedMax: Math.max(1, maxKilos * 1.2),
                 display: hasUnidades && hasKilos, // Solo mostrar si hay ambos
               },
             },
@@ -226,13 +238,23 @@ HuertoRentable{% endblock %} {% block chart_js %}
       }
     }
     // Pintar al cargar y al volver con BFCache (pageshow persistente)
-    document.addEventListener("DOMContentLoaded", renderChart);
+    document.addEventListener("DOMContentLoaded", function(){
+      // Pequeño retraso para asegurar que estilos y fuentes estén aplicados
+      setTimeout(renderChart, 0);
+    });
     window.addEventListener("pageshow", function (event) {
       // Si viene del cache del navegador, re-render
       if (event.persisted) {
         renderChart();
       }
     });
+    // Fallback: reintento si datasets quedaron vacíos por cualquier motivo
+    setTimeout(() => {
+      const canvas = document.getElementById("historyChart");
+      if (canvas && (!canvas._hrChartInstance || canvas._hrChartInstance.data.datasets.length === 0)) {
+        renderChart();
+      }
+    }, 300);
   })();
 </script>
 {% endblock %}

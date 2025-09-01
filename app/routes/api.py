@@ -99,6 +99,39 @@ def update_production(crop_id):
     else:
         return jsonify({'error': 'Error actualizando producción'}), 400
 
+@api_bp.route('/crops/update-color', methods=['POST'])
+def update_crop_color():
+    """Actualizar color de cultivo via API (requiere autenticación)"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'success': False, 'error': 'No autenticado'}), 401
+    
+    from flask import current_app
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'Datos requeridos'}), 400
+            
+        cultivo_id = data.get('cultivo_id')
+        color = data.get('color')
+        
+        if not cultivo_id or not color:
+            return jsonify({'success': False, 'error': 'cultivo_id y color requeridos'}), 400
+        
+        if current_app.db:
+            crop_ref = current_app.db.collection('usuarios').document(user['uid']).collection('cultivos').document(cultivo_id)
+            crop_ref.update({
+                'color_cultivo': color,
+                'actualizado_en': __import__('datetime').datetime.utcnow()
+            })
+            return jsonify({'success': True, 'color': color})
+        else:
+            return jsonify({'success': False, 'error': 'Base de datos no disponible'}), 500
+    except Exception as e:
+        print('Error actualizando color:', e)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @api_bp.route('/user/totals')
 def user_totals():
     """Obtener totales del usuario (modo demo disponible)"""

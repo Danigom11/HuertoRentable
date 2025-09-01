@@ -56,11 +56,7 @@
   <div class="col-md-8">
     <h1 class="display-6 text-success mb-2">
       <i class="bi bi-house-gear me-2 align-middle"></i
-      ><span class="align-middle">Mi Huerto</span> {% if plan != 'invitado'
-      %}<span
-        class="badge bg-{{ 'warning' if plan == 'gratuito' else 'primary' }}"
-        >{{ plan.title() }}</span
-      >{% endif %}
+      ><span class="align-middle">Mi Huerto</span>
     </h1>
     <p class="lead text-muted">
       Gestiona tus cultivos, registra cosechas y monitorea tu rentabilidad
@@ -69,9 +65,21 @@
   <div class="col-md-4 text-md-end">
     <div class="d-grid gap-2 d-md-block">
       {% if is_authenticated %}
-      <a href="{{ url_for('crops.create_crop') }}" class="btn btn-success">
+      <button
+        type="button"
+        class="btn btn-success me-2"
+        data-bs-toggle="modal"
+        data-bs-target="#modalNuevoCultivo"
+      >
         <i class="bi bi-plus-circle me-1 align-middle"></i
         ><span class="align-middle">Nuevo Cultivo</span>
+      </button>
+      <a
+        href="{{ url_for('crops.list_crops') }}"
+        class="btn btn-outline-success"
+      >
+        <i class="bi bi-pencil-square me-1 align-middle"></i
+        ><span class="align-middle">Editar Cultivos</span>
       </a>
       {% else %}
       <a href="{{ url_for('auth.register') }}" class="btn btn-outline-success">
@@ -113,7 +121,7 @@
           <div>
             <h6 class="card-title text-uppercase">Kilos Totales</h6>
             <h2 class="mb-0" data-stat="total-kilos">
-              {{ "%.2f"|format(total_production) }} kg
+              {{ total_production|spanish_format(2) }} kg
             </h2>
             <small
               >{% if plan_limits.max_crops != -1 %}Límite: {{
@@ -136,11 +144,11 @@
           <div>
             <h6 class="card-title text-uppercase">Beneficio Total</h6>
             <h2 class="mb-0" data-stat="total-beneficios">
-              €{{ "%.2f"|format(total_revenue) }}
+              {{ total_revenue|spanish_format(2) }} €
             </h2>
             <small
-              >{% if total_crops > 0 %}€{{ "%.2f"|format(total_revenue /
-              total_crops) }} promedio{% endif %}</small
+              >{% if total_crops > 0 %}{{ (total_revenue /
+              total_crops)|spanish_format(2) }} € promedio{% endif %}</small
             >
           </div>
           <div class="align-self-center">
@@ -157,23 +165,42 @@
   <div class="col-12">
     <div class="card shadow-sm">
       <div class="card-header bg-success text-white">
-        <h5 class="mb-0">
-          <i class="bi bi-grid-3x3-gap me-2 align-middle"></i
-          ><span class="align-middle">Mis Cultivos Activos</span>
-        </h5>
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            <i class="bi bi-grid-3x3-gap me-2 align-middle"></i
+            ><span class="align-middle">Mis Cultivos Activos</span>
+          </h5>
+          {% if is_authenticated %}
+          <button
+            type="button"
+            id="btnReordenar"
+            class="btn btn-outline-light btn-sm"
+            onclick="toggleReorderMode()"
+          >
+            <i class="bi bi-arrows-move me-1 align-middle"></i
+            ><span class="align-middle">Reordenar</span>
+          </button>
+          {% endif %}
+        </div>
       </div>
       <div class="card-body p-4">
         {% if cultivos %}
         <!-- Grid responsive de tarjetas de cultivos -->
-        <div class="row g-4" data-crops-container>
-          {% for cultivo in cultivos %}
-          <div class="col-12 col-md-6 col-lg-4 col-xl-3">
+        <div class="row g-4" id="cropsContainer" data-crops-container>
+          {% for cultivo in cultivos %} {% if not cultivo.fecha_cosecha %}
+          <div
+            class="col-12 col-md-6 col-lg-4 col-xl-3 crop-item"
+            draggable="false"
+            data-crop-id="{{ cultivo.id }}"
+            data-crop-name="{{ cultivo.nombre }}"
+          >
             <div
-              class="card h-100 shadow-sm border-0 cultivo-card {% if not cultivo.fecha_cosecha %}cultivo-activo{% else %}cultivo-finalizado{% endif %}"
+              class="card h-100 shadow-sm border-0 cultivo-card cultivo-activo"
             >
               <!-- Cabecera de la tarjeta con icono del cultivo -->
               <div
-                class="card-header text-center py-3 {% if not cultivo.fecha_cosecha %}bg-success{% else %}bg-secondary{% endif %} text-white position-relative"
+                class="card-header text-center py-3 text-white position-relative"
+                style="background-color: {{ cultivo.color_cultivo or '#28a745' }};"
               >
                 <!-- Icono del cultivo -->
                 <div class="cultivo-icon mb-2">
@@ -229,7 +256,7 @@
                   <div class="col-6">
                     <div class="card border-0 bg-light shadow-sm">
                       <div class="card-body p-2 text-center">
-                        <span style="font-size: 2rem">📦</span>
+                        <span style="font-size: 2rem">🧺</span>
                         <div class="fw-bold text-warning h5 mb-0">
                           {{ cultivo.unidades_recolectadas or 0 }}
                         </div>
@@ -246,7 +273,7 @@
                       <div class="card-body p-2 text-center">
                         <span style="font-size: 2rem">⚖️</span>
                         <div class="fw-bold text-success h5 mb-0">
-                          {{ "%.2f"|format(cultivo.kilos_totales) }}
+                          {{ cultivo.kilos_totales|spanish_format(2) }}
                         </div>
                         <small class="text-muted">Kilos</small>
                       </div>
@@ -257,7 +284,7 @@
                       <div class="card-body p-2 text-center">
                         <span style="font-size: 2rem">💰</span>
                         <div class="fw-bold text-success h5 mb-0">
-                          €{{ "%.2f"|format(cultivo.beneficio_total) }}
+                          {{ cultivo.beneficio_total|spanish_format(2) }} €
                         </div>
                         <small class="text-muted">Beneficio</small>
                       </div>
@@ -278,7 +305,7 @@
                     </span>
                     <span>
                       <i class="bi bi-tag me-1"></i>
-                      €{{ "%.2f"|format(cultivo.precio_por_kilo) }}/kg
+                      {{ cultivo.precio_por_kilo|spanish_format(2) }} €/kg
                     </span>
                   </div>
                 </div>
@@ -363,7 +390,7 @@
               </div>
             </div>
           </div>
-          {% endfor %}
+          {% endif %} {% endfor %}
         </div>
         {% else %}
         <!-- Estado vacío - primera experiencia del usuario -->
@@ -523,6 +550,28 @@
       font-size: 1rem;
     }
   }
+
+  /* Estilos para drag & drop */
+  .reorder-mode .crop-item {
+    cursor: move;
+  }
+
+  .crop-item.dragging {
+    opacity: 0.5;
+    transform: rotate(5deg);
+    z-index: 1000;
+  }
+
+  .crop-item.drag-over {
+    transform: scale(1.05);
+    border: 2px dashed #198754;
+    border-radius: 15px;
+  }
+
+  .reorder-mode .cultivo-card:hover {
+    transform: none !important;
+    box-shadow: 0 4px 15px rgba(25, 135, 84, 0.3) !important;
+  }
 </style>
 {% endblock %} {% block page_js %}
 <script>
@@ -637,6 +686,129 @@
   }
 </script>
 
+<!-- Script para reordenar cultivos con drag & drop -->
+<script>
+  let reorderMode = false;
+  let draggedElement = null;
+
+  function toggleReorderMode() {
+    reorderMode = !reorderMode;
+    const container = document.getElementById("cropsContainer");
+    const btn = document.getElementById("btnReordenar");
+    const cropItems = document.querySelectorAll(".crop-item");
+
+    if (reorderMode) {
+      // Activar modo reordenar
+      container.classList.add("reorder-mode");
+      btn.classList.remove("btn-outline-light");
+      btn.classList.add("btn-warning");
+      btn.innerHTML =
+        '<i class="bi bi-check-lg me-1 align-middle"></i><span class="align-middle">Guardar Orden</span>';
+
+      // Hacer elementos arrastrables
+      cropItems.forEach((item) => {
+        item.draggable = true;
+        item.addEventListener("dragstart", handleDragStart);
+        item.addEventListener("dragover", handleDragOver);
+        item.addEventListener("drop", handleDrop);
+        item.addEventListener("dragend", handleDragEnd);
+      });
+    } else {
+      // Desactivar modo reordenar
+      container.classList.remove("reorder-mode");
+      btn.classList.remove("btn-warning");
+      btn.classList.add("btn-outline-light");
+      btn.innerHTML =
+        '<i class="bi bi-arrows-move me-1 align-middle"></i><span class="align-middle">Reordenar</span>';
+
+      // Quitar arrastrables
+      cropItems.forEach((item) => {
+        item.draggable = false;
+        item.removeEventListener("dragstart", handleDragStart);
+        item.removeEventListener("dragover", handleDragOver);
+        item.removeEventListener("drop", handleDrop);
+        item.removeEventListener("dragend", handleDragEnd);
+      });
+
+      // Guardar orden en localStorage
+      saveOrder();
+    }
+  }
+
+  function handleDragStart(e) {
+    draggedElement = this;
+    this.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+
+    if (this !== draggedElement) {
+      this.classList.add("drag-over");
+    }
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    this.classList.remove("drag-over");
+
+    if (this !== draggedElement) {
+      const container = this.parentNode;
+      const allItems = [...container.children];
+      const draggedIndex = allItems.indexOf(draggedElement);
+      const targetIndex = allItems.indexOf(this);
+
+      if (draggedIndex < targetIndex) {
+        container.insertBefore(draggedElement, this.nextSibling);
+      } else {
+        container.insertBefore(draggedElement, this);
+      }
+    }
+  }
+
+  function handleDragEnd(e) {
+    this.classList.remove("dragging");
+    document.querySelectorAll(".crop-item").forEach((item) => {
+      item.classList.remove("drag-over");
+    });
+  }
+
+  function saveOrder() {
+    const container = document.getElementById("cropsContainer");
+    const items = container.querySelectorAll(".crop-item");
+    const order = Array.from(items).map((item) => item.dataset.cropId);
+
+    localStorage.setItem("cropOrder", JSON.stringify(order));
+    console.log("Orden guardado:", order);
+  }
+
+  function loadOrder() {
+    const savedOrder = localStorage.getItem("cropOrder");
+    if (!savedOrder) return;
+
+    try {
+      const order = JSON.parse(savedOrder);
+      const container = document.getElementById("cropsContainer");
+      const items = container.querySelectorAll(".crop-item");
+
+      // Reordenar elementos según el orden guardado
+      order.forEach((cropId, index) => {
+        const item = container.querySelector(`[data-crop-id="${cropId}"]`);
+        if (item) {
+          container.appendChild(item);
+        }
+      });
+    } catch (e) {
+      console.error("Error cargando orden:", e);
+    }
+  }
+
+  // Cargar orden al cargar la página
+  document.addEventListener("DOMContentLoaded", loadOrder);
+</script>
+
 <!-- Script para modo invitado con almacenamiento local -->
 {% if is_guest_mode %}
 <script>
@@ -741,10 +913,10 @@
 
       if (totalCropsEl) totalCropsEl.textContent = summary.total_cultivos;
       if (totalKilosEl)
-        totalKilosEl.textContent = summary.total_kilos.toFixed(2) + " kg";
+        totalKilosEl.textContent = formatNumber(summary.total_kilos, 2) + " kg";
       if (totalBeneficiosEl)
         totalBeneficiosEl.textContent =
-          "€" + summary.total_beneficios.toFixed(2);
+          formatNumber(summary.total_beneficios, 2) + " €";
 
       // Actualizar progreso de límites
       const progressEl = document.querySelector('[data-progress="crops"]');
@@ -798,12 +970,14 @@
                             }</h6>
                             <p class="card-text">
                                 <small class="text-muted">Sembrado: ${fechaSiembra}</small><br>
-                                <strong>${kilosTotal.toFixed(
+                                <strong>${formatNumber(
+                                  kilosTotal,
                                   2
                                 )} kg</strong> producidos<br>
-                                <strong>€${beneficio.toFixed(
+                                <strong>${formatNumber(
+                                  beneficio,
                                   2
-                                )}</strong> generados
+                                )} €</strong> generados
                             </p>
                         </div>
                         <div class="card-footer bg-transparent">
@@ -830,4 +1004,398 @@
     };
   });
 </script>
-{% endif %} {% endblock %}
+{% endif %}
+
+<!-- Modal para nuevo cultivo -->
+<div class="modal fade" id="modalNuevoCultivo" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-plus-circle me-2"></i>
+          Nuevo Cultivo
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+
+      <form
+        id="formNuevoCultivo"
+        action="{{ url_for('crops.create_crop') }}"
+        method="POST"
+      >
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="nombre" class="form-label">
+              <i class="bi bi-seedling me-1"></i>
+              Nombre del Cultivo
+            </label>
+            <div class="input-group">
+              <input
+                type="text"
+                class="form-control"
+                id="nombre"
+                name="nombre"
+                placeholder="ej: Tomates, Lechugas, Zanahorias..."
+                required
+              />
+              <button
+                type="button"
+                class="btn btn-outline-secondary rounded-circle"
+                id="colorPickerBtn"
+                style="
+                  background-color: #28a745;
+                  width: 50px;
+                  height: 50px;
+                  border: 2px solid #fff;
+                "
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                title="Seleccionar color"
+              ></button>
+              <div class="dropdown-menu p-3" id="colorPalette">
+                <div class="d-flex flex-wrap gap-2">
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#28a745"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #28a745;
+                      cursor: pointer;
+                    "
+                    title="Verde"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#dc3545"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #dc3545;
+                      cursor: pointer;
+                    "
+                    title="Rojo"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#0d6efd"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #0d6efd;
+                      cursor: pointer;
+                    "
+                    title="Azul"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#fd7e14"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #fd7e14;
+                      cursor: pointer;
+                    "
+                    title="Naranja"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#6f42c1"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #6f42c1;
+                      cursor: pointer;
+                    "
+                    title="Morado"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#20c997"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #20c997;
+                      cursor: pointer;
+                    "
+                    title="Turquesa"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#ffc107"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #ffc107;
+                      cursor: pointer;
+                    "
+                    title="Amarillo"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#e83e8c"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #e83e8c;
+                      cursor: pointer;
+                    "
+                    title="Rosa"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#6c757d"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #6c757d;
+                      cursor: pointer;
+                    "
+                    title="Gris"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#198754"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #198754;
+                      cursor: pointer;
+                    "
+                    title="Verde Oscuro"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#0dcaf0"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #0dcaf0;
+                      cursor: pointer;
+                    "
+                    title="Cian"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#795548"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #795548;
+                      cursor: pointer;
+                    "
+                    title="Marrón"
+                  ></div>
+                </div>
+              </div>
+              <input
+                type="hidden"
+                id="color_cultivo"
+                name="color_cultivo"
+                value="#28a745"
+              />
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="precio" class="form-label">
+              <i class="bi bi-currency-euro me-1"></i>
+              Precio por Kilo (€)
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="precio"
+              name="precio"
+              step="0.01"
+              min="0"
+              placeholder="ej: 3.50"
+              required
+            />
+            <div class="form-text">Precio estimado de venta por kilogramo</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="numero_plantas" class="form-label">
+              <i class="bi bi-collection me-1"></i>
+              Número de Plantas
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="numero_plantas"
+              name="numero_plantas"
+              min="1"
+              placeholder="ej: 12"
+              required
+            />
+            <div class="form-text">
+              Cantidad de plantas sembradas en este cultivo
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="peso_promedio" class="form-label">
+              <i class="bi bi-calculator me-1"></i>
+              Peso Promedio por Unidad (g)
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="peso_promedio"
+              name="peso_promedio"
+              step="0.1"
+              min="0.1"
+              placeholder="ej: 150.0"
+              required
+            />
+            <div class="form-text">
+              Peso en gramos de cada unidad (tomate, lechuga, etc.) para
+              calcular automáticamente los kilos
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="fecha_siembra" class="form-label">
+              <i class="bi bi-calendar-event me-1"></i>
+              Fecha de Siembra
+            </label>
+            <input
+              type="date"
+              class="form-control"
+              id="fecha_siembra"
+              name="fecha_siembra"
+              required
+            />
+            <div class="form-text">
+              Fecha en la que se sembró o plantó el cultivo
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-plus-circle me-1"></i>
+            Crear Cultivo
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Inicializar fecha por defecto en el modal de nuevo cultivo
+  document.addEventListener("DOMContentLoaded", function () {
+    const fechaSiembraInput = document.getElementById("fecha_siembra");
+    if (fechaSiembraInput) {
+      // Establecer fecha de hoy como valor por defecto
+      const today = new Date();
+      const todayString =
+        today.getFullYear() +
+        "-" +
+        String(today.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(today.getDate()).padStart(2, "0");
+      fechaSiembraInput.value = todayString;
+    }
+
+    // Inicializar selector de colores
+    initDashboardColorPicker();
+
+    // Generar color automático para nuevo cultivo
+    generateDashboardNextColor();
+  });
+
+  // Array de colores disponibles
+  const dashboardAvailableColors = [
+    "#28a745",
+    "#dc3545",
+    "#0d6efd",
+    "#fd7e14",
+    "#6f42c1",
+    "#20c997",
+    "#ffc107",
+    "#e83e8c",
+    "#6c757d",
+    "#198754",
+    "#0dcaf0",
+    "#795548",
+  ];
+
+  // Función para generar el siguiente color disponible en dashboard
+  function generateDashboardNextColor() {
+    // Obtener colores ya usados de las tarjetas de cultivos en el dashboard
+    const existingColors = Array.from(
+      document.querySelectorAll('.cultivo-card [style*="background-color"]')
+    )
+      .map((el) => {
+        const style = el.getAttribute("style");
+        const match = style.match(/background-color:\s*([^;]+)/);
+        return match ? match[1].trim() : null;
+      })
+      .filter((color) => color && color !== "#28a745"); // Excluir color por defecto
+
+    const usedColors = [...new Set(existingColors)]; // Eliminar duplicados
+
+    // Encontrar primer color no usado
+    let nextColor = dashboardAvailableColors.find(
+      (color) => !usedColors.includes(color)
+    );
+
+    // Si todos están usados, usar uno aleatorio
+    if (!nextColor) {
+      nextColor =
+        dashboardAvailableColors[
+          Math.floor(Math.random() * dashboardAvailableColors.length)
+        ];
+    }
+
+    // Actualizar el selector de color del nuevo cultivo
+    const colorBtn = document.getElementById("colorPickerBtn");
+    const colorInput = document.getElementById("color_cultivo");
+    if (colorBtn && colorInput) {
+      colorBtn.style.backgroundColor = nextColor;
+      colorInput.value = nextColor;
+    }
+  }
+
+  // Función para inicializar el selector de colores en dashboard
+  function initDashboardColorPicker() {
+    // Selector para nuevo cultivo
+    document
+      .querySelectorAll("#colorPalette .color-option")
+      .forEach((option) => {
+        option.addEventListener("click", function () {
+          const color = this.getAttribute("data-color");
+          const colorBtn = document.getElementById("colorPickerBtn");
+          const colorInput = document.getElementById("color_cultivo");
+
+          if (colorBtn && colorInput) {
+            colorBtn.style.backgroundColor = color;
+            colorInput.value = color;
+          }
+
+          // Cerrar dropdown
+          const dropdown = bootstrap.Dropdown.getInstance(
+            document.getElementById("colorPickerBtn")
+          );
+          if (dropdown) {
+            dropdown.hide();
+          }
+        });
+      });
+  }
+</script>
+
+{% endblock %}

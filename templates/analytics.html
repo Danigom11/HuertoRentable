@@ -183,7 +183,7 @@
           Añade cultivos y registra su producción para ver gráficas
           comparativas.
         </p>
-        <a href="{{ url_for('gestionar_cultivos') }}" class="btn btn-success">
+        <a href="{{ url_for('crops.list_crops') }}" class="btn btn-success">
           <i class="bi bi-seedling me-2"></i>
           Gestionar Cultivos
         </a>
@@ -219,7 +219,7 @@
       // Llenar tabla detallada
       llenarTablaDetallada(chartData);
 
-      console.log('✅ Analytics cargado correctamente');
+      console.log('✅ Análisis cargado correctamente');
   });
 
   function sinDatos(data) {
@@ -312,8 +312,8 @@
       // 3. Gráfica de cultivos (dona)
       const ctxCultivos = document.getElementById('chartCultivos').getContext('2d');
 
-      // Colores atractivos para la gráfica de dona
-      const coloresCultivos = [
+      // Colores dinámicos basados en los colores específicos de cada cultivo
+      const coloresCultivos = data.colors || [
           '#198754', '#fd7e14', '#20c997', '#6f42c1',
           '#dc3545', '#0dcaf0', '#ffc107', '#6c757d'
       ];
@@ -362,7 +362,7 @@
       document.getElementById('totalAnos').textContent = totalAnos;
       document.getElementById('totalCultivos').textContent = totalCultivos;
       document.getElementById('produccionTotal').textContent = `${produccionTotal.toFixed(1)} kg`;
-      document.getElementById('beneficioTotal').textContent = `€${beneficioTotal.toFixed(2)}`;
+      document.getElementById('beneficioTotal').textContent = `${beneficioTotal.toFixed(2)} €`;
   }
 
   function llenarTablaDetallada(data) {
@@ -386,8 +386,8 @@
                       <td><strong>${ano}</strong></td>
                       <td class="text-capitalize">${cultivo}</td>
                       <td>${produccion.toFixed(1)} kg</td>
-                      <td>€${precioEstimado.toFixed(2)}</td>
-                      <td class="text-success fw-bold">€${beneficioAno.toFixed(2)}</td>
+                      <td>${precioEstimado.toFixed(2)} €</td>
+                      <td class="text-success fw-bold">${beneficioAno.toFixed(2)} €</td>
                       <td>
                           <div class="progress" style="height: 20px;">
                               <div class="progress-bar bg-success"
@@ -433,7 +433,7 @@
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `huerto_analytics_${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `huerto_analisis_${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
 

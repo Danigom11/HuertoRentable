@@ -77,7 +77,8 @@ def create_crop():
         'nombre': request.form.get('nombre', '').strip(),
         'precio': request.form.get('precio', 0),
         'numero_plantas': request.form.get('numero_plantas', 0),
-        'peso_promedio': request.form.get('peso_promedio', 0)
+        'peso_promedio': request.form.get('peso_promedio', 0),
+        'color_cultivo': request.form.get('color_cultivo', '#28a745')
     }
     
     # Validaciones
@@ -458,16 +459,21 @@ def edit_crop(crop_id):
         nombre = request.form.get('nombre', '').strip()
         precio = float(request.form.get('precio', 0))
         numero_plantas = int(request.form.get('numero_plantas', 1))
-        if not nombre or precio < 0 or numero_plantas <= 0:
+        peso_promedio = float(request.form.get('peso_promedio', 0))
+        color_cultivo = request.form.get('color_cultivo', '#28a745')
+        
+        if not nombre or precio < 0 or numero_plantas <= 0 or peso_promedio <= 0:
             flash('Datos inválidos', 'error')
             return redirect(url_for('crops.list_crops'))
         # Actualizar en Firestore
         if current_app.db:
             crop_ref = current_app.db.collection('usuarios').document(user['uid']).collection('cultivos').document(crop_id)
             crop_ref.update({
-                'nombre': nombre.lower(),
+                'nombre': nombre.strip(),
                 'precio_por_kilo': precio,
                 'numero_plantas': numero_plantas,
+                'peso_promedio': peso_promedio,
+                'color_cultivo': color_cultivo,
                 'actualizado_en': __import__('datetime').datetime.utcnow()
             })
         flash('Cultivo actualizado', 'success')
@@ -475,6 +481,32 @@ def edit_crop(crop_id):
         print('Error editando cultivo:', e)
         flash('Error editando cultivo', 'error')
     return redirect(url_for('crops.list_crops'))
+
+@crops_bp.route('/<crop_id>/color', methods=['POST'])
+def update_crop_color(crop_id):
+    """Actualizar solo el color de un cultivo - para uso con AJAX"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'success': False, 'error': 'No autenticado'}), 401
+    
+    from flask import current_app
+    try:
+        color = request.get_json().get('color') if request.is_json else request.form.get('color')
+        if not color:
+            return jsonify({'success': False, 'error': 'Color requerido'}), 400
+        
+        if current_app.db:
+            crop_ref = current_app.db.collection('usuarios').document(user['uid']).collection('cultivos').document(crop_id)
+            crop_ref.update({
+                'color_cultivo': color,
+                'actualizado_en': __import__('datetime').datetime.utcnow()
+            })
+            return jsonify({'success': True, 'color': color})
+        else:
+            return jsonify({'success': False, 'error': 'Base de datos no disponible'}), 500
+    except Exception as e:
+        print('Error actualizando color:', e)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @crops_bp.route('/<crop_id>/delete', methods=['POST'])
 def delete_crop(crop_id):

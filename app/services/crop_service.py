@@ -72,12 +72,13 @@ class CropService:
             
             # Preparar datos del cultivo
             cultivo = {
-                'nombre': crop_data.get('nombre', '').lower().strip(),
+                'nombre': crop_data.get('nombre', '').strip(),
                 'fecha_siembra': datetime.datetime.utcnow(),
                 'fecha_cosecha': None,
                 'precio_por_kilo': float(crop_data.get('precio', 0)),
                 'numero_plantas': int(crop_data.get('numero_plantas', 1)),
                 'peso_promedio_gramos': float(crop_data.get('peso_promedio', 100)),  # Peso en gramos por unidad
+                'color_cultivo': crop_data.get('color_cultivo', '#28a745'),  # Color por defecto verde
                 'abonos': [],
                 'produccion_diaria': [],
                 'activo': True,
@@ -672,16 +673,16 @@ class CropService:
         
         # Plantas variadas con datos realistas
         demo_data = [
-            {'nombre': 'tomates', 'precio': 3.50, 'plantas': 15, 'unidades_base': 180},
-            {'nombre': 'lechugas', 'precio': 2.80, 'plantas': 12, 'unidades_base': 36},
-            {'nombre': 'zanahorias', 'precio': 1.90, 'plantas': 20, 'unidades_base': 240},
-            {'nombre': 'pimientos', 'precio': 4.20, 'plantas': 8, 'unidades_base': 96},
-            {'nombre': 'berenjenas', 'precio': 3.80, 'plantas': 6, 'unidades_base': 72},
-            {'nombre': 'calabacines', 'precio': 2.50, 'plantas': 10, 'unidades_base': 150},
-            {'nombre': 'espinacas', 'precio': 4.50, 'plantas': 14, 'unidades_base': 84},
-            {'nombre': 'apio', 'precio': 3.20, 'plantas': 8, 'unidades_base': 48},
-            {'nombre': 'brócoli', 'precio': 5.20, 'plantas': 7, 'unidades_base': 42},
-            {'nombre': 'coliflor', 'precio': 4.80, 'plantas': 6, 'unidades_base': 36}
+            {'nombre': 'tomates', 'precio': 3.50, 'plantas': 15, 'unidades_base': 180, 'color': '#dc3545'},
+            {'nombre': 'lechugas', 'precio': 2.80, 'plantas': 12, 'unidades_base': 36, 'color': '#28a745'},
+            {'nombre': 'zanahorias', 'precio': 1.90, 'plantas': 20, 'unidades_base': 240, 'color': '#fd7e14'},
+            {'nombre': 'pimientos', 'precio': 4.20, 'plantas': 8, 'unidades_base': 96, 'color': '#ffc107'},
+            {'nombre': 'berenjenas', 'precio': 3.80, 'plantas': 6, 'unidades_base': 72, 'color': '#6f42c1'},
+            {'nombre': 'calabacines', 'precio': 2.50, 'plantas': 10, 'unidades_base': 150, 'color': '#20c997'},
+            {'nombre': 'espinacas', 'precio': 4.50, 'plantas': 14, 'unidades_base': 84, 'color': '#198754'},
+            {'nombre': 'apio', 'precio': 3.20, 'plantas': 8, 'unidades_base': 48, 'color': '#0dcaf0'},
+            {'nombre': 'brócoli', 'precio': 5.20, 'plantas': 7, 'unidades_base': 42, 'color': '#25a745'},
+            {'nombre': 'coliflor', 'precio': 4.80, 'plantas': 6, 'unidades_base': 36, 'color': '#6c757d'}
         ]
         
         crops = []
@@ -713,6 +714,7 @@ class CropService:
                 'precio_por_kilo': data['precio'],
                 'plantas_sembradas': data['plantas'],
                 'unidades_recolectadas': data['unidades_base'] + random.randint(-20, 40),
+                'color_cultivo': data['color'],  # Color específico para cada cultivo
                 'produccion_diaria': produccion_diaria,
                 'activo': i < 8,  # Los primeros 8 están activos, 2 cosechados
                 'fecha_cosecha': None if i < 8 else fecha_siembra + datetime.timedelta(days=120)
@@ -870,12 +872,13 @@ class CropService:
             # Preparar datos del cultivo
             cultivo = {
                 'id': f"local_{len(self.get_local_user_crops(user_uid))}_{crop_data.get('nombre', 'cultivo')}",
-                'nombre': crop_data.get('nombre', '').lower().strip(),
+                'nombre': crop_data.get('nombre', '').strip(),
                 'fecha_siembra': datetime.datetime.utcnow(),
                 'fecha_cosecha': None,
                 'precio_por_kilo': float(crop_data.get('precio', 0)),
                 'numero_plantas': int(crop_data.get('numero_plantas', 1)),
                 'peso_promedio_gramos': float(crop_data.get('peso_promedio', 100)),
+                'color_cultivo': crop_data.get('color_cultivo', '#28a745'),  # Color por defecto verde
                 'abonos': [],
                 'produccion_diaria': [],
                 'activo': True,

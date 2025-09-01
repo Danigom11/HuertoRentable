@@ -1,10 +1,10 @@
-{% extends "base.html" %} {% block title %}Analytics Avanzados -
-HuertoRentable{% endblock %} {% block content %}
+{% extends "base.html" %} {% block title %}Análisis Avanzados - HuertoRentable{%
+endblock %} {% block content %}
 <!-- Banner de modo demo en analytics avanzados -->
 {% if demo_mode %}
 <div class="alert alert-success alert-dismissible fade show" role="alert">
   <i class="bi bi-star-fill me-2"></i>
-  <strong>Analytics Premium Avanzados - DEMO</strong> - Explorando todas las
+  <strong>Análisis Premium Avanzados - DEMO</strong> - Explorando todas las
   funcionalidades profesionales de análisis.
   <a href="{{ url_for('auth.login') }}" class="alert-link">Inicia sesión</a>
   para analizar tus datos reales con estas herramientas.
@@ -18,7 +18,7 @@ HuertoRentable{% endblock %} {% block content %}
     <div class="col-12">
       <h1 class="display-6 text-success mb-2">
         <i class="bi bi-graph-up-arrow me-2"></i>
-        Analytics Avanzados {% if demo_mode %}
+        Análisis Avanzados {% if demo_mode %}
         <span class="badge bg-warning">DEMO PREMIUM</span>
         {% endif %}
       </h1>
@@ -36,7 +36,7 @@ HuertoRentable{% endblock %} {% block content %}
           <div class="d-flex justify-content-between">
             <div>
               <h6 class="card-title text-uppercase">Beneficio Total</h6>
-              <h2 class="mb-0">€{{ "%.2f"|format(total_beneficios) }}</h2>
+              <h2 class="mb-0">{{ total_beneficios|spanish_format(2) }} €</h2>
               <small>+23% vs mes anterior</small>
             </div>
             <div class="align-self-center">
@@ -53,7 +53,7 @@ HuertoRentable{% endblock %} {% block content %}
           <div class="d-flex justify-content-between">
             <div>
               <h6 class="card-title text-uppercase">Proyección Anual</h6>
-              <h2 class="mb-0">€{{ "%.2f"|format(proyeccion_anual) }}</h2>
+              <h2 class="mb-0">{{ proyeccion_anual|spanish_format(2) }} €</h2>
               <small>Basado en tendencias</small>
             </div>
             <div class="align-self-center">
@@ -71,7 +71,7 @@ HuertoRentable{% endblock %} {% block content %}
             <div>
               <h6 class="card-title text-uppercase">Eficiencia</h6>
               <h2 class="mb-0">
-                {{ "%.2f"|format(total_kilos / cultivos|length) }} kg
+                {{ (total_kilos / cultivos|length)|spanish_format(2) }} kg
               </h2>
               <small>Por cultivo promedio</small>
             </div>
@@ -90,8 +90,8 @@ HuertoRentable{% endblock %} {% block content %}
             <div>
               <h6 class="card-title text-uppercase">ROI Promedio</h6>
               <h2 class="mb-0">
-                {{ "%.2f"|format((total_beneficios / (total_kilos * 0.5)) * 100
-                if total_kilos > 0 else 0) }}%
+                {{ ((total_beneficios / (total_kilos * 0.5)) * 100 if
+                total_kilos > 0 else 0)|spanish_format(2) }}%
               </h2>
               <small>Retorno de inversión</small>
             </div>
@@ -144,13 +144,13 @@ HuertoRentable{% endblock %} {% block content %}
               <div>
                 <h6 class="mb-1 text-capitalize">{{ cultivo.nombre }}</h6>
                 <small class="text-muted"
-                  >{{ "%.2f"|format(cultivo.kilos_totales) }} kg
+                  >{{ cultivo.kilos_totales|spanish_format(2) }} kg
                   producidos</small
                 >
               </div>
               <div class="text-end">
                 <span class="badge bg-success rounded-pill">
-                  €{{ "%.2f"|format(cultivo.beneficio_total) }}
+                  {{ cultivo.beneficio_total|spanish_format(2) }} €
                 </span>
               </div>
             </div>
@@ -269,15 +269,15 @@ HuertoRentable{% endblock %} {% block content %}
                   </td>
                   <td>
                     <span class="badge bg-success rounded-pill">
-                      {{ "%.2f"|format(cultivo.kilos_totales) }} kg
+                      {{ cultivo.kilos_totales|spanish_format(2) }} kg
                     </span>
                   </td>
                   <td>
                     <strong class="text-success">
-                      €{{ "%.2f"|format(cultivo.beneficio_total) }}
+                      {{ cultivo.beneficio_total|spanish_format(2) }} €
                     </strong>
                   </td>
-                  <td>€{{ "%.2f"|format(cultivo.precio_por_kilo) }}</td>
+                  <td>{{ cultivo.precio_por_kilo|spanish_format(2) }} €</td>
                   <td>
                     {% set roi = ((cultivo.beneficio_total /
                     (cultivo.kilos_totales * 0.5)) * 100) if
@@ -285,7 +285,7 @@ HuertoRentable{% endblock %} {% block content %}
                     <span
                       class="badge {% if roi > 200 %}bg-success{% elif roi > 100 %}bg-warning{% else %}bg-danger{% endif %}"
                     >
-                      {{ "%.2f"|format(roi) }}%
+                      {{ roi|spanish_format(2) }}%
                     </span>
                   </td>
                   <td>
@@ -326,9 +326,9 @@ HuertoRentable{% endblock %} {% block content %}
                 >{{ cultivos_ranking[0].nombre if cultivos_ranking|length > 0
                 else 'tomates' }}</strong
               >
-              son el cultivo más rentable con €{{
-              "%.2f"|format(cultivos_ranking[0].beneficio_total if
-              cultivos_ranking|length > 0 else 185.00) }} de beneficio.
+              son el cultivo más rentable con {{
+              (cultivos_ranking[0].beneficio_total if cultivos_ranking|length >
+              0 else 185.00)|spanish_format(2) }} € de beneficio.
             </p>
             <p class="mb-0">
               <strong>Recomendación:</strong> Considera aumentar la superficie
@@ -407,11 +407,11 @@ HuertoRentable{% endblock %} {% block content %}
         class="btn btn-outline-secondary btn-lg me-3"
       >
         <i class="bi bi-arrow-left me-2"></i>
-        Analytics Básicos
+        Análisis Básicos
       </a>
       <a href="{{ url_for('main.dashboard') }}" class="btn btn-success btn-lg">
         <i class="bi bi-house-door me-2"></i>
-        Volver al Dashboard
+        Volver
       </a>
     </div>
   </div>

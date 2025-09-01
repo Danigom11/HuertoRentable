@@ -7,9 +7,20 @@ import json
 import io
 import tempfile
 import os
+import locale
 from flask import Blueprint, render_template, jsonify, make_response
 from app.auth.auth_service import login_required, get_current_user, premium_required
 from app.services.crop_service import CropService
+
+def format_spanish_number(value, decimals=2):
+    """Formatear número con separador decimal español (coma)"""
+    try:
+        if value is None:
+            return "0"
+        formatted = f"{float(value):.{decimals}f}"
+        return formatted.replace('.', ',')
+    except (ValueError, TypeError):
+        return str(value)
 
 analytics_bp = Blueprint('analytics', __name__)
 
@@ -32,20 +43,65 @@ def analytics_dashboard():
         total_kilos, total_beneficios = crop_service.get_demo_totals()
         demo_mode = True
     
-    # Preparar datos para gráficas
-    datos_cultivos = {}
+    # Preparar datos detallados para cada cultivo
+    cultivos_detallados = []
     for cultivo in cultivos:
-        nombre = cultivo['nombre']
-        precio_kilo = cultivo.get('precio_por_kilo', 0)
-        kilos_total = sum(p.get('kilos', 0) for p in cultivo.get('produccion_diaria', []))
+        # Calcular totales de producción
+        total_kilos_cultivo = sum(p.get('kilos', 0) for p in cultivo.get('produccion_diaria', []))
+        total_unidades_cultivo = sum(p.get('unidades', 0) for p in cultivo.get('produccion_diaria', []))
         
-        datos_cultivos[nombre] = {
-            'kilos': kilos_total,
-            'beneficio': kilos_total * precio_kilo
+        # Calcular peso promedio por unidad
+        peso_por_unidad = (total_kilos_cultivo / total_unidades_cultivo) if total_unidades_cultivo > 0 else 0
+        
+        # Calcular beneficio
+        precio_kilo = cultivo.get('precio_por_kilo', 0)
+        beneficio = total_kilos_cultivo * precio_kilo
+        
+        # Calcular días de cultivo
+        dias_cultivo = None
+        if 'fecha_siembra' in cultivo and cultivo['fecha_siembra']:
+            fecha_inicio = cultivo['fecha_siembra']
+            fecha_fin = cultivo.get('fecha_cosecha', datetime.datetime.now())
+            if hasattr(fecha_inicio, 'date'):
+                fecha_inicio = fecha_inicio.date()
+            if hasattr(fecha_fin, 'date'):
+                fecha_fin = fecha_fin.date()
+            elif isinstance(fecha_fin, datetime.datetime):
+                fecha_fin = fecha_fin.date()
+            
+            try:
+                dias_cultivo = (fecha_fin - fecha_inicio).days
+            except:
+                dias_cultivo = None
+        
+        # Contar abonos
+        total_abonos = len(cultivo.get('abonos', []))
+        
+        cultivos_detallados.append({
+            'nombre': cultivo['nombre'],
+            'color_cultivo': cultivo.get('color_cultivo', '#28a745'),  # Incluir color del cultivo
+            'activo': cultivo.get('activo', True),
+            'numero_plantas': cultivo.get('numero_plantas', 1),
+            'dias_cultivo': dias_cultivo,
+            'total_unidades': total_unidades_cultivo,
+            'total_kilos': total_kilos_cultivo,
+            'peso_por_unidad': peso_por_unidad,
+            'precio_por_kilo': precio_kilo,
+            'beneficio': beneficio,
+            'total_abonos': total_abonos
+        })
+    
+    # Preparar datos para gráficas (compatibilidad)
+    datos_cultivos = {}
+    for cultivo_det in cultivos_detallados:
+        datos_cultivos[cultivo_det['nombre']] = {
+            'kilos': cultivo_det['total_kilos'],
+            'beneficio': cultivo_det['beneficio']
         }
     
     return render_template('analytics/dashboard.html',
                          datos_cultivos=datos_cultivos,
+                         cultivos_detallados=cultivos_detallados,
                          total_kilos=total_kilos,
                          total_beneficios=total_beneficios,
                          demo_mode=demo_mode)
@@ -124,31 +180,34 @@ def api_chart_data():
     labels = []
     kilos_data = []
     beneficios_data = []
+    colors = []  # Array de colores de cultivos
     
     for cultivo in cultivos:
-        labels.append(cultivo['nombre'].title())
+        labels.append(cultivo['nombre'])
         
         kilos_total = sum(p.get('kilos', 0) for p in cultivo.get('produccion_diaria', []))
         precio_kilo = cultivo.get('precio_por_kilo', 0)
         
         kilos_data.append(kilos_total)
         beneficios_data.append(kilos_total * precio_kilo)
+        colors.append(cultivo.get('color_cultivo', '#28a745'))  # Color específico del cultivo
     
     return jsonify({
         'labels': labels,
+        'colors': colors,  # Incluir colores específicos de cada cultivo
         'datasets': [
             {
                 'label': 'Kilogramos producidos',
                 'data': kilos_data,
-                'backgroundColor': 'rgba(75, 192, 192, 0.2)',
-                'borderColor': 'rgba(75, 192, 192, 1)',
+                'backgroundColor': colors,  # Usar colores específicos
+                'borderColor': colors,
                 'borderWidth': 2
             },
             {
                 'label': 'Beneficios (€)',
                 'data': beneficios_data,
-                'backgroundColor': 'rgba(255, 99, 132, 0.2)',
-                'borderColor': 'rgba(255, 99, 132, 1)',
+                'backgroundColor': colors,  # Usar colores específicos
+                'borderColor': colors,
                 'borderWidth': 2
             }
         ]
@@ -156,7 +215,7 @@ def api_chart_data():
 
 @analytics_bp.route('/export/csv')
 def export_csv():
-    """Exportar datos a CSV - funciona en modo demo"""
+    """Exportar datos detallados a CSV - funciona en modo demo"""
     from flask import current_app
     import csv
     import io
@@ -167,41 +226,72 @@ def export_csv():
     # Obtener datos según si está autenticado o en modo demo
     if user:
         cultivos = crop_service.get_user_crops(user['uid'])
-        filename = f"huerto_datos_{user['uid'][:8]}.csv"
+        filename = f"huerto_detallado_{user['uid'][:8]}.csv"
     else:
         cultivos = crop_service.get_demo_crops()
-        filename = "huerto_demo_datos.csv"
+        filename = "huerto_detallado_demo.csv"
     
     # Crear CSV en memoria
     output = io.StringIO()
     writer = csv.writer(output)
     
-    # Cabeceras
-    writer.writerow(['Cultivo', 'Fecha Siembra', 'Plantas', 'Precio/kg (€)', 
-                    'Kilos Totales', 'Beneficio Total (€)', 'Estado'])
+    # Cabeceras con todos los datos disponibles
+    writer.writerow([
+        'Cultivo', 'Estado', 'Fecha Siembra', 'Fecha Cosecha', 'Días Cultivo',
+        'Número Plantas', 'Precio/kg (€)', 'Total Unidades', 'Total Kilos',
+        'Peso/Unidad (kg)', 'Beneficio Total (€)', 'Total Abonos', 'Rentabilidad (%)'
+    ])
     
-    # Datos
+    # Calcular totales para rentabilidad
+    total_beneficios = sum(
+        sum(p.get('kilos', 0) for p in cultivo.get('produccion_diaria', [])) * cultivo.get('precio_por_kilo', 0)
+        for cultivo in cultivos
+    )
+    
+    # Datos detallados
     for cultivo in cultivos:
+        # Calcular métricas
+        total_kilos = sum(p.get('kilos', 0) for p in cultivo.get('produccion_diaria', []))
+        total_unidades = sum(p.get('unidades', 0) for p in cultivo.get('produccion_diaria', []))
+        peso_por_unidad = (total_kilos / total_unidades) if total_unidades > 0 else 0
+        beneficio = total_kilos * cultivo.get('precio_por_kilo', 0)
+        rentabilidad = (beneficio / total_beneficios * 100) if total_beneficios > 0 else 0
+        
+        # Calcular días de cultivo
+        dias_cultivo = ""
+        if cultivo.get('fecha_siembra') and cultivo.get('fecha_cosecha'):
+            delta = cultivo['fecha_cosecha'] - cultivo['fecha_siembra']
+            dias_cultivo = delta.days
+        elif cultivo.get('fecha_siembra'):
+            delta = datetime.datetime.now() - cultivo['fecha_siembra']
+            dias_cultivo = delta.days
+        
         writer.writerow([
-            cultivo['nombre'].title(),
-            cultivo['fecha_siembra'].strftime('%Y-%m-%d'),
-            cultivo.get('plantas_sembradas', 0),
-            f"{cultivo.get('precio_por_kilo', 0):.2f}",
-            f"{cultivo.get('kilos_totales', 0):.1f}",
-            f"{cultivo.get('beneficio_total', 0):.2f}",
-            'Activo' if cultivo.get('activo', True) else 'Cosechado'
+            cultivo['nombre'],
+            'Activo' if cultivo.get('activo', True) else 'Finalizado',
+            cultivo['fecha_siembra'].strftime('%Y-%m-%d') if cultivo.get('fecha_siembra') else '',
+            cultivo['fecha_cosecha'].strftime('%Y-%m-%d') if cultivo.get('fecha_cosecha') else '',
+            dias_cultivo,
+            cultivo.get('numero_plantas', 1),
+            format_spanish_number(cultivo.get('precio_por_kilo', 0), 2),
+            total_unidades,
+            format_spanish_number(total_kilos, 1),
+            format_spanish_number(peso_por_unidad, 3) if peso_por_unidad > 0 else "0",
+            format_spanish_number(beneficio, 2),
+            len(cultivo.get('abonos', [])),
+            format_spanish_number(rentabilidad, 1)
         ])
     
     # Crear respuesta HTTP
     response = make_response(output.getvalue())
-    response.headers['Content-Type'] = 'text/csv'
+    response.headers['Content-Type'] = 'text/csv; charset=utf-8'
     response.headers['Content-Disposition'] = f'attachment; filename={filename}'
     
     return response
 
 @analytics_bp.route('/export/json')
 def export_json():
-    """Exportar datos a JSON - funciona en modo demo"""
+    """Exportar datos completos a JSON - funciona en modo demo"""
     from flask import current_app
     
     user = get_current_user()
@@ -215,40 +305,82 @@ def export_json():
         cultivos = crop_service.get_demo_crops()
         total_kilos, total_beneficios = crop_service.get_demo_totals()
     
-    # Preparar datos para exportar
+    # Preparar datos completos para exportar
     export_data = {
         'resumen': {
             'total_cultivos': len(cultivos),
             'total_kilos': total_kilos,
             'total_beneficios': total_beneficios,
-            'fecha_exportacion': datetime.datetime.now().isoformat()
+            'fecha_exportacion': datetime.datetime.now().isoformat(),
+            'usuario': user['uid'] if user else 'demo'
         },
-        'cultivos': []
+        'cultivos_detallados': []
     }
     
     for cultivo in cultivos:
+        # Calcular métricas detalladas
+        total_kilos_cultivo = sum(p.get('kilos', 0) for p in cultivo.get('produccion_diaria', []))
+        total_unidades_cultivo = sum(p.get('unidades', 0) for p in cultivo.get('produccion_diaria', []))
+        peso_por_unidad = (total_kilos_cultivo / total_unidades_cultivo) if total_unidades_cultivo > 0 else 0
+        beneficio = total_kilos_cultivo * cultivo.get('precio_por_kilo', 0)
+        
+        # Calcular días de cultivo
+        dias_cultivo = None
+        if cultivo.get('fecha_siembra'):
+            fecha_fin = cultivo.get('fecha_cosecha', datetime.datetime.now())
+            try:
+                dias_cultivo = (fecha_fin - cultivo['fecha_siembra']).days
+            except:
+                dias_cultivo = None
+        
         cultivo_data = {
-            'nombre': cultivo['nombre'],
-            'fecha_siembra': cultivo['fecha_siembra'].isoformat(),
-            'plantas_sembradas': cultivo.get('plantas_sembradas', 0),
-            'precio_por_kilo': cultivo.get('precio_por_kilo', 0),
-            'kilos_totales': cultivo.get('kilos_totales', 0),
-            'beneficio_total': cultivo.get('beneficio_total', 0),
-            'activo': cultivo.get('activo', True),
-            'produccion_detallada': [
-                {
-                    'fecha': p['fecha'].isoformat(),
-                    'kilos': p['kilos']
-                } for p in cultivo.get('produccion_diaria', [])
-            ]
+            'informacion_basica': {
+                'nombre': cultivo['nombre'],
+                'activo': cultivo.get('activo', True),
+                'numero_plantas': cultivo.get('numero_plantas', 1),
+                'precio_por_kilo': cultivo.get('precio_por_kilo', 0)
+            },
+            'fechas': {
+                'fecha_siembra': cultivo['fecha_siembra'].isoformat() if cultivo.get('fecha_siembra') else None,
+                'fecha_cosecha': cultivo['fecha_cosecha'].isoformat() if cultivo.get('fecha_cosecha') else None,
+                'dias_cultivo': dias_cultivo
+            },
+            'produccion': {
+                'total_kilos': total_kilos_cultivo,
+                'total_unidades': total_unidades_cultivo,
+                'peso_por_unidad': peso_por_unidad,
+                'beneficio_total': beneficio,
+                'produccion_diaria': [
+                    {
+                        'fecha': p['fecha'].isoformat(),
+                        'kilos': p.get('kilos', 0),
+                        'unidades': p.get('unidades', 0),
+                        'peso_unitario': p.get('kilos', 0) / p.get('unidades', 1) if p.get('unidades', 0) > 0 else 0
+                    } for p in cultivo.get('produccion_diaria', [])
+                ]
+            },
+            'mantenimiento': {
+                'total_abonos': len(cultivo.get('abonos', [])),
+                'abonos_detallados': [
+                    {
+                        'fecha': a['fecha'].isoformat() if 'fecha' in a else None,
+                        'descripcion': a.get('descripcion', '')
+                    } for a in cultivo.get('abonos', [])
+                ]
+            },
+            'estadisticas': {
+                'rentabilidad_porcentaje': (beneficio / total_beneficios * 100) if total_beneficios > 0 else 0,
+                'productividad_por_planta': total_kilos_cultivo / cultivo.get('numero_plantas', 1),
+                'beneficio_por_dia': beneficio / dias_cultivo if dias_cultivo and dias_cultivo > 0 else 0
+            }
         }
-        export_data['cultivos'].append(cultivo_data)
+        export_data['cultivos_detallados'].append(cultivo_data)
     
-    filename = f"huerto_datos_{'demo' if not user else user['uid'][:8]}.json"
+    filename = f"huerto_completo_{'demo' if not user else user['uid'][:8]}.json"
     
     # Crear respuesta HTTP
     response = make_response(json.dumps(export_data, indent=2, ensure_ascii=False))
-    response.headers['Content-Type'] = 'application/json'
+    response.headers['Content-Type'] = 'application/json; charset=utf-8'
     response.headers['Content-Disposition'] = f'attachment; filename={filename}'
     
     return response
@@ -301,16 +433,17 @@ def export_excel():
     ws1['A5'] = "Producción Total:"
     ws1['B5'] = f"{total_kilos:.1f} kg"
     ws1['A6'] = "Beneficios Totales:"
-    ws1['B6'] = f"€{total_beneficios:.2f}"
+    ws1['B6'] = f"{format_spanish_number(total_beneficios, 2)} €"
     ws1['A7'] = "Fecha Reporte:"
     ws1['B7'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
     
-    # === HOJA 2: DETALLE CULTIVOS ===
-    ws2 = wb.create_sheet(title="Detalle Cultivos")
+    # === HOJA 2: DETALLE CULTIVOS COMPLETO ===
+    ws2 = wb.create_sheet(title="Detalle Cultivos Completo")
     
-    # Encabezados
-    headers = ['Cultivo', 'Fecha Siembra', 'Plantas', 'Precio/kg (€)', 
-               'Kilos Totales', 'Beneficio Total (€)', 'Estado']
+    # Encabezados expandidos con todos los datos
+    headers = ['Cultivo', 'Estado', 'Fecha Siembra', 'Fecha Cosecha', 'Días Cultivo',
+               'Número Plantas', 'Precio/kg (€)', 'Total Unidades', 'Total Kilos', 
+               'Peso/Unidad (kg)', 'Beneficio Total (€)', 'Total Abonos', 'Rentabilidad (%)']
     
     for col, header in enumerate(headers, 1):
         cell = ws2.cell(row=1, column=col, value=header)
@@ -318,15 +451,38 @@ def export_excel():
         cell.fill = header_fill
         cell.alignment = Alignment(horizontal='center')
     
-    # Datos de cultivos
+    # Datos detallados de cultivos
     for row, cultivo in enumerate(cultivos, 2):
-        ws2.cell(row=row, column=1, value=cultivo['nombre'].title())
-        ws2.cell(row=row, column=2, value=cultivo['fecha_siembra'].strftime('%Y-%m-%d'))
-        ws2.cell(row=row, column=3, value=cultivo.get('plantas_sembradas', 0))
-        ws2.cell(row=row, column=4, value=cultivo.get('precio_por_kilo', 0))
-        ws2.cell(row=row, column=5, value=cultivo.get('kilos_totales', 0))
-        ws2.cell(row=row, column=6, value=cultivo.get('beneficio_total', 0))
-        ws2.cell(row=row, column=7, value='Activo' if cultivo.get('activo', True) else 'Cosechado')
+        # Calcular métricas
+        total_kilos_cultivo = sum(p.get('kilos', 0) for p in cultivo.get('produccion_diaria', []))
+        total_unidades_cultivo = sum(p.get('unidades', 0) for p in cultivo.get('produccion_diaria', []))
+        peso_por_unidad = (total_kilos_cultivo / total_unidades_cultivo) if total_unidades_cultivo > 0 else 0
+        beneficio = total_kilos_cultivo * cultivo.get('precio_por_kilo', 0)
+        rentabilidad = (beneficio / total_beneficios * 100) if total_beneficios > 0 else 0
+        
+        # Calcular días de cultivo
+        dias_cultivo = ""
+        if cultivo.get('fecha_siembra'):
+            fecha_fin = cultivo.get('fecha_cosecha', datetime.datetime.now())
+            try:
+                dias_cultivo = (fecha_fin - cultivo['fecha_siembra']).days
+            except:
+                dias_cultivo = ""
+        
+        # Llenar datos
+        ws2.cell(row=row, column=1, value=cultivo['nombre'])
+        ws2.cell(row=row, column=2, value='Activo' if cultivo.get('activo', True) else 'Finalizado')
+        ws2.cell(row=row, column=3, value=cultivo['fecha_siembra'].strftime('%Y-%m-%d') if cultivo.get('fecha_siembra') else '')
+        ws2.cell(row=row, column=4, value=cultivo['fecha_cosecha'].strftime('%Y-%m-%d') if cultivo.get('fecha_cosecha') else '')
+        ws2.cell(row=row, column=5, value=dias_cultivo)
+        ws2.cell(row=row, column=6, value=cultivo.get('numero_plantas', 1))
+        ws2.cell(row=row, column=7, value=cultivo.get('precio_por_kilo', 0))
+        ws2.cell(row=row, column=8, value=total_unidades_cultivo)
+        ws2.cell(row=row, column=9, value=total_kilos_cultivo)
+        ws2.cell(row=row, column=10, value=peso_por_unidad)
+        ws2.cell(row=row, column=11, value=beneficio)
+        ws2.cell(row=row, column=12, value=len(cultivo.get('abonos', [])))
+        ws2.cell(row=row, column=13, value=rentabilidad)
     
     # Ajustar anchos de columna
     for col in ws2.columns:
@@ -348,9 +504,9 @@ def export_excel():
         ws3['A1'] = "Producción Detallada por Día"
         ws3['A1'].font = header_font
         ws3['A1'].fill = header_fill
-        ws3.merge_cells('A1:C1')
+        ws3.merge_cells('A1:E1')
         
-        headers_prod = ['Cultivo', 'Fecha', 'Kilos']
+        headers_prod = ['Cultivo', 'Fecha', 'Kilos', 'Unidades', 'Peso/Unidad (kg)']
         for col, header in enumerate(headers_prod, 1):
             cell = ws3.cell(row=2, column=col, value=header)
             cell.font = header_font
@@ -359,10 +515,65 @@ def export_excel():
         row = 3
         for cultivo in cultivos:
             for produccion in cultivo.get('produccion_diaria', []):
-                ws3.cell(row=row, column=1, value=cultivo['nombre'].title())
+                kilos = produccion.get('kilos', 0)
+                unidades = produccion.get('unidades', 0)
+                peso_unitario = (kilos / unidades) if unidades > 0 else 0
+                
+                ws3.cell(row=row, column=1, value=cultivo['nombre'])
                 ws3.cell(row=row, column=2, value=produccion['fecha'].strftime('%Y-%m-%d'))
-                ws3.cell(row=row, column=3, value=produccion['kilos'])
+                ws3.cell(row=row, column=3, value=kilos)
+                ws3.cell(row=row, column=4, value=unidades)
+                ws3.cell(row=row, column=5, value=peso_unitario)
                 row += 1
+                
+        # Ajustar anchos de esta hoja también
+        for col in ws3.columns:
+            max_length = 0
+            column = col[0].column_letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 20)
+            ws3.column_dimensions[column].width = adjusted_width
+    
+    # === HOJA 4: HISTORIAL DE ABONOS ===
+    if cultivos and any(cultivo.get('abonos', []) for cultivo in cultivos):
+        ws4 = wb.create_sheet(title="Historial Abonos")
+        
+        ws4['A1'] = "Historial de Abonos y Mantenimiento"
+        ws4['A1'].font = header_font
+        ws4['A1'].fill = header_fill
+        ws4.merge_cells('A1:C1')
+        
+        headers_abonos = ['Cultivo', 'Fecha', 'Descripción']
+        for col, header in enumerate(headers_abonos, 1):
+            cell = ws4.cell(row=2, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+        
+        row = 3
+        for cultivo in cultivos:
+            for abono in cultivo.get('abonos', []):
+                ws4.cell(row=row, column=1, value=cultivo['nombre'])
+                ws4.cell(row=row, column=2, value=abono['fecha'].strftime('%Y-%m-%d') if 'fecha' in abono else '')
+                ws4.cell(row=row, column=3, value=abono.get('descripcion', ''))
+                row += 1
+                
+        # Ajustar anchos
+        for col in ws4.columns:
+            max_length = 0
+            column = col[0].column_letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 30)  # Un poco más ancho para descripciones
+            ws4.column_dimensions[column].width = adjusted_width
     
     # Guardar en memoria
     output = io.BytesIO()
@@ -448,8 +659,8 @@ def export_pdf():
         ['Métrica', 'Valor'],
         ['Total de Cultivos', str(len(cultivos))],
         ['Producción Total', f"{total_kilos:.1f} kg"],
-        ['Beneficios Totales', f"€{total_beneficios:.2f}"],
-        ['Beneficio Promedio', f"€{(total_beneficios/len(cultivos) if cultivos else 0):.2f} por cultivo"]
+        ['Beneficios Totales', f"{format_spanish_number(total_beneficios, 2)} €"],
+        ['Beneficio Promedio', f"{format_spanish_number((total_beneficios/len(cultivos) if cultivos else 0), 2)} € por cultivo"]
     ]
     
     resumen_table = Table(resumen_data, colWidths=[3*inch, 2*inch])
@@ -476,12 +687,12 @@ def export_pdf():
         
         for cultivo in cultivos:
             cultivos_data.append([
-                cultivo['nombre'].title(),
+                cultivo['nombre'],
                 cultivo['fecha_siembra'].strftime('%d/%m/%Y'),
                 str(cultivo.get('plantas_sembradas', 0)),
-                f"€{cultivo.get('precio_por_kilo', 0):.2f}",
+                f"{format_spanish_number(cultivo.get('precio_por_kilo', 0), 2)} €",
                 f"{cultivo.get('kilos_totales', 0):.1f} kg",
-                f"€{cultivo.get('beneficio_total', 0):.2f}",
+                f"{format_spanish_number(cultivo.get('beneficio_total', 0), 2)} €",
                 'Activo' if cultivo.get('activo', True) else 'Cosechado'
             ])
         
@@ -507,8 +718,8 @@ def export_pdf():
         
         if cultivos:
             cultivo_top = max(cultivos, key=lambda x: x.get('beneficio_total', 0))
-            story.append(Paragraph(f"<b>🏆 Cultivo Más Rentable:</b> {cultivo_top['nombre'].title()}", styles['Normal']))
-            story.append(Paragraph(f"Beneficio: €{cultivo_top.get('beneficio_total', 0):.2f}", styles['Normal']))
+            story.append(Paragraph(f"<b>🏆 Cultivo Más Rentable:</b> {cultivo_top['nombre']}", styles['Normal']))
+            story.append(Paragraph(f"Beneficio: {format_spanish_number(cultivo_top.get('beneficio_total', 0), 2)} €", styles['Normal']))
             story.append(Paragraph(f"Producción: {cultivo_top.get('kilos_totales', 0):.1f} kg", styles['Normal']))
             story.append(Spacer(1, 12))
             
@@ -518,7 +729,7 @@ def export_pdf():
             story.append(Paragraph(f"• Cultivos activos: {activos}", styles['Normal']))
             story.append(Paragraph(f"• Cultivos cosechados: {cosechados}", styles['Normal']))
             if total_kilos > 0:
-                story.append(Paragraph(f"• Rentabilidad: €{(total_beneficios/total_kilos):.2f}/kg", styles['Normal']))
+                story.append(Paragraph(f"• Rentabilidad: {format_spanish_number((total_beneficios/total_kilos), 2)} €/kg", styles['Normal']))
     else:
         story.append(Paragraph("No hay cultivos registrados", styles['Normal']))
     

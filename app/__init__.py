@@ -183,6 +183,26 @@ def setup_template_context(app):
     """Configurar variables globales para plantillas"""
     import time
     
+    # Registrar filtro personalizado para formato español de números
+    @app.template_filter('spanish_format')
+    def spanish_format(value, decimals=2):
+        """
+        Filtro para formatear números con el formato español (coma como separador decimal)
+        """
+        try:
+            if value is None:
+                return "0"
+            
+            # Formatear el número con el número de decimales especificado
+            formatted = f"{float(value):.{decimals}f}"
+            
+            # Convertir punto a coma (formato español)
+            formatted = formatted.replace('.', ',')
+            
+            return formatted
+        except (ValueError, TypeError):
+            return str(value)
+    
     @app.context_processor
     def inject_config():
         return {

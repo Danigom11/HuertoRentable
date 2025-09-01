@@ -18,7 +18,7 @@
     <div class="col-12">
       <h1 class="display-6 text-success mb-2">
         <i class="bi bi-bar-chart me-2"></i>
-        Analytics del Huerto
+        Análisis del Huerto
       </h1>
       <p class="lead text-muted">
         Análisis detallado de producción y rentabilidad
@@ -50,7 +50,7 @@
           <div class="d-flex justify-content-between">
             <div>
               <h6 class="card-title text-uppercase">Producción Total</h6>
-              <h2 class="mb-0">{{ "%.1f"|format(total_kilos) }} kg</h2>
+              <h2 class="mb-0">{{ total_kilos|spanish_format(1) }} kg</h2>
             </div>
             <div class="align-self-center">
               <i class="bi bi-weight fs-1"></i>
@@ -63,14 +63,9 @@
     <div class="col-lg-3 col-md-6 mb-3">
       <div class="card bg-warning text-white h-100">
         <div class="card-body">
-          <div class="d-flex justify-content-between">
-            <div>
-              <h6 class="card-title text-uppercase">Beneficios Totales</h6>
-              <h2 class="mb-0">€{{ "%.0f"|format(total_beneficios) }}</h2>
-            </div>
-            <div class="align-self-center">
-              <i class="bi bi-currency-euro fs-1"></i>
-            </div>
+          <div>
+            <h6 class="card-title text-uppercase">Beneficios Totales</h6>
+            <h2 class="mb-0">{{ total_beneficios|spanish_format(0) }} €</h2>
           </div>
         </div>
       </div>
@@ -79,17 +74,12 @@
     <div class="col-lg-3 col-md-6 mb-3">
       <div class="card bg-info text-white h-100">
         <div class="card-body">
-          <div class="d-flex justify-content-between">
-            <div>
-              <h6 class="card-title text-uppercase">Promedio/Cultivo</h6>
-              <h2 class="mb-0">
-                €{{ "%.0f"|format(total_beneficios / datos_cultivos|length if
-                datos_cultivos|length > 0 else 0) }}
-              </h2>
-            </div>
-            <div class="align-self-center">
-              <i class="bi bi-graph-up fs-1"></i>
-            </div>
+          <div>
+            <h6 class="card-title text-uppercase">Promedio/Cultivo</h6>
+            <h2 class="mb-0">
+              {{ (total_beneficios / datos_cultivos|length if
+              datos_cultivos|length > 0 else 0)|spanish_format(0) }} €
+            </h2>
           </div>
         </div>
       </div>
@@ -175,41 +165,261 @@
               <thead>
                 <tr>
                   <th>Cultivo</th>
+                  <th>Estado</th>
+                  <th>Plantas</th>
+                  <th>Días Cultivo</th>
+                  <th>Unidades Total</th>
                   <th>Producción (kg)</th>
-                  <th>Beneficio (€)</th>
+                  <th>Peso/Unidad</th>
                   <th>Precio/kg (€)</th>
+                  <th>Beneficio (€)</th>
+                  <th>Abonos</th>
                   <th>Rentabilidad</th>
                 </tr>
               </thead>
               <tbody>
-                {% for nombre, data in datos_cultivos.items() %}
+                {% for cultivo in cultivos_detallados %}
                 <tr>
                   <td>
-                    <strong class="text-capitalize">{{ nombre }}</strong>
+                    <div class="d-flex align-items-center">
+                      <div class="dropdown me-2">
+                        <button
+                          class="btn p-0 rounded-circle border-0"
+                          style="width: 20px; height: 20px; background-color: {{ cultivo.color_cultivo or '#28a745' }}; border: 1px solid #dee2e6 !important;"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          title="Cambiar color del cultivo: {{ cultivo.nombre }}"
+                        ></button>
+                        <div
+                          class="dropdown-menu p-3"
+                          id="colorPaletteAnalytics{{ loop.index }}"
+                          data-bs-boundary="viewport"
+                        >
+                          <div class="d-flex flex-wrap gap-2">
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#28a745"
+                              data-cultivo-id="{{ cultivo.id or cultivo.nombre }}"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #28a745;
+                                cursor: pointer;
+                              "
+                              title="Verde"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#dc3545"
+                              data-cultivo-id="{{ cultivo.id or cultivo.nombre }}"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #dc3545;
+                                cursor: pointer;
+                              "
+                              title="Rojo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0d6efd"
+                              data-cultivo-id="{{ cultivo.id or cultivo.nombre }}"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0d6efd;
+                                cursor: pointer;
+                              "
+                              title="Azul"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#fd7e14"
+                              data-cultivo-id="{{ cultivo.id or cultivo.nombre }}"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #fd7e14;
+                                cursor: pointer;
+                              "
+                              title="Naranja"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6f42c1"
+                              data-cultivo-id="{{ cultivo.id or cultivo.nombre }}"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6f42c1;
+                                cursor: pointer;
+                              "
+                              title="Morado"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#20c997"
+                              data-cultivo-id="{{ cultivo.id or cultivo.nombre }}"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #20c997;
+                                cursor: pointer;
+                              "
+                              title="Turquesa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#ffc107"
+                              data-cultivo-id="{{ cultivo.id or cultivo.nombre }}"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #ffc107;
+                                cursor: pointer;
+                              "
+                              title="Amarillo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#e83e8c"
+                              data-cultivo-id="{{ cultivo.id or cultivo.nombre }}"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #e83e8c;
+                                cursor: pointer;
+                              "
+                              title="Rosa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6c757d"
+                              data-cultivo-id="{{ cultivo.id or cultivo.nombre }}"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6c757d;
+                                cursor: pointer;
+                              "
+                              title="Gris"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#198754"
+                              data-cultivo-id="{{ cultivo.id or cultivo.nombre }}"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #198754;
+                                cursor: pointer;
+                              "
+                              title="Verde Oscuro"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0dcaf0"
+                              data-cultivo-id="{{ cultivo.id or cultivo.nombre }}"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0dcaf0;
+                                cursor: pointer;
+                              "
+                              title="Cian"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#795548"
+                              data-cultivo-id="{{ cultivo.id or cultivo.nombre }}"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #795548;
+                                cursor: pointer;
+                              "
+                              title="Marrón"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                      <strong>{{ cultivo.nombre }}</strong>
+                    </div>
                   </td>
                   <td>
-                    <span class="badge bg-success rounded-pill">
-                      {{ "%.1f"|format(data.kilos) }} kg
+                    {% if cultivo.activo %}
+                    <span class="badge bg-success">Activo</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Finalizado</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="badge bg-info rounded-pill">
+                      {{ cultivo.numero_plantas or 1 }}
                     </span>
                   </td>
                   <td>
+                    {% if cultivo.dias_cultivo %} {{ cultivo.dias_cultivo }}
+                    días {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if cultivo.total_unidades > 0 %}
+                    <span class="badge bg-warning text-dark rounded-pill">
+                      {{ cultivo.total_unidades }}
+                    </span>
+                    {% else %}
+                    <span class="text-muted">0</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="badge bg-success rounded-pill">
+                      {{ cultivo.total_kilos|spanish_format(1) }} kg
+                    </span>
+                  </td>
+                  <td>
+                    {% if cultivo.peso_por_unidad > 0 %} {{
+                    cultivo.peso_por_unidad|spanish_format(3) }} kg {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ cultivo.precio_por_kilo|spanish_format(2) }} €</td>
+                  <td>
                     <strong class="text-success">
-                      €{{ "%.2f"|format(data.beneficio) }}
+                      {{ cultivo.beneficio|spanish_format(2) }} €
                     </strong>
                   </td>
                   <td>
-                    €{{ "%.2f"|format(data.beneficio / data.kilos if data.kilos
-                    > 0 else 0) }}
+                    {% if cultivo.total_abonos > 0 %}
+                    <span class="badge bg-info rounded-pill">
+                      {{ cultivo.total_abonos }}
+                    </span>
+                    {% else %}
+                    <span class="text-muted">0</span>
+                    {% endif %}
                   </td>
                   <td>
-                    {% set rentabilidad = (data.beneficio / total_beneficios *
-                    100) if total_beneficios > 0 else 0 %}
+                    {% set rentabilidad = (cultivo.beneficio / total_beneficios
+                    * 100) if total_beneficios > 0 else 0 %}
                     <div class="progress" style="height: 20px">
                       <div
                         class="progress-bar bg-success"
                         style="width: {{ rentabilidad }}%"
                       >
-                        {{ "%.1f"|format(rentabilidad) }}%
+                        {{ rentabilidad|spanish_format(1) }}%
                       </div>
                     </div>
                   </td>
@@ -231,14 +441,14 @@
         class="btn btn-primary btn-lg me-3"
       >
         <i class="bi bi-graph-up-arrow me-2"></i>
-        Analytics Avanzados
+        Análisis Avanzados
       </a>
       <a
         href="{{ url_for('main.dashboard') }}"
         class="btn btn-outline-secondary btn-lg"
       >
         <i class="bi bi-arrow-left me-2"></i>
-        Volver al Dashboard
+        Volver
       </a>
     </div>
   </div>
@@ -263,8 +473,8 @@
               {
                 label: "Kilogramos producidos",
                 data: data.datasets[0].data,
-                backgroundColor: "rgba(25, 135, 84, 0.8)",
-                borderColor: "rgba(25, 135, 84, 1)",
+                backgroundColor: data.colors || "rgba(25, 135, 84, 0.8)",
+                borderColor: data.colors || "rgba(25, 135, 84, 1)",
                 borderWidth: 2,
               },
             ],
@@ -298,7 +508,7 @@
             datasets: [
               {
                 data: data.datasets[1].data,
-                backgroundColor: [
+                backgroundColor: data.colors || [
                   "#ff6384",
                   "#36a2eb",
                   "#cc65fe",
@@ -329,5 +539,91 @@
         console.error("Error cargando datos de gráficas:", error);
       });
   });
+
+  // Función para cambiar color de cultivo en analytics (mismo sistema que dashboard/crops)
+  function cambiarColorAnalytics(elemento) {
+    const nuevoColor = elemento.getAttribute("data-color");
+    const cultivoId = elemento.getAttribute("data-cultivo-id");
+
+    // Hacer la petición AJAX para actualizar el color
+    fetch("/api/crops/update-color", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        cultivo_id: cultivoId,
+        color: nuevoColor,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          // Actualizar el color del botón
+          const botonColor = elemento
+            .closest(".dropdown")
+            .querySelector("button");
+          botonColor.style.backgroundColor = nuevoColor;
+
+          // Cerrar el dropdown
+          const dropdown = bootstrap.Dropdown.getInstance(botonColor);
+          if (dropdown) {
+            dropdown.hide();
+          }
+
+          // Recargar gráficas para reflejar el nuevo color
+          setTimeout(() => {
+            location.reload();
+          }, 300);
+        } else {
+          console.error("Error del servidor:", data.error);
+          alert(
+            "Error al actualizar el color: " +
+              (data.error || "Error desconocido")
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("Error de red:", error);
+        alert("Error de conexión al actualizar el color");
+      });
+  }
 </script>
+
+<style>
+  /* Solución para dropdowns en tablas responsive */
+  .table-responsive {
+    overflow: visible !important;
+  }
+
+  /* Asegurar que los dropdowns aparezcan por encima de la tabla */
+  .dropdown {
+    position: static;
+  }
+
+  .dropdown-menu {
+    position: absolute !important;
+    z-index: 1050 !important;
+    max-height: 300px;
+    overflow-y: auto;
+    min-width: 200px;
+  }
+
+  /* Para tablas, permitir que el contenido se muestre fuera */
+  .card-body {
+    overflow: visible !important;
+  }
+
+  /* Mejorar visualización de opciones de color */
+  .color-option:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+  }
+
+  /* Asegurar que la tabla no corte contenido */
+  .table {
+    overflow: visible !important;
+  }
+</style>
 {% endblock %}

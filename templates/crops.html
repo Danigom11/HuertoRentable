@@ -109,59 +109,9 @@ HuertoRentable{% endblock %} {% block content %}
                   (cultivo.produccion_diaria | selectattr('kilos', 'defined') |
                   map(attribute='kilos') | sum) if cultivo.produccion_diaria
                   else 0 %}
-                  <div class="mb-2">
-                    <span class="badge bg-primary me-2"
-                      >{{ "%.2f"|format(total_kilos) }} kg</span
-                    >
-                    <button
-                      class="btn btn-sm btn-outline-primary"
-                      onclick="mostrarProduccion('{{ cultivo.id }}', '{{ cultivo.nombre }}')"
-                      title="Ver detalle de producción"
-                    >
-                      <i class="bi bi-eye"></i>
-                    </button>
-                  </div>
-
-                  <!-- Controles para añadir producción diaria -->
-                  {% if demo_mode %}
-                  <div class="text-muted small">
-                    <i class="bi bi-info-circle me-1"></i>
-                    Disponible con Firebase
-                  </div>
-                  {% else %}
-                  <div class="input-group input-group-sm">
-                    <button
-                      class="btn btn-outline-secondary"
-                      type="button"
-                      onclick="cambiarCantidad('{{ cultivo.id }}', -0.1)"
-                    >
-                      <i class="bi bi-dash"></i>
-                    </button>
-                    <input
-                      type="number"
-                      class="form-control text-center"
-                      id="kilos_{{ cultivo.id }}"
-                      value="0.0"
-                      step="0.1"
-                      min="0"
-                      style="max-width: 80px"
-                    />
-                    <button
-                      class="btn btn-outline-secondary"
-                      type="button"
-                      onclick="cambiarCantidad('{{ cultivo.id }}', 0.1)"
-                    >
-                      <i class="bi bi-plus"></i>
-                    </button>
-                    <button
-                      class="btn btn-success btn-sm"
-                      type="button"
-                      onclick="agregarProduccionRapida('{{ cultivo.id }}')"
-                    >
-                      <i class="bi bi-check"></i>
-                    </button>
-                  </div>
-                  {% endif %}
+                  <span class="badge bg-primary"
+                    >{{ "%.2f"|format(total_kilos) }} kg</span
+                  >
                 </td>
                 <td>
                   <span class="badge bg-info"
@@ -710,45 +660,7 @@ HuertoRentable{% endblock %} {% block content %}
     }
   }
 
-  // Funciones para controles de producción diaria
-  function cambiarCantidad(cultivoId, incremento) {
-    const input = document.getElementById(`kilos_${cultivoId}`);
-    if (input) {
-      let valor = parseFloat(input.value) || 0;
-      valor = Math.max(0, valor + incremento); // No permitir valores negativos
-      input.value = valor.toFixed(1);
-    }
-  }
-
-  function agregarProduccionRapida(cultivoId) {
-    const input = document.getElementById(`kilos_${cultivoId}`);
-    const kilos = parseFloat(input.value) || 0;
-
-    if (kilos <= 0) {
-      mostrarAlerta("warning", "⚠️ Ingresa una cantidad mayor a 0");
-      return;
-    }
-
-    // En modo demo, solo mostrar mensaje
-    mostrarAlerta(
-      "success",
-      `✅ Añadidos ${kilos} kg - Funcionalidad completa disponible con Firebase`
-    );
-
-    // Resetear el input
-    input.value = "0.0";
-
-    // Aquí iría la llamada AJAX para guardar en Firebase cuando esté configurado
-    // fetch('/api/agregar-produccion', { ... })
-  }
-
   // Funciones placeholder para futuras funcionalidades
-  function mostrarProduccion(cultivoId, cultivoNombre) {
-    mostrarAlerta(
-      "info",
-      `🔍 Mostrando producción de ${cultivoNombre} - En desarrollo`
-    );
-  }
 
   function mostrarAbonos(cultivoId, cultivoNombre) {
     mostrarAlerta(

@@ -36,7 +36,7 @@ HuertoRentable{% endblock %} {% block content %}
           <div class="d-flex justify-content-between">
             <div>
               <h6 class="card-title text-uppercase">Beneficio Total</h6>
-              <h2 class="mb-0">€{{ "%.0f"|format(total_beneficios) }}</h2>
+              <h2 class="mb-0">€{{ "%.2f"|format(total_beneficios) }}</h2>
               <small>+23% vs mes anterior</small>
             </div>
             <div class="align-self-center">
@@ -53,7 +53,7 @@ HuertoRentable{% endblock %} {% block content %}
           <div class="d-flex justify-content-between">
             <div>
               <h6 class="card-title text-uppercase">Proyección Anual</h6>
-              <h2 class="mb-0">€{{ "%.0f"|format(proyeccion_anual) }}</h2>
+              <h2 class="mb-0">€{{ "%.2f"|format(proyeccion_anual) }}</h2>
               <small>Basado en tendencias</small>
             </div>
             <div class="align-self-center">
@@ -71,7 +71,7 @@ HuertoRentable{% endblock %} {% block content %}
             <div>
               <h6 class="card-title text-uppercase">Eficiencia</h6>
               <h2 class="mb-0">
-                {{ "%.1f"|format(total_kilos / cultivos|length) }} kg
+                {{ "%.2f"|format(total_kilos / cultivos|length) }} kg
               </h2>
               <small>Por cultivo promedio</small>
             </div>
@@ -90,7 +90,7 @@ HuertoRentable{% endblock %} {% block content %}
             <div>
               <h6 class="card-title text-uppercase">ROI Promedio</h6>
               <h2 class="mb-0">
-                {{ "%.0f"|format((total_beneficios / (total_kilos * 0.5)) * 100
+                {{ "%.2f"|format((total_beneficios / (total_kilos * 0.5)) * 100
                 if total_kilos > 0 else 0) }}%
               </h2>
               <small>Retorno de inversión</small>
@@ -144,13 +144,13 @@ HuertoRentable{% endblock %} {% block content %}
               <div>
                 <h6 class="mb-1 text-capitalize">{{ cultivo.nombre }}</h6>
                 <small class="text-muted"
-                  >{{ "%.1f"|format(cultivo.kilos_totales) }} kg
+                  >{{ "%.2f"|format(cultivo.kilos_totales) }} kg
                   producidos</small
                 >
               </div>
               <div class="text-end">
                 <span class="badge bg-success rounded-pill">
-                  €{{ "%.0f"|format(cultivo.beneficio_total) }}
+                  €{{ "%.2f"|format(cultivo.beneficio_total) }}
                 </span>
               </div>
             </div>
@@ -269,7 +269,7 @@ HuertoRentable{% endblock %} {% block content %}
                   </td>
                   <td>
                     <span class="badge bg-success rounded-pill">
-                      {{ "%.1f"|format(cultivo.kilos_totales) }} kg
+                      {{ "%.2f"|format(cultivo.kilos_totales) }} kg
                     </span>
                   </td>
                   <td>
@@ -285,7 +285,7 @@ HuertoRentable{% endblock %} {% block content %}
                     <span
                       class="badge {% if roi > 200 %}bg-success{% elif roi > 100 %}bg-warning{% else %}bg-danger{% endif %}"
                     >
-                      {{ "%.0f"|format(roi) }}%
+                      {{ "%.2f"|format(roi) }}%
                     </span>
                   </td>
                   <td>
@@ -327,8 +327,8 @@ HuertoRentable{% endblock %} {% block content %}
                 else 'tomates' }}</strong
               >
               son el cultivo más rentable con €{{
-              "%.0f"|format(cultivos_ranking[0].beneficio_total if
-              cultivos_ranking|length > 0 else 185) }} de beneficio.
+              "%.2f"|format(cultivos_ranking[0].beneficio_total if
+              cultivos_ranking|length > 0 else 185.00) }} de beneficio.
             </p>
             <p class="mb-0">
               <strong>Recomendación:</strong> Considera aumentar la superficie

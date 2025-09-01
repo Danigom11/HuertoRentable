@@ -112,7 +112,7 @@
           <div>
             <h6 class="card-title text-uppercase">Kilos Totales</h6>
             <h2 class="mb-0" data-stat="total-kilos">
-              {{ total_production }} kg
+              {{ "%.2f"|format(total_production) }} kg
             </h2>
             <small
               >{% if plan_limits.max_crops != -1 %}Límite: {{
@@ -135,7 +135,7 @@
           <div>
             <h6 class="card-title text-uppercase">Beneficio Total</h6>
             <h2 class="mb-0" data-stat="total-beneficios">
-              €{{ total_revenue }}
+              €{{ "%.2f"|format(total_revenue) }}
             </h2>
             <small
               >{% if total_crops > 0 %}€{{ "%.2f"|format(total_revenue /
@@ -243,7 +243,7 @@
                       <div class="card-body p-2 text-center">
                         <span style="font-size: 2rem">⚖️</span>
                         <div class="fw-bold text-success h5 mb-0">
-                          {{ "%.1f"|format(cultivo.kilos_totales) }}
+                          {{ "%.2f"|format(cultivo.kilos_totales) }}
                         </div>
                         <small class="text-muted">Kilos</small>
                       </div>
@@ -254,7 +254,7 @@
                       <div class="card-body p-2 text-center">
                         <span style="font-size: 2rem">💰</span>
                         <div class="fw-bold text-success h5 mb-0">
-                          {{ "%.0f"|format(cultivo.beneficio_total) }}
+                          €{{ "%.2f"|format(cultivo.beneficio_total) }}
                         </div>
                         <small class="text-muted">Beneficio</small>
                       </div>
@@ -738,7 +738,7 @@
 
       if (totalCropsEl) totalCropsEl.textContent = summary.total_cultivos;
       if (totalKilosEl)
-        totalKilosEl.textContent = summary.total_kilos.toFixed(1);
+        totalKilosEl.textContent = summary.total_kilos.toFixed(2) + " kg";
       if (totalBeneficiosEl)
         totalBeneficiosEl.textContent =
           "€" + summary.total_beneficios.toFixed(2);
@@ -796,7 +796,7 @@
                             <p class="card-text">
                                 <small class="text-muted">Sembrado: ${fechaSiembra}</small><br>
                                 <strong>${kilosTotal.toFixed(
-                                  1
+                                  2
                                 )} kg</strong> producidos<br>
                                 <strong>€${beneficio.toFixed(
                                   2

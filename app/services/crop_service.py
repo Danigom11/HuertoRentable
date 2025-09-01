@@ -275,6 +275,332 @@ class CropService:
         except Exception as e:
             print(f"Error deshaciendo última producción: {e}")
             return False
+
+    def add_abono(self, user_uid: str, crop_id: str, descripcion: str) -> bool:
+        """
+        Añadir un nuevo abono a un cultivo
+        
+        Args:
+            user_uid (str): UID del usuario
+            crop_id (str): ID del cultivo
+            descripcion (str): Descripción del abono aplicado
+            
+        Returns:
+            bool: True si se añadió exitosamente
+        """
+        try:
+            if not descripcion or not descripcion.strip():
+                return False
+                
+            nuevo_abono = {
+                'fecha': datetime.datetime.utcnow(),
+                'descripcion': descripcion.strip()
+            }
+            
+            if not self.db:
+                # Almacenamiento local en sesión
+                from flask import session
+                session_key = f'crops_{user_uid}'
+                cultivos = session.get(session_key, [])
+                for c in cultivos:
+                    if c.get('id') == crop_id:
+                        abonos = c.get('abonos', [])
+                        abonos.append(nuevo_abono)
+                        c['abonos'] = abonos
+                        break
+                session[session_key] = cultivos
+                return True
+            
+            # Firestore
+            crop_ref = self.db.collection('usuarios').document(user_uid).collection('cultivos').document(crop_id)
+            crop_doc = crop_ref.get()
+            if not crop_doc.exists:
+                return False
+            
+            cultivo = crop_doc.to_dict()
+            abonos_actuales = cultivo.get('abonos', [])
+            abonos_actuales.append(nuevo_abono)
+            
+            crop_ref.update({
+                'abonos': abonos_actuales,
+                'actualizado_en': datetime.datetime.utcnow()
+            })
+            print(f"✅ Abono añadido para cultivo {crop_id}: {descripcion}")
+            return True
+            
+        except Exception as e:
+            print(f"Error añadiendo abono: {e}")
+            return False
+
+    def get_crop_abonos(self, user_uid: str, crop_id: str) -> List[Dict]:
+        """
+        Obtener historial de abonos de un cultivo
+        
+        Args:
+            user_uid (str): UID del usuario
+            crop_id (str): ID del cultivo
+            
+        Returns:
+            List[Dict]: Lista de abonos con fecha y descripción
+        """
+        try:
+            if not self.db:
+                # Almacenamiento local en sesión
+                from flask import session
+                session_key = f'crops_{user_uid}'
+                cultivos = session.get(session_key, [])
+                for cultivo in cultivos:
+                    if cultivo.get('id') == crop_id:
+                        abonos = cultivo.get('abonos', [])
+                        # Convertir fechas a formato legible
+                        for abono in abonos:
+                            if isinstance(abono.get('fecha'), datetime.datetime):
+                                abono['fecha_legible'] = abono['fecha'].strftime('%d/%m/%Y')
+                        return abonos
+                return []
+            
+            # Firestore
+            crop_ref = self.db.collection('usuarios').document(user_uid).collection('cultivos').document(crop_id)
+            crop_doc = crop_ref.get()
+            if not crop_doc.exists:
+                return []
+            
+            cultivo = crop_doc.to_dict()
+            abonos = cultivo.get('abonos', [])
+            
+            # Convertir fechas a formato legible
+            for abono in abonos:
+                if hasattr(abono.get('fecha'), 'date'):  # Firestore timestamp
+                    abono['fecha_legible'] = abono['fecha'].strftime('%d/%m/%Y')
+                elif isinstance(abono.get('fecha'), datetime.datetime):
+                    abono['fecha_legible'] = abono['fecha'].strftime('%d/%m/%Y')
+            
+            # Ordenar por fecha descendente (más recientes primero)
+            abonos.sort(key=lambda x: x.get('fecha', datetime.datetime.min), reverse=True)
+            return abonos
+            
+        except Exception as e:
+            print(f"Error obteniendo abonos del cultivo {crop_id}: {e}")
+            return []
+
+    def edit_abono(self, user_uid: str, crop_id: str, abono_index: int, nueva_descripcion: str) -> bool:
+        """
+        Editar un abono específico de un cultivo
+        
+        Args:
+            user_uid (str): UID del usuario
+            crop_id (str): ID del cultivo
+            abono_index (int): Índice del abono a editar
+            nueva_descripcion (str): Nueva descripción del abono
+            
+        Returns:
+            bool: True si se editó exitosamente
+        """
+        try:
+            if not nueva_descripcion or not nueva_descripcion.strip():
+                return False
+                
+            if not self.db:
+                # Almacenamiento local en sesión
+                from flask import session
+                session_key = f'crops_{user_uid}'
+                cultivos = session.get(session_key, [])
+                for c in cultivos:
+                    if c.get('id') == crop_id:
+                        abonos = c.get('abonos', [])
+                        if 0 <= abono_index < len(abonos):
+                            abonos[abono_index]['descripcion'] = nueva_descripcion.strip()
+                            c['abonos'] = abonos
+                            session[session_key] = cultivos
+                            return True
+                return False
+            
+            # Firestore
+            crop_ref = self.db.collection('usuarios').document(user_uid).collection('cultivos').document(crop_id)
+            crop_doc = crop_ref.get()
+            if not crop_doc.exists:
+                return False
+            
+            cultivo = crop_doc.to_dict()
+            abonos = cultivo.get('abonos', [])
+            
+            # Verificar que el índice sea válido
+            if 0 <= abono_index < len(abonos):
+                abonos[abono_index]['descripcion'] = nueva_descripcion.strip()
+                
+                crop_ref.update({
+                    'abonos': abonos,
+                    'actualizado_en': datetime.datetime.utcnow()
+                })
+                print(f"✅ Abono editado para cultivo {crop_id} en índice {abono_index}")
+                return True
+            else:
+                print(f"❌ Índice de abono inválido: {abono_index}")
+                return False
+                
+        except Exception as e:
+            print(f"Error editando abono: {e}")
+            return False
+
+    def delete_abono(self, user_uid: str, crop_id: str, abono_index: int) -> bool:
+        """
+        Eliminar un abono específico de un cultivo
+        
+        Args:
+            user_uid (str): UID del usuario
+            crop_id (str): ID del cultivo
+            abono_index (int): Índice del abono a eliminar
+            
+        Returns:
+            bool: True si se eliminó exitosamente
+        """
+        try:
+            if not self.db:
+                # Almacenamiento local en sesión
+                from flask import session
+                session_key = f'crops_{user_uid}'
+                cultivos = session.get(session_key, [])
+                for c in cultivos:
+                    if c.get('id') == crop_id:
+                        abonos = c.get('abonos', [])
+                        if 0 <= abono_index < len(abonos):
+                            abonos.pop(abono_index)
+                            c['abonos'] = abonos
+                            session[session_key] = cultivos
+                            return True
+                return False
+            
+            # Firestore
+            crop_ref = self.db.collection('usuarios').document(user_uid).collection('cultivos').document(crop_id)
+            crop_doc = crop_ref.get()
+            if not crop_doc.exists:
+                return False
+            
+            cultivo = crop_doc.to_dict()
+            abonos = cultivo.get('abonos', [])
+            
+            # Verificar que el índice sea válido
+            if 0 <= abono_index < len(abonos):
+                abonos.pop(abono_index)
+                
+                crop_ref.update({
+                    'abonos': abonos,
+                    'actualizado_en': datetime.datetime.utcnow()
+                })
+                print(f"✅ Abono eliminado para cultivo {crop_id} en índice {abono_index}")
+                return True
+            else:
+                print(f"❌ Índice de abono inválido: {abono_index}")
+                return False
+                
+        except Exception as e:
+            print(f"Error eliminando abono: {e}")
+            return False
+
+    def finish_crop(self, user_uid: str, crop_id: str, fecha_cosecha: datetime.datetime = None) -> bool:
+        """
+        Finaliza un cultivo estableciendo activo=False y fecha_cosecha
+        Calcula estadísticas finales del cultivo
+        
+        Args:
+            user_uid (str): UID del usuario
+            crop_id (str): ID del cultivo
+            fecha_cosecha (datetime): Fecha de cosecha (por defecto hoy)
+            
+        Returns:
+            bool: True si se finalizó exitosamente
+        """
+        try:
+            if fecha_cosecha is None:
+                fecha_cosecha = datetime.datetime.utcnow()
+                
+            if not self.db:
+                # Almacenamiento local en sesión
+                from flask import session
+                session_key = f'crops_{user_uid}'
+                cultivos = session.get(session_key, [])
+                for cultivo in cultivos:
+                    if cultivo.get('id') == crop_id:
+                        # Calcular estadísticas finales
+                        produccion = cultivo.get('produccion_diaria', [])
+                        total_kilos = sum(p.get('kilos', 0) for p in produccion)
+                        precio_kilo = cultivo.get('precio_por_kilo', 0)
+                        total_beneficio = total_kilos * precio_kilo
+                        
+                        # Calcular días de cultivo
+                        fecha_siembra = cultivo.get('fecha_siembra')
+                        if isinstance(fecha_siembra, str):
+                            fecha_siembra = datetime.datetime.fromisoformat(fecha_siembra)
+                        elif isinstance(fecha_siembra, datetime.datetime):
+                            pass
+                        else:
+                            fecha_siembra = datetime.datetime.utcnow()
+                            
+                        dias_cultivo = (fecha_cosecha - fecha_siembra).days
+                        rendimiento_diario = total_kilos / max(1, dias_cultivo) if dias_cultivo > 0 else 0
+                        
+                        # Finalizar cultivo
+                        cultivo.update({
+                            'activo': False,
+                            'fecha_cosecha': fecha_cosecha.isoformat(),
+                            'finalizado_en': datetime.datetime.utcnow().isoformat(),
+                            'estadisticas_finales': {
+                                'total_kilos': total_kilos,
+                                'total_beneficio': total_beneficio,
+                                'dias_cultivo': dias_cultivo,
+                                'rendimiento_diario': round(rendimiento_diario, 2)
+                            }
+                        })
+                        session[session_key] = cultivos
+                        return True
+                return False
+            
+            # Firestore
+            crop_ref = self.db.collection('usuarios').document(user_uid).collection('cultivos').document(crop_id)
+            crop_doc = crop_ref.get()
+            if not crop_doc.exists:
+                return False
+            
+            cultivo = crop_doc.to_dict()
+            
+            # Calcular estadísticas finales
+            produccion = cultivo.get('produccion_diaria', [])
+            total_kilos = sum(p.get('kilos', 0) for p in produccion)
+            precio_kilo = cultivo.get('precio_por_kilo', 0)
+            total_beneficio = total_kilos * precio_kilo
+            
+            # Calcular días de cultivo
+            fecha_siembra = cultivo.get('fecha_siembra')
+            if hasattr(fecha_siembra, 'date'):  # Firestore timestamp
+                fecha_siembra = fecha_siembra
+            elif isinstance(fecha_siembra, datetime.datetime):
+                pass
+            else:
+                fecha_siembra = datetime.datetime.utcnow()
+                
+            dias_cultivo = (fecha_cosecha - fecha_siembra).days if hasattr(fecha_siembra, 'date') else 0
+            rendimiento_diario = total_kilos / max(1, dias_cultivo) if dias_cultivo > 0 else 0
+            
+            # Actualizar cultivo como finalizado
+            crop_ref.update({
+                'activo': False,
+                'fecha_cosecha': fecha_cosecha,
+                'finalizado_en': datetime.datetime.utcnow(),
+                'estadisticas_finales': {
+                    'total_kilos': total_kilos,
+                    'total_beneficio': total_beneficio,
+                    'dias_cultivo': dias_cultivo,
+                    'rendimiento_diario': round(rendimiento_diario, 2)
+                },
+                'actualizado_en': datetime.datetime.utcnow()
+            })
+            
+            print(f"✅ Cultivo {crop_id} finalizado correctamente")
+            return True
+            
+        except Exception as e:
+            print(f"Error finalizando cultivo: {e}")
+            return False
     
     def get_user_totals(self, user_uid: str) -> Tuple[float, float]:
         """

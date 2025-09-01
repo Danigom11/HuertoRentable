@@ -55,8 +55,9 @@
 <div class="row mb-4">
   <div class="col-md-8">
     <h1 class="display-6 text-success mb-2">
-      <i class="bi bi-house-gear me-2"></i>
-      Mi Huerto {% if plan != 'invitado' %}<span
+      <i class="bi bi-house-gear me-2 align-middle"></i
+      ><span class="align-middle">Mi Huerto</span> {% if plan != 'invitado'
+      %}<span
         class="badge bg-{{ 'warning' if plan == 'gratuito' else 'primary' }}"
         >{{ plan.title() }}</span
       >{% endif %}
@@ -69,13 +70,13 @@
     <div class="d-grid gap-2 d-md-block">
       {% if is_authenticated %}
       <a href="{{ url_for('crops.create_crop') }}" class="btn btn-success">
-        <i class="bi bi-plus-circle me-1"></i>
-        Nuevo Cultivo
+        <i class="bi bi-plus-circle me-1 align-middle"></i
+        ><span class="align-middle">Nuevo Cultivo</span>
       </a>
       {% else %}
       <a href="{{ url_for('auth.register') }}" class="btn btn-outline-success">
-        <i class="bi bi-person-plus me-1"></i>
-        Registrarse
+        <i class="bi bi-person-plus me-1 align-middle"></i
+        ><span class="align-middle">Registrarse</span>
       </a>
       {% endif %}
     </div>
@@ -157,8 +158,8 @@
     <div class="card shadow-sm">
       <div class="card-header bg-success text-white">
         <h5 class="mb-0">
-          <i class="bi bi-grid-3x3-gap me-2"></i>
-          Mis Cultivos Activos
+          <i class="bi bi-grid-3x3-gap me-2 align-middle"></i
+          ><span class="align-middle">Mis Cultivos Activos</span>
         </h5>
       </div>
       <div class="card-body p-4">
@@ -198,11 +199,13 @@
                 <div class="position-absolute top-0 end-0 m-2">
                   {% if cultivo.fecha_cosecha %}
                   <span class="badge bg-light text-dark">
-                    <i class="bi bi-check-circle me-1"></i>Finalizado
+                    <i class="bi bi-check-circle me-1 align-middle"></i
+                    ><span class="align-middle">Finalizado</span>
                   </span>
                   {% else %}
                   <span class="badge bg-warning text-dark">
-                    <i class="bi bi-clock me-1"></i>Activo
+                    <i class="bi bi-clock me-1 align-middle"></i
+                    ><span class="align-middle">Activo</span>
                   </span>
                   {% endif %}
                 </div>

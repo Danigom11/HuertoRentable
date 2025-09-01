@@ -6,8 +6,8 @@ endblock %} {% block content %}
       <div class="card shadow">
         <div class="card-header bg-success text-white text-center">
           <h4 class="mb-0">
-            <i class="bi bi-box-arrow-in-right me-2"></i>
-            Iniciar Sesión
+            <i class="bi bi-box-arrow-in-right me-2 align-middle"></i
+            ><span class="align-middle">Iniciar Sesión</span>
           </h4>
         </div>
         <div class="card-body p-4">
@@ -44,8 +44,8 @@ endblock %} {% block content %}
 
             <div class="d-grid">
               <button type="submit" class="btn btn-success btn-lg">
-                <i class="bi bi-box-arrow-in-right me-2"></i>
-                Iniciar Sesión
+                <i class="bi bi-box-arrow-in-right me-2 align-middle"></i
+                ><span class="align-middle">Iniciar Sesión</span>
               </button>
             </div>
           </form>
@@ -58,8 +58,10 @@ endblock %} {% block content %}
           <!-- Login con Google (futuro) -->
           <div class="d-grid mb-3">
             <button class="btn btn-outline-secondary" disabled>
-              <i class="bi bi-google me-2"></i>
-              Continuar con Google (próximamente)
+              <i class="bi bi-google me-2 align-middle"></i
+              ><span class="align-middle"
+                >Continuar con Google (próximamente)</span
+              >
             </button>
           </div>
 
@@ -84,8 +86,8 @@ endblock %} {% block content %}
       <div class="card mt-4 border-warning">
         <div class="card-body text-center">
           <h6 class="text-warning mb-2">
-            <i class="bi bi-eye me-2"></i>
-            Acceso de Prueba
+            <i class="bi bi-eye me-2 align-middle"></i
+            ><span class="align-middle">Acceso de Prueba</span>
           </h6>
           <p class="small text-muted mb-3">
             Explora la aplicación sin crear cuenta
@@ -94,8 +96,8 @@ endblock %} {% block content %}
             href="{{ url_for('main.dashboard') }}"
             class="btn btn-outline-warning btn-sm"
           >
-            <i class="bi bi-play-circle me-1"></i>
-            Ver Demo
+            <i class="bi bi-play-circle me-1 align-middle"></i
+            ><span class="align-middle">Ver Demo</span>
           </a>
         </div>
       </div>

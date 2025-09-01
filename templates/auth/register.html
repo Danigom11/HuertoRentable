@@ -6,18 +6,20 @@ endblock %} {% block content %}
       <div class="card shadow">
         <div class="card-header bg-success text-white text-center">
           <h4 class="mb-0">
-            <i class="bi bi-person-plus me-2"></i>
-            Crear Cuenta - Plan {{ plan|title }}
+            <i class="bi bi-person-plus me-2 align-middle"></i
+            ><span class="align-middle"
+              >Crear Cuenta - Plan {{ plan|title }}</span
+            >
           </h4>
           {% if plan == 'premium' %}
           <small class="opacity-75">
-            <i class="bi bi-star me-1"></i>
-            Con 7 días de prueba gratis
+            <i class="bi bi-star me-1 align-middle"></i
+            ><span class="align-middle">Con 7 días de prueba gratis</span>
           </small>
           {% else %}
           <small class="opacity-75">
-            <i class="bi bi-check-circle me-1"></i>
-            Gratis para siempre
+            <i class="bi bi-check-circle me-1 align-middle"></i
+            ><span class="align-middle">Gratis para siempre</span>
           </small>
           {% endif %}
         </div>

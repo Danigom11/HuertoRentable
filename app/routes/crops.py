@@ -195,6 +195,125 @@ def undo_last_production(crop_id):
 
     return redirect(url_for('main.dashboard', uid=uid))
 
+@crops_bp.route('/<crop_id>/abono', methods=['POST'])
+def add_abono(crop_id):
+    """Añadir abono a un cultivo."""
+    from flask import current_app
+    crop_service = CropService(current_app.db)
+
+    user = get_current_user()
+    uid = (user or {}).get('uid') or request.form.get('uid') or request.args.get('uid') or request.cookies.get('huerto_user_uid')
+    if not uid:
+        return jsonify({'error': 'Debes iniciar sesión para añadir abonos'}), 401
+
+    # Obtener descripción del abono desde form o JSON
+    descripcion = request.form.get('descripcion')
+    if request.is_json:
+        body = request.get_json(silent=True) or {}
+        descripcion = body.get('descripcion', descripcion)
+
+    if not descripcion or not descripcion.strip():
+        return jsonify({'error': 'La descripción del abono es obligatoria'}), 400
+
+    ok = crop_service.add_abono(uid, crop_id, descripcion.strip())
+    if ok:
+        return jsonify({'success': True, 'message': 'Abono añadido correctamente'})
+    else:
+        return jsonify({'error': 'No se pudo añadir el abono'}), 500
+
+@crops_bp.route('/<crop_id>/abonos', methods=['GET'])
+def get_abonos(crop_id):
+    """Obtener historial de abonos de un cultivo."""
+    from flask import current_app
+    crop_service = CropService(current_app.db)
+
+    user = get_current_user()
+    uid = (user or {}).get('uid') or request.args.get('uid') or request.cookies.get('huerto_user_uid')
+    if not uid:
+        return jsonify({'error': 'Debes iniciar sesión'}), 401
+
+    try:
+        abonos = crop_service.get_crop_abonos(uid, crop_id)
+        return jsonify({'abonos': abonos})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@crops_bp.route('/<crop_id>/abono/<int:abono_index>/edit', methods=['POST'])
+def edit_abono(crop_id, abono_index):
+    """Editar un abono específico de un cultivo."""
+    from flask import current_app
+    crop_service = CropService(current_app.db)
+
+    user = get_current_user()
+    uid = (user or {}).get('uid') or request.form.get('uid') or request.args.get('uid') or request.cookies.get('huerto_user_uid')
+    if not uid:
+        return jsonify({'error': 'Debes iniciar sesión'}), 401
+
+    # Obtener nueva descripción
+    descripcion = request.form.get('descripcion')
+    if request.is_json:
+        body = request.get_json(silent=True) or {}
+        descripcion = body.get('descripcion', descripcion)
+
+    if not descripcion or not descripcion.strip():
+        return jsonify({'error': 'La descripción del abono es obligatoria'}), 400
+
+    ok = crop_service.edit_abono(uid, crop_id, abono_index, descripcion.strip())
+    if ok:
+        return jsonify({'success': True, 'message': 'Abono editado correctamente'})
+    else:
+        return jsonify({'error': 'No se pudo editar el abono'}), 500
+
+@crops_bp.route('/<crop_id>/abono/<int:abono_index>/delete', methods=['POST'])
+def delete_abono(crop_id, abono_index):
+    """Eliminar un abono específico de un cultivo."""
+    from flask import current_app
+    crop_service = CropService(current_app.db)
+
+    user = get_current_user()
+    uid = (user or {}).get('uid') or request.form.get('uid') or request.args.get('uid') or request.cookies.get('huerto_user_uid')
+    if not uid:
+        return jsonify({'error': 'Debes iniciar sesión'}), 401
+
+    ok = crop_service.delete_abono(uid, crop_id, abono_index)
+    if ok:
+        return jsonify({'success': True, 'message': 'Abono eliminado correctamente'})
+    else:
+        return jsonify({'error': 'No se pudo eliminar el abono'}), 500
+
+@crops_bp.route('/<crop_id>/finish', methods=['POST'])
+def finish_crop(crop_id):
+    """Finalizar un cultivo específico."""
+    from flask import current_app
+    import datetime
+    crop_service = CropService(current_app.db)
+
+    user = get_current_user()
+    uid = (user or {}).get('uid') or request.form.get('uid') or request.args.get('uid') or request.cookies.get('huerto_user_uid')
+    if not uid:
+        flash('Debes iniciar sesión para finalizar cultivos', 'error')
+        return redirect(url_for('auth.login'))
+
+    try:
+        # Obtener fecha de cosecha del formulario (opcional)
+        fecha_cosecha_str = request.form.get('fecha_cosecha')
+        if fecha_cosecha_str:
+            fecha_cosecha = datetime.datetime.strptime(fecha_cosecha_str, '%Y-%m-%d')
+        else:
+            fecha_cosecha = datetime.datetime.utcnow()
+
+        ok = crop_service.finish_crop(uid, crop_id, fecha_cosecha)
+        if ok:
+            flash('Cultivo finalizado exitosamente', 'success')
+        else:
+            flash('Error al finalizar el cultivo', 'error')
+            
+    except Exception as e:
+        flash(f'Error inesperado: {str(e)}', 'error')
+        print(f"Error en finish_crop: {e}")
+
+    return redirect(url_for('crops.list_crops'))
+
 @crops_bp.route('/api/user-crops')
 def api_user_crops():
     """API para obtener cultivos del usuario (modo demo disponible)"""

@@ -24,6 +24,45 @@ body {
   line-height: 1.6;
 }
 
+/* ================================
+   ALINEACIÓN DE ICONOS Y TEXTO
+   ================================ */
+
+/* Alineación global para iconos Bootstrap con texto */
+.bi {
+  vertical-align: middle;
+  line-height: 1;
+}
+
+/* Mejora la alineación en botones */
+.btn .bi {
+  vertical-align: baseline;
+}
+
+/* Alineación específica para títulos con iconos */
+h1 .bi, h2 .bi, h3 .bi, h4 .bi, h5 .bi, h6 .bi {
+  vertical-align: middle;
+}
+
+/* Alineación en navegación */
+.nav-link .bi,
+.navbar-nav .bi,
+.dropdown-item .bi {
+  vertical-align: middle;
+}
+
+/* Alineación en tablas */
+th .bi,
+td .bi {
+  vertical-align: middle;
+}
+
+/* Alineación en badges y spans */
+.badge .bi,
+span .bi {
+  vertical-align: middle;
+}
+
 /* Asegurar que el footer siempre esté abajo */
 html, body {
   height: 100%;
@@ -461,6 +500,11 @@ a:hover {
   border-color: #856404 !important;
 }
 
+.btn-group .btn-outline-info {
+  border: 2px solid #0dcaf0 !important;
+  color: #0dcaf0 !important;
+}
+
 .btn-group .btn-outline-danger {
   border: 2px solid #dc3545 !important;
   color: #dc3545 !important;
@@ -480,6 +524,11 @@ a:hover {
 .btn-group .btn-outline-warning:hover {
   background-color: #ffc107 !important;
   color: #000 !important;
+}
+
+.btn-group .btn-outline-info:hover {
+  background-color: #0dcaf0 !important;
+  color: white !important;
 }
 
 .btn-group .btn-outline-danger:hover {

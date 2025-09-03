@@ -373,12 +373,34 @@ function handleUnhandledRejection(event) {
 // ================================
 
 async function apiRequest(endpoint, options = {}) {
+  const defaultHeaders = {
+    "Content-Type": "application/json",
+  };
+
+  // Agregar token de Firebase si está disponible
+  try {
+    if (
+      window.firebase &&
+      window.firebase.auth &&
+      window.firebase.auth().currentUser
+    ) {
+      const token = await window.firebase.auth().currentUser.getIdToken();
+      defaultHeaders["Authorization"] = `Bearer ${token}`;
+      console.log("🔑 Token de Firebase agregado a la petición");
+    }
+  } catch (error) {
+    console.warn("⚠️ No se pudo obtener token de Firebase:", error);
+  }
+
   const defaultOptions = {
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: defaultHeaders,
     ...options,
   };
+
+  // Combinar headers si se pasan opciones adicionales
+  if (options.headers) {
+    defaultOptions.headers = { ...defaultHeaders, ...options.headers };
+  }
 
   try {
     const response = await fetch(

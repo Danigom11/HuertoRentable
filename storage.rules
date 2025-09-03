@@ -1,0 +1,64 @@
+rules_version = '2';
+
+// Reglas de seguridad para Firebase Storage
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Función auxiliar para verificar autenticación
+    function isAuthenticated() {
+      return request.auth != null && request.auth.uid != null;
+    }
+    
+    // ============================================
+    // IMÁGENES DE CULTIVOS
+    // ============================================
+    match /users/{userId}/crops/{cropId}/{filename} {
+      // Solo el propietario puede subir/leer sus imágenes de cultivos
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Validar que sean archivos de imagen
+      allow write: if isAuthenticated() 
+        && request.auth.uid == userId
+        && request.resource.contentType.matches('image/.*')
+        && request.resource.size < 5 * 1024 * 1024; // Máximo 5MB
+    }
+    
+    // ============================================
+    // AVATARES DE USUARIO
+    // ============================================
+    match /users/{userId}/avatar/{filename} {
+      // Solo el usuario puede subir su avatar
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Validar que sea imagen y tamaño
+      allow write: if isAuthenticated() 
+        && request.auth.uid == userId
+        && request.resource.contentType.matches('image/.*')
+        && request.resource.size < 2 * 1024 * 1024; // Máximo 2MB
+    }
+    
+    // ============================================
+    // EXPORTS (archivos temporales)
+    // ============================================
+    match /exports/{userId}/{filename} {
+      // Solo el usuario puede acceder a sus exports
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Permitir archivos CSV, JSON, PDF, Excel
+      allow write: if isAuthenticated() 
+        && request.auth.uid == userId
+        && (request.resource.contentType.matches('text/csv') ||
+            request.resource.contentType.matches('application/json') ||
+            request.resource.contentType.matches('application/pdf') ||
+            request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'))
+        && request.resource.size < 10 * 1024 * 1024; // Máximo 10MB
+    }
+    
+    // ============================================
+    // DENEGAR TODO LO DEMÁS
+    // ============================================
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -416,6 +416,46 @@ class AuthService {
       console.warn("No se pudo escribir cookie", name, e);
     }
   }
+
+  /**
+   * Hacer petición HTTP autenticada con token de Firebase
+   */
+  async makeAuthenticatedRequest(url, options = {}) {
+    try {
+      const defaultHeaders = {
+        "Content-Type": "application/json",
+      };
+
+      // Agregar token de Firebase si está disponible
+      if (this.isFirebaseReady && this.currentUser) {
+        const token = await this.currentUser.getIdToken();
+        defaultHeaders["Authorization"] = `Bearer ${token}`;
+        console.log("🔑 Token de Firebase agregado a petición autenticada");
+      }
+
+      const requestOptions = {
+        headers: defaultHeaders,
+        credentials: "include",
+        ...options,
+      };
+
+      // Combinar headers si se pasan opciones adicionales
+      if (options.headers) {
+        requestOptions.headers = { ...defaultHeaders, ...options.headers };
+      }
+
+      const response = await fetch(url, requestOptions);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error en petición autenticada:", error);
+      throw error;
+    }
+  }
 }
 
 // Crear instancia global del servicio

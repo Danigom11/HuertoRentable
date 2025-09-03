@@ -1,6 +1,6 @@
 """
 Sistema de autenticación con Firebase Auth y JWT
-Manejo de usuarios, sesiones y planes de suscripción
+Manejo de usuarios, sesiones y planes de suscripción - SEGURO
 """
 import jwt
 import datetime
@@ -8,9 +8,10 @@ import json
 from functools import wraps
 from flask import request, jsonify, session, current_app, g
 from firebase_admin import auth as firebase_auth
+from app.middleware.auth_middleware import get_current_user, get_current_user_uid
 
 class AuthService:
-    """Servicio de autenticación centralizado"""
+    """Servicio de autenticación centralizado con seguridad mejorada"""
     
     @staticmethod
     def verify_firebase_token(id_token):
@@ -417,3 +418,62 @@ def get_current_user():
         print(f"❌ [Auth] Error en fallback desde uid FORM: {e}")
     
     return None
+
+# =====================================================
+# FUNCIONES SEGURAS PARA EL NUEVO SISTEMA
+# =====================================================
+
+def login_required(f):
+    """
+    Decorador de compatibilidad que usa el nuevo sistema seguro
+    """
+    from app.middleware.auth_middleware import require_auth
+    return require_auth(f)
+
+def get_current_user():
+    """
+    Función de compatibilidad que usa el nuevo sistema seguro
+    """
+    from app.middleware.auth_middleware import get_current_user as get_user
+    return get_user()
+
+def get_current_user_uid():
+    """
+    Función de compatibilidad que usa el nuevo sistema seguro
+    """
+    from app.middleware.auth_middleware import get_current_user_uid as get_uid
+    return get_uid()
+
+def require_verified_user():
+    """
+    Función de compatibilidad para usuarios verificados
+    """
+    from app.middleware.auth_middleware import require_verified_email
+    return require_verified_email
+
+def is_user_authenticated():
+    """
+    Verificar si el usuario actual está autenticado
+    """
+    user = get_current_user()
+    return user is not None
+
+def get_user_plan():
+    """
+    Obtener plan del usuario actual de forma segura
+    """
+    user = get_current_user()
+    if not user:
+        return 'invitado'
+    
+    # Buscar plan en Firebase usando UID verificado
+    try:
+        from flask import current_app
+        if hasattr(current_app, 'db') and current_app.db:
+            user_doc = current_app.db.collection('usuarios').document(user['uid']).get()
+            if user_doc.exists:
+                return user_doc.to_dict().get('plan', 'gratuito')
+    except Exception as e:
+        print(f"Error obteniendo plan: {e}")
+    
+    return 'gratuito'  # Default seguro

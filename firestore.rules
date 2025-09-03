@@ -1,0 +1,120 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // REGLAS DE SEGURIDAD PARA HUERTORENTABLE
+    // ============================================
+    
+    // Función auxiliar para verificar autenticación
+    function isAuthenticated() {
+      return request.auth != null && request.auth.uid != null;
+    }
+    
+    // Función para verificar que el usuario es el propietario
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // ============================================
+    // COLECCIÓN: usuarios
+    // ============================================
+    match /usuarios/{userId} {
+      // Solo el propio usuario puede leer y escribir sus datos
+      allow read, write: if isOwner(userId);
+      
+      // Permitir creación de nuevo usuario solo si coincide con auth
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // ============================================
+    // COLECCIÓN: cultivos  
+    // ============================================
+    match /cultivos/{cropId} {
+      // Solo el propietario del cultivo puede acceder
+      allow read, write: if isAuthenticated() 
+        && resource.data.user_uid == request.auth.uid;
+      
+      // Permitir creación solo si el user_uid coincide con el usuario autenticado
+      allow create: if isAuthenticated() 
+        && request.resource.data.user_uid == request.auth.uid
+        && request.resource.data.keys().hasAll(['nombre', 'user_uid', 'fecha_siembra']);
+      
+      // Permitir actualización solo si el user_uid no cambia y coincide
+      allow update: if isAuthenticated() 
+        && resource.data.user_uid == request.auth.uid
+        && request.resource.data.user_uid == request.auth.uid;
+      
+      // Permitir eliminación solo del propietario
+      allow delete: if isAuthenticated() 
+        && resource.data.user_uid == request.auth.uid;
+    }
+    
+    // ============================================
+    // COLECCIÓN: planes (solo lectura para usuarios autenticados)
+    // ============================================
+    match /planes/{planId} {
+      // Cualquier usuario autenticado puede leer los planes disponibles
+      allow read: if isAuthenticated();
+      
+      // Solo administradores pueden escribir (requiere claims personalizados)
+      allow write: if isAuthenticated() 
+        && request.auth.token.admin == true;
+    }
+    
+    // ============================================
+    // COLECCIÓN: configuracion (solo lectura)
+    // ============================================
+    match /configuracion/{configId} {
+      // Configuración global de solo lectura para usuarios autenticados
+      allow read: if isAuthenticated();
+      
+      // Solo administradores pueden modificar configuración
+      allow write: if isAuthenticated() 
+        && request.auth.token.admin == true;
+    }
+    
+    // ============================================
+    // SUBCOLECIÓN: producciones (dentro de cultivos)
+    // ============================================
+    match /cultivos/{cropId}/producciones/{prodId} {
+      // Heredar permisos del cultivo padre
+      allow read, write: if isAuthenticated() 
+        && get(/databases/$(database)/documents/cultivos/$(cropId)).data.user_uid == request.auth.uid;
+    }
+    
+    // ============================================
+    // SUBCOLECIÓN: abonos (dentro de cultivos)
+    // ============================================
+    match /cultivos/{cropId}/abonos/{abonoId} {
+      // Heredar permisos del cultivo padre
+      allow read, write: if isAuthenticated() 
+        && get(/databases/$(database)/documents/cultivos/$(cropId)).data.user_uid == request.auth.uid;
+    }
+    
+    // ============================================
+    // COLECCIÓN: analytics (datos agregados por usuario)
+    // ============================================
+    match /analytics/{userId} {
+      // Solo el propietario puede acceder a sus analytics
+      allow read, write: if isOwner(userId);
+    }
+    
+    // ============================================
+    // COLECCIÓN: notificaciones
+    // ============================================
+    match /notificaciones/{userId}/mensajes/{messageId} {
+      // Solo el usuario puede ver sus notificaciones
+      allow read, write: if isOwner(userId);
+    }
+    
+    // ============================================
+    // DENEGAR TODO LO DEMÁS
+    // ============================================
+    // Cualquier otra ruta será denegada por defecto
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

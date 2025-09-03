@@ -1,9 +1,9 @@
 """
-API endpoints para la aplicación
-Endpoints RESTful para interacción con frontend
+API endpoints para la aplicación - SEGUROS
+Endpoints RESTful para interacción con frontend con autenticación Firebase
 """
 from flask import Blueprint, request, jsonify
-from app.auth.auth_service import login_required, get_current_user
+from app.middleware.auth_middleware import require_auth, get_current_user, get_current_user_uid, optional_auth
 from app.services.crop_service import CropService
 
 api_bp = Blueprint('api', __name__)
@@ -32,15 +32,17 @@ def status():
     })
 
 @api_bp.route('/crops', methods=['GET'])
+@optional_auth
 def get_crops():
-    """Obtener cultivos del usuario (modo demo disponible)"""
+    """Obtener cultivos del usuario - SEGURO (modo demo disponible)"""
     from flask import current_app
     
     user = get_current_user()
+    user_uid = get_current_user_uid()
     crop_service = CropService(current_app.db)
     
-    if user:
-        cultivos = crop_service.get_user_crops(user['uid'])
+    if user_uid:
+        cultivos = crop_service.get_user_crops(user_uid)
     else:
         cultivos = crop_service.get_demo_crops()
     
@@ -51,15 +53,12 @@ def get_crops():
     })
 
 @api_bp.route('/crops', methods=['POST'])
+@require_auth
 def create_crop():
-    """Crear nuevo cultivo via API (requiere autenticación)"""
-    user = get_current_user()
-    if not user:
-        return jsonify({'error': 'Modo demo: regístrate para crear cultivos reales'}), 403
-        
+    """Crear nuevo cultivo via API - REQUIERE AUTENTICACIÓN SEGURA"""
     from flask import current_app
     
-    user = get_current_user()
+    user_uid = get_current_user_uid()
     crop_service = CropService(current_app.db)
     
     data = request.get_json()
@@ -72,20 +71,18 @@ def create_crop():
         'precio': float(data.get('precio', 0))
     }
     
-    if crop_service.create_crop(user['uid'], crop_data):
+    if crop_service.create_crop(user_uid, crop_data):
         return jsonify({'success': True, 'message': 'Cultivo creado'})
     else:
         return jsonify({'error': 'Error creando cultivo'}), 400
 
 @api_bp.route('/crops/<crop_id>/production', methods=['POST'])
+@require_auth
 def update_production(crop_id):
-    """Actualizar producción via API (requiere autenticación)"""
-    user = get_current_user()
-    if not user:
-        return jsonify({'error': 'Modo demo: regístrate para actualizar cultivos reales'}), 403
+    """Actualizar producción via API - REQUIERE AUTENTICACIÓN SEGURA"""
     from flask import current_app
     
-    user = get_current_user()
+    user_uid = get_current_user_uid()
     crop_service = CropService(current_app.db)
     
     data = request.get_json()
@@ -94,19 +91,19 @@ def update_production(crop_id):
     if kilos <= 0:
         return jsonify({'error': 'Kilos debe ser positivo'}), 400
     
-    if crop_service.update_production(user['uid'], crop_id, kilos):
+    if crop_service.update_production(user_uid, crop_id, kilos):
         return jsonify({'success': True, 'message': 'Producción actualizada'})
     else:
         return jsonify({'error': 'Error actualizando producción'}), 400
 
 @api_bp.route('/crops/update-color', methods=['POST'])
+@require_auth
 def update_crop_color():
-    """Actualizar color de cultivo via API (requiere autenticación)"""
-    user = get_current_user()
-    if not user:
-        return jsonify({'success': False, 'error': 'No autenticado'}), 401
-    
+    """Actualizar color de cultivo via API - REQUIERE AUTENTICACIÓN SEGURA"""
     from flask import current_app
+    
+    user = get_current_user()
+    user_uid = get_current_user_uid()
     
     try:
         data = request.get_json()
@@ -120,7 +117,7 @@ def update_crop_color():
             return jsonify({'success': False, 'error': 'cultivo_id y color requeridos'}), 400
         
         if current_app.db:
-            crop_ref = current_app.db.collection('usuarios').document(user['uid']).collection('cultivos').document(cultivo_id)
+            crop_ref = current_app.db.collection('usuarios').document(user_uid).collection('cultivos').document(cultivo_id)
             crop_ref.update({
                 'color_cultivo': color,
                 'actualizado_en': __import__('datetime').datetime.utcnow()
@@ -133,15 +130,17 @@ def update_crop_color():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @api_bp.route('/user/totals')
+@optional_auth
 def user_totals():
-    """Obtener totales del usuario (modo demo disponible)"""
+    """Obtener totales del usuario - SEGURO (modo demo disponible)"""
     from flask import current_app
     
     user = get_current_user()
+    user_uid = get_current_user_uid()
     crop_service = CropService(current_app.db)
     
-    if user:
-        total_kilos, total_beneficios = crop_service.get_user_totals(user['uid'])
+    if user_uid:
+        total_kilos, total_beneficios = crop_service.get_user_totals(user_uid)
     else:
         # Datos demo de ejemplo
         total_kilos, total_beneficios = 2500.0, 12500.0

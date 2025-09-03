@@ -1,57 +1,170 @@
 """
-Middleware de autenticación automática
-Verifica tokens Firebase en cada request para mantener sesiones consistentes
+Middleware de autenticación seguro para HuertoRentable
+Verificación real de tokens Firebase en cada request
 """
-from flask import request, session, g
-from app.auth.auth_service import AuthService
+from functools import wraps
+from flask import request, jsonify, redirect, url_for, session, g
+import firebase_admin.auth as auth
+import logging
 
-def auto_auth_middleware(app):
+logger = logging.getLogger(__name__)
+
+def require_auth(f):
     """
-    Middleware que automáticamente verifica tokens Firebase en requests
+    Decorador que requiere autenticación Firebase válida
+    Verifica token en cada request y establece usuario actual
     """
-    @app.before_request
-    def verify_firebase_auth():
-        """Verificar autenticación Firebase en cada request"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # 1. Obtener token del header o cookie
+        token = None
         
-        # Saltar verificación para rutas estáticas y de autenticación
-        if (request.endpoint and 
-            (request.endpoint.startswith('static') or 
-             request.endpoint in ['auth.register', 'auth.login'] or
-             request.path.startswith('/static/') or
-             request.path.startswith('/service-worker'))):
-            return
+        # Prioridad 1: Header Authorization
+        auth_header = request.headers.get('Authorization', '')
+        if auth_header.startswith('Bearer '):
+            token = auth_header.replace('Bearer ', '')
         
-        # Si ya hay usuario en la sesión, no hacer nada
-        if session.get('is_authenticated') and session.get('user'):
-            return
+        # Prioridad 2: Cookie de sesión
+        elif 'firebase_token' in request.cookies:
+            token = request.cookies.get('firebase_token')
         
-        # Buscar token Firebase en headers o cookies
-        auth_header = request.headers.get('Authorization')
-        firebase_token = None
+        # Prioridad 3: Session Flask (fallback)
+        elif session.get('firebase_token'):
+            token = session.get('firebase_token')
         
-        if auth_header and auth_header.startswith('Bearer '):
-            firebase_token = auth_header.replace('Bearer ', '')
-        else:
-            # Buscar en cookies de Firebase
-            firebase_token = request.cookies.get('firebase_id_token')
+        if not token:
+            logger.warning(f"Acceso no autorizado a {request.endpoint} - Sin token")
+            if request.is_json:
+                return jsonify({'error': 'Token de autenticación requerido', 'redirect': '/auth/login'}), 401
+            return redirect(url_for('auth.login'))
         
-        if firebase_token:
+        try:
+            # 2. Verificar token con Firebase Admin SDK
+            decoded_token = auth.verify_id_token(token)
+            
+            # 3. Establecer usuario actual en contexto global
+            g.current_user = {
+                'uid': decoded_token['uid'],
+                'email': decoded_token.get('email'),
+                'email_verified': decoded_token.get('email_verified', False),
+                'name': decoded_token.get('name'),
+                'picture': decoded_token.get('picture'),
+                'provider': decoded_token.get('firebase', {}).get('sign_in_provider')
+            }
+            
+            # 4. Actualizar session para mantener estado
+            session['user_uid'] = decoded_token['uid']
+            session['user_email'] = decoded_token.get('email')
+            
+            logger.info(f"Usuario autenticado: {decoded_token['uid']} accede a {request.endpoint}")
+            
+        except auth.InvalidIdTokenError:
+            logger.warning(f"Token inválido para acceso a {request.endpoint}")
+            # Limpiar datos de sesión inválidos
+            session.pop('firebase_token', None)
+            session.pop('user_uid', None)
+            session.pop('user_email', None)
+            
+            if request.is_json:
+                return jsonify({'error': 'Token inválido', 'redirect': '/auth/login'}), 401
+            return redirect(url_for('auth.login'))
+            
+        except auth.ExpiredIdTokenError:
+            logger.warning(f"Token expirado para acceso a {request.endpoint}")
+            # Limpiar datos de sesión expirados
+            session.pop('firebase_token', None)
+            session.pop('user_uid', None)
+            session.pop('user_email', None)
+            
+            if request.is_json:
+                return jsonify({'error': 'Sesión expirada', 'redirect': '/auth/login'}), 401
+            return redirect(url_for('auth.login'))
+            
+        except Exception as e:
+            logger.error(f"Error verificando token: {str(e)}")
+            if request.is_json:
+                return jsonify({'error': 'Error de autenticación', 'redirect': '/auth/login'}), 401
+            return redirect(url_for('auth.login'))
+        
+        return f(*args, **kwargs)
+    
+    return decorated_function
+
+def get_current_user():
+    """
+    Obtener usuario actual del contexto de request
+    Returns: dict con datos del usuario o None si no está autenticado
+    """
+    return getattr(g, 'current_user', None)
+
+def get_current_user_uid():
+    """
+    Obtener UID del usuario actual de forma segura
+    Returns: str UID del usuario o None
+    """
+    user = get_current_user()
+    return user['uid'] if user else None
+
+def require_verified_email(f):
+    """
+    Decorador adicional que requiere email verificado
+    Usar después de @require_auth
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user = get_current_user()
+        if not user or not user.get('email_verified', False):
+            logger.warning(f"Acceso denegado a {request.endpoint} - Email no verificado")
+            if request.is_json:
+                return jsonify({'error': 'Email no verificado', 'redirect': '/auth/verify-email'}), 403
+            return redirect(url_for('auth.verify_email'))
+        
+        return f(*args, **kwargs)
+    
+    return decorated_function
+
+def optional_auth(f):
+    """
+    Decorador para rutas que pueden funcionar con o sin autenticación
+    Establece usuario si está disponible, pero no redirige si no lo está
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = None
+        
+        # Intentar obtener token
+        auth_header = request.headers.get('Authorization', '')
+        if auth_header.startswith('Bearer '):
+            token = auth_header.replace('Bearer ', '')
+        elif 'firebase_token' in request.cookies:
+            token = request.cookies.get('firebase_token')
+        elif session.get('firebase_token'):
+            token = session.get('firebase_token')
+        
+        if token:
             try:
-                # Verificar token de Firebase
-                user_data = AuthService.verify_firebase_token(firebase_token)
-                if user_data:
-                    # Crear sesión automáticamente
-                    session['token'] = AuthService.create_custom_token(user_data)
-                    session['user_uid'] = user_data['uid']
-                    session['user'] = {
-                        'uid': user_data['uid'],
-                        'email': user_data['email'],
-                        'name': user_data.get('name', user_data['email'].split('@')[0])
-                    }
-                    session['is_authenticated'] = True
-                    
-                    print(f"✅ [Auto-Auth] Sesión creada automáticamente para: {user_data['uid']}")
-                    
+                decoded_token = auth.verify_id_token(token)
+                g.current_user = {
+                    'uid': decoded_token['uid'],
+                    'email': decoded_token.get('email'),
+                    'email_verified': decoded_token.get('email_verified', False),
+                    'name': decoded_token.get('name'),
+                    'picture': decoded_token.get('picture'),
+                    'provider': decoded_token.get('firebase', {}).get('sign_in_provider')
+                }
+                session['user_uid'] = decoded_token['uid']
+                session['user_email'] = decoded_token.get('email')
+                
             except Exception as e:
-                print(f"❌ [Auto-Auth] Error verificando token: {e}")
-                pass  # Continuar sin autenticación
+                logger.warning(f"Token opcional inválido: {str(e)}")
+                # Limpiar datos inválidos pero continuar sin autenticación
+                g.current_user = None
+                session.pop('firebase_token', None)
+                session.pop('user_uid', None)
+                session.pop('user_email', None)
+        else:
+            g.current_user = None
+        
+        return f(*args, **kwargs)
+    
+    return decorated_function

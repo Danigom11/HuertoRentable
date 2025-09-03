@@ -1,21 +1,23 @@
 """
-Rutas de gestión de cultivos
-CRUD de cultivos con verificación de planes
+Rutas de gestión de cultivos - SEGURAS
+CRUD de cultivos con verificación de autenticación Firebase real
 """
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
-from app.auth.auth_service import login_required, get_current_user
+from app.middleware.auth_middleware import require_auth, get_current_user, get_current_user_uid, optional_auth
 from app.services.crop_service import CropService
 from app.utils.helpers import get_plan_limits
 
 crops_bp = Blueprint('crops', __name__)
 
 @crops_bp.route('/')
+@optional_auth
 def list_crops():
-    """Listar cultivos del usuario (modo demo disponible)"""
+    """Listar cultivos del usuario (modo demo disponible) - SEGURO"""
     from flask import current_app, session
     
-    # Detectar usuario primero y solo forzar demo si se pide explícitamente por URL
+    # Obtener usuario autenticado de forma segura
     user = get_current_user()
+    user_uid = get_current_user_uid()
     demo_mode = request.args.get('demo') == 'true'
     crop_service = CropService(current_app.db)
     
@@ -26,49 +28,40 @@ def list_crops():
     elif user:
         # Usuario autenticado: verificar si es local o Firebase
         if user.get('is_local'):
-            cultivos = crop_service.get_local_user_crops(user['uid'])
+            cultivos = crop_service.get_local_user_crops(user['user_uid'])
         else:
-            cultivos = crop_service.get_user_crops(user['uid'])
-        return render_template('crops.html', cultivos=cultivos, demo_mode=False, user_uid=user['uid'])
+            cultivos = crop_service.get_user_crops(user['user_uid'])
+        return render_template('crops.html', cultivos=cultivos, demo_mode=False, user_uid=user['user_uid'])
     else:
         # Sin usuario: NO activar demo automáticamente
         # Intentar obtener UID de respaldo desde cookies o parámetros de URL y mostrar sus cultivos (solo lectura)
-        tentative_uid = request.cookies.get('huerto_user_uid') or request.args.get('uid')
+        tentative_uid = request.cookies.get('huerto_user_uid') or request.args.get('user_uid')
         cultivos = []
-        if tentative_uid:
+        if user_uid:
             try:
-                cultivos = crop_service.get_user_crops(tentative_uid)
+                cultivos = crop_service.get_user_crops(user_uid)
             except Exception as e:
-                print('⚠️ Error cargando cultivos con uid tentativo:', e)
-        return render_template('crops.html', cultivos=cultivos, demo_mode=False, user_uid=tentative_uid)
+                print('⚠️ Error cargando cultivos:', e)
+        return render_template('crops.html', cultivos=cultivos, demo_mode=False, user_uid=user_uid)
 
 @crops_bp.route('/create', methods=['GET', 'POST'])
+@require_auth
 def create_crop():
-    """Crear nuevo cultivo (requiere autenticación)"""
+    """Crear nuevo cultivo - REQUIERE AUTENTICACIÓN SEGURA"""
     from flask import current_app, session
     
-    # Diagnóstico de cookies/sesión
-    try:
-        print("🌐 [/crops/create] Cookies:", dict(request.cookies))
-        print("🌐 [/crops/create] Session keys:", list(session.keys()))
-    except Exception:
-        pass
-
+    # Obtener usuario autenticado de forma segura
     user = get_current_user()
-    print("👤 [/crops/create] Usuario detectado:", bool(user), "UID:", (user or {}).get('uid'))
+    user_uid = get_current_user_uid()
     
-    if not user:
-        # No autenticado: redirigir a login manteniendo next
-        if request.method == 'POST':
-            flash('Inicia sesión para crear cultivos.', 'info')
-        return redirect(url_for('auth.login', next=url_for('crops.list_crops')))
+    print("👤 [/crops/create] Usuario autenticado:", user_uid)
+    # El decorador @require_auth ya verificó la autenticación
+    # Si llegamos aquí, el usuario está autenticado y user_uid es seguro
     
     if request.method == 'GET':
-        print("🌐 [/crops/create:GET] Cookies:", dict(request.cookies))
-        # Redirigir a la lista donde está el modal y contexto completos
-        return redirect(url_for('crops.list_crops'))
+        return render_template('crops.html', show_create_form=True)
     
-    # POST request - crear cultivo
+    # POST request - crear cultivo SEGURO
     crop_service = CropService(current_app.db)
     print("🗄️ [/crops/create] DB disponible:", bool(current_app.db))
     
@@ -105,43 +98,28 @@ def create_crop():
         flash('Precio, número de plantas o peso promedio inválido', 'error')
         return redirect(url_for('crops.create_crop'))
     
-    # Decidir backend de almacenamiento: priorizar Firestore si hay DB y UID
-    target_uid = (user or {}).get('uid') or request.form.get('uid') or request.args.get('uid') or request.cookies.get('huerto_user_uid')
-    use_firebase = bool(getattr(current_app, 'db', None)) and bool(target_uid)
-    print(f"🧭 [/crops/create] UID destino: {target_uid} | Backend: {'Firebase' if use_firebase else 'Local'}")
-
-    if use_firebase:
-        success = crop_service.create_crop(target_uid, crop_data)
-    else:
-        # Guardado local como último recurso (solo para invitados sin DB)
-        if not target_uid:
-            # Generar un uid temporal si no existe
-            import uuid
-            target_uid = f"guest_{uuid.uuid4().hex[:8]}"
-        success = crop_service.create_local_crop(target_uid, crop_data)
+    # Usar UID del usuario autenticado de forma segura
+    # Ya no necesitamos verificar múltiples fuentes - el decorador garantiza autenticación
+    success = crop_service.create_crop(user_uid, crop_data)
     print("✅ [/crops/create] Resultado creación:", success)
     
     if success:
         flash(f'Cultivo "{crop_data["nombre"]}" creado exitosamente', 'success')
-        # Incluir uid en la redirección para reconstruir contexto aunque el navegador no envíe cookies
-        return redirect(url_for('crops.list_crops', uid=target_uid))
+        return redirect(url_for('crops.list_crops'))
     else:
         flash('Error al crear cultivo. Verifica los límites de tu plan.', 'error')
         return redirect(url_for('crops.create_crop'))
 
 @crops_bp.route('/<crop_id>/production', methods=['POST'])
+@require_auth
 def update_production(crop_id):
-    """Actualizar producción de un cultivo (admite kilos y/o unidades con fallback de UID)."""
+    """Actualizar producción de un cultivo - SEGURO"""
     from flask import current_app
     crop_service = CropService(current_app.db)
-
-    # Resolver UID de forma robusta
-    user = get_current_user()
-    uid = (user or {}).get('uid') or request.form.get('uid') or request.args.get('uid') or request.cookies.get('huerto_user_uid')
-    if not uid:
-        flash('Debes iniciar sesión para registrar producción', 'error')
-        return redirect(url_for('auth.login'))
-
+    
+    # Obtener UID del usuario autenticado
+    user_uid = get_current_user_uid()
+    
     # Obtener kilos y unidades desde form o JSON
     kilos_raw = request.form.get('kilos')
     unidades_raw = request.form.get('unidades')
@@ -165,47 +143,44 @@ def update_production(crop_id):
 
     if (kilos is None or kilos <= 0) and (unidades is None or unidades <= 0):
         flash('Indica kilos o unidades válidos (> 0)', 'error')
-        return redirect(url_for('main.dashboard', uid=uid))
+        return redirect(url_for('main.dashboard'))
 
-    ok = crop_service.update_production_generic(uid, crop_id, kilos=kilos, unidades=unidades)
+    ok = crop_service.update_production_generic(user_uid, crop_id, kilos=kilos, unidades=unidades)
     if ok:
         flash('Producción registrada', 'success')
     else:
         flash('No se pudo registrar la producción', 'error')
 
-    # Volver al dashboard manteniendo uid para contextos sin cookies
-    return redirect(url_for('main.dashboard', uid=uid))
+    return redirect(url_for('main.dashboard'))
 
 @crops_bp.route('/<crop_id>/production/undo', methods=['POST'])
+@require_auth
 def undo_last_production(crop_id):
-    """Deshacer la última producción registrada para un cultivo."""
+    """Deshacer la última producción registrada - SEGURO"""
     from flask import current_app
     crop_service = CropService(current_app.db)
 
-    user = get_current_user()
-    uid = (user or {}).get('uid') or request.form.get('uid') or request.args.get('uid') or request.cookies.get('huerto_user_uid')
-    if not uid:
-        flash('Debes iniciar sesión para deshacer producción', 'error')
-        return redirect(url_for('auth.login'))
+    # Obtener UID del usuario autenticado
+    user_uid = get_current_user_uid()
 
-    ok = crop_service.undo_last_production(uid, crop_id)
+    ok = crop_service.undo_last_production(user_uid, crop_id)
     if ok:
         flash('Última recolección deshecha', 'success')
     else:
         flash('No hay recolecciones para deshacer', 'warning')
 
-    return redirect(url_for('main.dashboard', uid=uid))
+    return redirect(url_for('main.dashboard'))
 
 @crops_bp.route('/<crop_id>/abono', methods=['POST'])
+@require_auth
 def add_abono(crop_id):
-    """Añadir abono a un cultivo."""
+    """Añadir abono a un cultivo - SEGURO"""
     from flask import current_app
     crop_service = CropService(current_app.db)
 
+    # Obtener UID del usuario autenticado de forma segura
+    user_uid = get_current_user_uid()
     user = get_current_user()
-    uid = (user or {}).get('uid') or request.form.get('uid') or request.args.get('uid') or request.cookies.get('huerto_user_uid')
-    if not uid:
-        return jsonify({'error': 'Debes iniciar sesión para añadir abonos'}), 401
 
     # Obtener descripción del abono desde form o JSON
     descripcion = request.form.get('descripcion')
@@ -216,39 +191,42 @@ def add_abono(crop_id):
     if not descripcion or not descripcion.strip():
         return jsonify({'error': 'La descripción del abono es obligatoria'}), 400
 
-    ok = crop_service.add_abono(uid, crop_id, descripcion.strip())
+    ok = crop_service.add_abono(user_uid, crop_id, descripcion.strip())
     if ok:
         return jsonify({'success': True, 'message': 'Abono añadido correctamente'})
     else:
         return jsonify({'error': 'No se pudo añadir el abono'}), 500
 
 @crops_bp.route('/<crop_id>/abonos', methods=['GET'])
+@require_auth
 def get_abonos(crop_id):
     """Obtener historial de abonos de un cultivo."""
     from flask import current_app
     crop_service = CropService(current_app.db)
 
-    user = get_current_user()
-    uid = (user or {}).get('uid') or request.args.get('uid') or request.cookies.get('huerto_user_uid')
-    if not uid:
-        return jsonify({'error': 'Debes iniciar sesión'}), 401
+    # Obtener UID del usuario autenticado de forma segura
+    user_uid = get_current_user_uid()
 
     try:
-        abonos = crop_service.get_crop_abonos(uid, crop_id)
+        abonos = crop_service.get_crop_abonos(user_uid, crop_id)
         return jsonify({'abonos': abonos})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @crops_bp.route('/<crop_id>/abono/<int:abono_index>/edit', methods=['POST'])
+@require_auth
 def edit_abono(crop_id, abono_index):
     """Editar un abono específico de un cultivo."""
     from flask import current_app
     crop_service = CropService(current_app.db)
 
+    # Obtener UID del usuario autenticado de forma segura
+
+
+    user_uid = get_current_user_uid()
+
+
     user = get_current_user()
-    uid = (user or {}).get('uid') or request.form.get('uid') or request.args.get('uid') or request.cookies.get('huerto_user_uid')
-    if not uid:
-        return jsonify({'error': 'Debes iniciar sesión'}), 401
 
     # Obtener nueva descripción
     descripcion = request.form.get('descripcion')
@@ -259,30 +237,35 @@ def edit_abono(crop_id, abono_index):
     if not descripcion or not descripcion.strip():
         return jsonify({'error': 'La descripción del abono es obligatoria'}), 400
 
-    ok = crop_service.edit_abono(uid, crop_id, abono_index, descripcion.strip())
+    ok = crop_service.edit_abono(user_uid, crop_id, abono_index, descripcion.strip())
     if ok:
         return jsonify({'success': True, 'message': 'Abono editado correctamente'})
     else:
         return jsonify({'error': 'No se pudo editar el abono'}), 500
 
 @crops_bp.route('/<crop_id>/abono/<int:abono_index>/delete', methods=['POST'])
+@require_auth
 def delete_abono(crop_id, abono_index):
     """Eliminar un abono específico de un cultivo."""
     from flask import current_app
     crop_service = CropService(current_app.db)
 
-    user = get_current_user()
-    uid = (user or {}).get('uid') or request.form.get('uid') or request.args.get('uid') or request.cookies.get('huerto_user_uid')
-    if not uid:
-        return jsonify({'error': 'Debes iniciar sesión'}), 401
+    # Obtener UID del usuario autenticado de forma segura
 
-    ok = crop_service.delete_abono(uid, crop_id, abono_index)
+
+    user_uid = get_current_user_uid()
+
+
+    user = get_current_user()
+
+    ok = crop_service.delete_abono(user_uid, crop_id, abono_index)
     if ok:
         return jsonify({'success': True, 'message': 'Abono eliminado correctamente'})
     else:
         return jsonify({'error': 'No se pudo eliminar el abono'}), 500
 
 @crops_bp.route('/<crop_id>/finish', methods=['POST'])
+@require_auth
 def finish_crop(crop_id):
     """Finalizar un cultivo específico."""
     from flask import current_app
@@ -290,8 +273,8 @@ def finish_crop(crop_id):
     crop_service = CropService(current_app.db)
 
     user = get_current_user()
-    uid = (user or {}).get('uid') or request.form.get('uid') or request.args.get('uid') or request.cookies.get('huerto_user_uid')
-    if not uid:
+    uid = (user or {}).get('user_uid') or request.form.get('user_uid') or request.args.get('user_uid') or request.cookies.get('huerto_user_uid')
+    if not user_uid:
         flash('Debes iniciar sesión para finalizar cultivos', 'error')
         return redirect(url_for('auth.login'))
 
@@ -303,7 +286,7 @@ def finish_crop(crop_id):
         else:
             fecha_cosecha = datetime.datetime.utcnow()
 
-        ok = crop_service.finish_crop(uid, crop_id, fecha_cosecha)
+        ok = crop_service.finish_crop(user_uid, crop_id, fecha_cosecha)
         if ok:
             flash('Cultivo finalizado exitosamente', 'success')
         else:
@@ -324,7 +307,7 @@ def api_user_crops():
     crop_service = CropService(current_app.db)
     
     if user:
-        cultivos = crop_service.get_user_crops(user['uid'])
+        cultivos = crop_service.get_user_crops(user['user_uid'])
     else:
         cultivos = crop_service.get_demo_crops()
     
@@ -343,6 +326,7 @@ def api_user_crops():
     return jsonify(cultivos_json)
 
 @crops_bp.route('/<crop_id>/history')
+@require_auth
 def crop_history(crop_id):
     """Vista de historial completo de un cultivo con gráfica y lista de registros."""
     from flask import current_app, session
@@ -353,13 +337,13 @@ def crop_history(crop_id):
     
     # Resolver UID de forma robusta
     user = get_current_user()
-    uid = (user or {}).get('uid') or request.args.get('uid') or request.cookies.get('huerto_user_uid')
+    uid = (user or {}).get('user_uid') or request.args.get('user_uid') or request.cookies.get('huerto_user_uid')
     
     # En modo demo, usar datos demo
-    if demo_mode and not uid:
+    if demo_mode and not user_uid:
         uid = 'demo-user'
     
-    if not uid:
+    if not user_uid:
         flash('No se pudo identificar el usuario para mostrar el historial.', 'error')
         return redirect(url_for('auth.login'))
 
@@ -373,7 +357,7 @@ def crop_history(crop_id):
                     cultivo = demo_crop
                     break
         elif current_app.db:
-            doc_ref = current_app.db.collection('usuarios').document(uid).collection('cultivos').document(crop_id)
+            doc_ref = current_app.db.collection('usuarios').document(user_uid).collection('cultivos').document(crop_id)
             doc = doc_ref.get()
             if doc.exists:
                 cultivo = doc.to_dict()
@@ -385,7 +369,7 @@ def crop_history(crop_id):
                     pass
         else:
             # Local: desde sesión
-            cultivos = session.get(f'crops_{uid}', [])
+            cultivos = session.get(f'crops_{user_uid}', [])
             for c in cultivos:
                 if c.get('id') == crop_id:
                     cultivo = c
@@ -395,7 +379,7 @@ def crop_history(crop_id):
 
     if not cultivo:
         flash('Cultivo no encontrado o sin acceso.', 'error')
-        return redirect(url_for('main.dashboard', uid=uid))
+        return redirect(url_for('main.dashboard', uid=user_uid))
 
     # Preparar datos para la gráfica y listado: fechas vs unidades y filas formateadas
     registros_raw = sorted((cultivo.get('produccion_diaria') or []), key=lambda r: r.get('fecha') or 0)
@@ -443,11 +427,12 @@ def crop_history(crop_id):
         cultivo=cultivo,
         chart_data=chart_data,
         registros_view=registros_view,
-        uid=uid
+        uid=user_uid
     )
 
 # Endpoints básicos de edición y borrado (POST para simplicidad)
 @crops_bp.route('/<crop_id>/edit', methods=['POST'])
+@require_auth
 def edit_crop(crop_id):
     """Editar nombre, precio y número de plantas"""
     user = get_current_user()
@@ -467,7 +452,7 @@ def edit_crop(crop_id):
             return redirect(url_for('crops.list_crops'))
         # Actualizar en Firestore
         if current_app.db:
-            crop_ref = current_app.db.collection('usuarios').document(user['uid']).collection('cultivos').document(crop_id)
+            crop_ref = current_app.db.collection('usuarios').document(user['user_uid']).collection('cultivos').document(crop_id)
             crop_ref.update({
                 'nombre': nombre.strip(),
                 'precio_por_kilo': precio,
@@ -483,6 +468,7 @@ def edit_crop(crop_id):
     return redirect(url_for('crops.list_crops'))
 
 @crops_bp.route('/<crop_id>/color', methods=['POST'])
+@require_auth
 def update_crop_color(crop_id):
     """Actualizar solo el color de un cultivo - para uso con AJAX"""
     user = get_current_user()
@@ -496,7 +482,7 @@ def update_crop_color(crop_id):
             return jsonify({'success': False, 'error': 'Color requerido'}), 400
         
         if current_app.db:
-            crop_ref = current_app.db.collection('usuarios').document(user['uid']).collection('cultivos').document(crop_id)
+            crop_ref = current_app.db.collection('usuarios').document(user['user_uid']).collection('cultivos').document(crop_id)
             crop_ref.update({
                 'color_cultivo': color,
                 'actualizado_en': __import__('datetime').datetime.utcnow()
@@ -509,6 +495,7 @@ def update_crop_color(crop_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @crops_bp.route('/<crop_id>/delete', methods=['POST'])
+@require_auth
 def delete_crop(crop_id):
     """Borrado suave: marcar activo=False"""
     user = get_current_user()
@@ -517,7 +504,7 @@ def delete_crop(crop_id):
     from flask import current_app
     try:
         if current_app.db:
-            crop_ref = current_app.db.collection('usuarios').document(user['uid']).collection('cultivos').document(crop_id)
+            crop_ref = current_app.db.collection('usuarios').document(user['user_uid']).collection('cultivos').document(crop_id)
             crop_ref.update({
                 'activo': False,
                 'actualizado_en': __import__('datetime').datetime.utcnow()

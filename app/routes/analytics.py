@@ -10,6 +10,7 @@ import os
 import locale
 from flask import Blueprint, render_template, jsonify, make_response
 from app.auth.auth_service import login_required, get_current_user, premium_required
+from app.middleware.auth_middleware import require_auth, optional_auth, get_current_user_uid
 from app.services.crop_service import CropService
 
 def format_spanish_number(value, decimals=2):
@@ -25,23 +26,20 @@ def format_spanish_number(value, decimals=2):
 analytics_bp = Blueprint('analytics', __name__)
 
 @analytics_bp.route('/')
+@require_auth
 def analytics_dashboard():
-    """Dashboard de analytics básico - también funciona en modo demo"""
+    """Dashboard de analytics básico con autenticación segura"""
     from flask import current_app
     
+    # Obtener UID del usuario autenticado de forma segura
+    user_uid = get_current_user_uid()
     user = get_current_user()
-    crop_service = CropService(current_app.db)
     
-    # Obtener datos según si está autenticado o en modo demo
-    if user:
-        cultivos = crop_service.get_user_crops(user['uid'])
-        total_kilos, total_beneficios = crop_service.get_user_totals(user['uid'])
-        demo_mode = False
-    else:
-        # Modo demo - mostrar datos de demostración completos
-        cultivos = crop_service.get_demo_crops()
-        total_kilos, total_beneficios = crop_service.get_demo_totals()
-        demo_mode = True
+    crop_service = CropService()
+    
+    # Obtener datos del usuario autenticado
+    cultivos = crop_service.get_user_crops(user_uid)
+    total_kilos, total_beneficios = crop_service.get_user_totals(user_uid)
     
     # Preparar datos detallados para cada cultivo
     cultivos_detallados = []
@@ -104,36 +102,27 @@ def analytics_dashboard():
                          cultivos_detallados=cultivos_detallados,
                          total_kilos=total_kilos,
                          total_beneficios=total_beneficios,
-                         demo_mode=demo_mode)
+                         demo_mode=False)
 
 @analytics_bp.route('/advanced')
+@require_auth
 def advanced():
-    """Analytics avanzados - funciona en modo demo y para usuarios premium"""
+    """Analytics avanzados con autenticación segura"""
     from flask import current_app
     
+    # Obtener UID del usuario autenticado de forma segura
+    user_uid = get_current_user_uid()
     user = get_current_user()
-    crop_service = CropService(current_app.db)
     
-    # En modo demo, mostrar todas las funcionalidades premium
-    if not user:
-        # Modo demo - datos completos de demostración
-        cultivos = crop_service.get_demo_crops()
-        total_kilos, total_beneficios = crop_service.get_demo_totals()
-        demo_mode = True
-        plan = 'premium'  # Simular plan premium para mostrar todas las funciones
-    else:
-        # Usuario autenticado - verificar plan
-        from app.auth.auth_service import UserService
-        user_service = UserService(current_app.db)
-        plan = user_service.get_user_plan(user['uid'])
-        
-        # Solo premium puede acceder (usuarios reales)
-        if plan != 'premium':
-            return jsonify({'error': 'Plan premium requerido'}), 403
-        
-        cultivos = crop_service.get_user_crops(user['uid'])
-        total_kilos, total_beneficios = crop_service.get_user_totals(user['uid'])
-        demo_mode = False
+    crop_service = CropService()
+    
+    # Obtener datos del usuario autenticado
+    cultivos = crop_service.get_user_crops(user_uid)
+    total_kilos, total_beneficios = crop_service.get_user_totals(user_uid)
+    
+    # Verificar plan del usuario
+    plan = user.get('plan', 'gratuito')
+    
     # Preparar datos avanzados para analytics
     # 1. Análisis temporal por meses
     monthly_data = {}
@@ -159,10 +148,11 @@ def advanced():
                          total_kilos=total_kilos,
                          total_beneficios=total_beneficios,
                          proyeccion_anual=proyeccion_anual,
-                         demo_mode=demo_mode,
+                         demo_mode=False,
                          plan=plan)
 
 @analytics_bp.route('/api/chart-data')
+@require_auth
 def api_chart_data():
     """API para datos de gráficas - funciona en modo demo"""
     from flask import current_app
@@ -214,6 +204,7 @@ def api_chart_data():
     })
 
 @analytics_bp.route('/export/csv')
+@require_auth
 def export_csv():
     """Exportar datos detallados a CSV - funciona en modo demo"""
     from flask import current_app
@@ -290,6 +281,7 @@ def export_csv():
     return response
 
 @analytics_bp.route('/export/json')
+@require_auth
 def export_json():
     """Exportar datos completos a JSON - funciona en modo demo"""
     from flask import current_app
@@ -386,6 +378,7 @@ def export_json():
     return response
 
 @analytics_bp.route('/export/excel')
+@require_auth
 def export_excel():
     """Exportar datos a Excel con múltiples hojas - funciona en modo demo"""
     from flask import current_app
@@ -588,6 +581,7 @@ def export_excel():
     return response
 
 @analytics_bp.route('/export/pdf')
+@require_auth
 def export_pdf():
     """Exportar reporte completo a PDF con reportlab - funciona en modo demo"""
     from flask import current_app

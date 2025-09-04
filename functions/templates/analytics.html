@@ -1,0 +1,443 @@
+{% extends "base.html" %} {% block title %}Análisis - HuertoRentable{% endblock
+%} {% block chart_js %}
+<!-- Chart.js necesario para las gráficas -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %} {% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="text-success">
+        <i class="bi bi-graph-up me-2 align-middle"></i
+        ><span class="align-middle">Análisis del Huerto</span>
+      </h1>
+      <div class="btn-group" role="group">
+        <button class="btn btn-outline-success" onclick="actualizarGraficas()">
+          <i class="bi bi-arrow-clockwise me-1 align-middle"></i
+          ><span class="align-middle">Actualizar</span>
+        </button>
+        <button class="btn btn-outline-info" onclick="exportarDatos()">
+          <i class="bi bi-download me-1 align-middle"></i
+          ><span class="align-middle">Exportar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Resumen de métricas principales -->
+<div class="row mb-4">
+  <div class="col-md-3 mb-3">
+    <div class="card text-center bg-primary text-white">
+      <div class="card-body">
+        <i class="bi bi-calendar-range fs-1 mb-2"></i>
+        <h5 class="card-title">Años Analizados</h5>
+        <h2 class="mb-0" id="totalAnos">-</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 mb-3">
+    <div class="card text-center bg-success text-white">
+      <div class="card-body">
+        <i class="bi bi-seedling fs-1 mb-2"></i>
+        <h5 class="card-title">Tipos de Cultivo</h5>
+        <h2 class="mb-0" id="totalCultivos">-</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 mb-3">
+    <div class="card text-center bg-warning text-white">
+      <div class="card-body">
+        <i class="bi bi-basket fs-1 mb-2"></i>
+        <h5 class="card-title">Producción Total</h5>
+        <h2 class="mb-0" id="produccionTotal">-</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 mb-3">
+    <div class="card text-center bg-info text-white">
+      <div class="card-body">
+        <i class="bi bi-currency-euro fs-1 mb-2"></i>
+        <h5 class="card-title">Beneficio Total</h5>
+        <h2 class="mb-0" id="beneficioTotal">-</h2>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Gráfica de producción por año -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0">
+          <i class="bi bi-bar-chart me-2"></i>
+          Producción Anual (Kilogramos)
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="position: relative; height: 400px">
+          <canvas id="chartProduccionAnual"></canvas>
+        </div>
+        <div class="text-center mt-3">
+          <small class="text-muted">
+            Muestra la evolución de la producción total por año
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Gráficas de beneficios y comparativa por cultivos -->
+<div class="row mb-4">
+  <div class="col-md-6 mb-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-warning text-white">
+        <h5 class="mb-0">
+          <i class="bi bi-currency-euro me-2"></i>
+          Beneficios por Año
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="position: relative; height: 350px">
+          <canvas id="chartBeneficios"></canvas>
+        </div>
+        <div class="text-center mt-3">
+          <small class="text-muted">
+            Evolución de los beneficios económicos anuales
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6 mb-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-info text-white">
+        <h5 class="mb-0">
+          <i class="bi bi-pie-chart me-2"></i>
+          Producción por Cultivo
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="position: relative; height: 350px">
+          <canvas id="chartCultivos"></canvas>
+        </div>
+        <div class="text-center mt-3">
+          <small class="text-muted">
+            Distribución de la producción total por tipo de cultivo
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabla de datos detallados -->
+<div class="row">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0">
+          <i class="bi bi-table me-2"></i>
+          Datos Detallados
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-striped" id="tablaDetallada">
+            <thead class="table-dark">
+              <tr>
+                <th>Año</th>
+                <th>Cultivo</th>
+                <th>Producción (kg)</th>
+                <th>Precio/kg (€)</th>
+                <th>Beneficio (€)</th>
+                <th>% del Total</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpoTabla">
+              <tr>
+                <td colspan="6" class="text-center text-muted">
+                  <i class="bi bi-hourglass-split me-2"></i>
+                  Cargando datos...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Estado vacío si no hay datos -->
+<div id="estadoVacio" class="row" style="display: none">
+  <div class="col-12">
+    <div class="card border-0 bg-light">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-graph-up text-muted" style="font-size: 4rem"></i>
+        <h4 class="text-muted mt-3">Sin datos para analizar</h4>
+        <p class="text-muted mb-4">
+          No hay suficientes datos de producción para generar análisis. <br />
+          Añade cultivos y registra su producción para ver gráficas
+          comparativas.
+        </p>
+        <a href="{{ url_for('crops.list_crops') }}" class="btn btn-success">
+          <i class="bi bi-seedling me-2"></i>
+          Gestionar Cultivos
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block page_js %}
+<script>
+  // Variables globales para las gráficas
+  let chartProduccionAnual, chartBeneficios, chartCultivos;
+  let datosOriginales = null;
+
+  document.addEventListener('DOMContentLoaded', function() {
+      // Obtener datos pasados desde el servidor
+      const chartData = {{ chart_data|safe }};
+      datosOriginales = chartData;
+
+      console.log('📊 Datos recibidos:', chartData);
+
+      // Verificar si hay datos para mostrar
+      if (sinDatos(chartData)) {
+          mostrarEstadoVacio();
+          return;
+      }
+
+      // Inicializar gráficas
+      inicializarGraficas(chartData);
+
+      // Actualizar métricas de resumen
+      actualizarMetricas(chartData);
+
+      // Llenar tabla detallada
+      llenarTablaDetallada(chartData);
+
+      console.log('✅ Análisis cargado correctamente');
+  });
+
+  function sinDatos(data) {
+      return !data ||
+             !data.anos || data.anos.length === 0 ||
+             !data.cultivos || data.cultivos.length === 0;
+  }
+
+  function mostrarEstadoVacio() {
+      document.getElementById('estadoVacio').style.display = 'block';
+      // Ocultar gráficas y métricas
+      document.querySelectorAll('.card').forEach(card => {
+          if (!card.querySelector('#estadoVacio')) {
+              card.style.display = 'none';
+          }
+      });
+  }
+
+  function inicializarGraficas(data) {
+      // Configuración común para todas las gráficas
+      const configuracionComun = {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+              legend: {
+                  position: 'top',
+              }
+          }
+      };
+
+      // 1. Gráfica de producción anual (barras)
+      const ctxProduccion = document.getElementById('chartProduccionAnual').getContext('2d');
+      chartProduccionAnual = new Chart(ctxProduccion, {
+          type: 'bar',
+          data: {
+              labels: data.anos.map(ano => `Año ${ano}`),
+              datasets: [{
+                  label: 'Producción (kg)',
+                  data: data.produccion_anual,
+                  backgroundColor: 'rgba(25, 135, 84, 0.8)',
+                  borderColor: 'rgba(25, 135, 84, 1)',
+                  borderWidth: 2,
+                  borderRadius: 5
+              }]
+          },
+          options: {
+              ...configuracionComun,
+              scales: {
+                  y: {
+                      beginAtZero: true,
+                      title: {
+                          display: true,
+                          text: 'Kilogramos'
+                      }
+                  }
+              }
+          }
+      });
+
+      // 2. Gráfica de beneficios (línea)
+      const ctxBeneficios = document.getElementById('chartBeneficios').getContext('2d');
+      chartBeneficios = new Chart(ctxBeneficios, {
+          type: 'line',
+          data: {
+              labels: data.anos.map(ano => `${ano}`),
+              datasets: [{
+                  label: 'Beneficios (€)',
+                  data: data.beneficios_anuales,
+                  backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                  borderColor: 'rgba(255, 193, 7, 1)',
+                  borderWidth: 3,
+                  fill: true,
+                  tension: 0.4
+              }]
+          },
+          options: {
+              ...configuracionComun,
+              scales: {
+                  y: {
+                      beginAtZero: true,
+                      title: {
+                          display: true,
+                          text: 'Euros (€)'
+                      }
+                  }
+              }
+          }
+      });
+
+      // 3. Gráfica de cultivos (dona)
+      const ctxCultivos = document.getElementById('chartCultivos').getContext('2d');
+
+      // Colores dinámicos basados en los colores específicos de cada cultivo
+      const coloresCultivos = data.colors || [
+          '#198754', '#fd7e14', '#20c997', '#6f42c1',
+          '#dc3545', '#0dcaf0', '#ffc107', '#6c757d'
+      ];
+
+      chartCultivos = new Chart(ctxCultivos, {
+          type: 'doughnut',
+          data: {
+              labels: data.cultivos.map(cultivo =>
+                  cultivo.charAt(0).toUpperCase() + cultivo.slice(1)
+              ),
+              datasets: [{
+                  data: data.produccion_por_cultivo,
+                  backgroundColor: coloresCultivos,
+                  borderWidth: 2,
+                  borderColor: '#fff'
+              }]
+          },
+          options: {
+              ...configuracionComun,
+              plugins: {
+                  legend: {
+                      position: 'bottom',
+                  },
+                  tooltip: {
+                      callbacks: {
+                          label: function(context) {
+                              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                              const porcentaje = ((context.parsed / total) * 100).toFixed(1);
+                              return `${context.label}: ${context.parsed.toFixed(1)} kg (${porcentaje}%)`;
+                          }
+                      }
+                  }
+              }
+          }
+      });
+  }
+
+  function actualizarMetricas(data) {
+      // Calcular métricas de resumen
+      const totalAnos = data.anos.length;
+      const totalCultivos = data.cultivos.length;
+      const produccionTotal = data.produccion_por_cultivo.reduce((a, b) => a + b, 0);
+      const beneficioTotal = data.beneficios_anuales.reduce((a, b) => a + b, 0);
+
+      // Actualizar elementos DOM
+      document.getElementById('totalAnos').textContent = totalAnos;
+      document.getElementById('totalCultivos').textContent = totalCultivos;
+      document.getElementById('produccionTotal').textContent = `${produccionTotal.toFixed(1)} kg`;
+      document.getElementById('beneficioTotal').textContent = `${beneficioTotal.toFixed(2)} €`;
+  }
+
+  function llenarTablaDetallada(data) {
+      const cuerpoTabla = document.getElementById('cuerpoTabla');
+      const totalGeneral = data.beneficios_anuales.reduce((a, b) => a + b, 0);
+
+      let filas = '';
+
+      // Generar filas para cada combinación año-cultivo
+      data.anos.forEach((ano, indexAno) => {
+          data.cultivos.forEach((cultivo, indexCultivo) => {
+              const produccion = data.produccion_por_cultivo[indexCultivo] || 0;
+              const beneficioAno = data.beneficios_anuales[indexAno] || 0;
+              const porcentaje = totalGeneral > 0 ? (beneficioAno / totalGeneral * 100).toFixed(1) : 0;
+
+              // Calcular precio estimado (simplificado para este ejemplo)
+              const precioEstimado = produccion > 0 ? (beneficioAno / produccion) : 0;
+
+              filas += `
+                  <tr>
+                      <td><strong>${ano}</strong></td>
+                      <td class="text-capitalize">${cultivo}</td>
+                      <td>${produccion.toFixed(1)} kg</td>
+                      <td>${precioEstimado.toFixed(2)} €</td>
+                      <td class="text-success fw-bold">${beneficioAno.toFixed(2)} €</td>
+                      <td>
+                          <div class="progress" style="height: 20px;">
+                              <div class="progress-bar bg-success"
+                                   style="width: ${porcentaje}%"
+                                   title="${porcentaje}%">
+                                  ${porcentaje}%
+                              </div>
+                          </div>
+                      </td>
+                  </tr>
+              `;
+          });
+      });
+
+      cuerpoTabla.innerHTML = filas || '<tr><td colspan="6" class="text-center text-muted">Sin datos disponibles</td></tr>';
+  }
+
+  // Funciones auxiliares
+  function actualizarGraficas() {
+      // Recargar datos y actualizar gráficas
+      location.reload();
+  }
+
+  function exportarDatos() {
+      if (!datosOriginales) {
+          alert('No hay datos para exportar');
+          return;
+      }
+
+      // Convertir datos a CSV simple
+      let csv = 'Año,Cultivo,Producción (kg),Beneficio (€)\n';
+
+      datosOriginales.anos.forEach((ano, indexAno) => {
+          datosOriginales.cultivos.forEach((cultivo, indexCultivo) => {
+              const produccion = datosOriginales.produccion_por_cultivo[indexCultivo] || 0;
+              const beneficio = datosOriginales.beneficios_anuales[indexAno] || 0;
+              csv += `${ano},${cultivo},${produccion.toFixed(1)},${beneficio.toFixed(2)}\n`;
+          });
+      });
+
+      // Descargar archivo CSV
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `huerto_analisis_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      console.log('📁 Datos exportados correctamente');
+  }
+</script>
+{% endblock %}

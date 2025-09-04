@@ -1,0 +1,428 @@
+{% extends "base.html" %} {% block title %}Crear Cuenta - HuertoRentable{%
+endblock %} {% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
+      <div class="card shadow">
+        <div class="card-header bg-success text-white text-center">
+          <h4 class="mb-0">
+            <i class="bi bi-person-plus me-2 align-middle"></i
+            ><span class="align-middle"
+              >Crear Cuenta - Plan {{ plan|title }}</span
+            >
+          </h4>
+          {% if plan == 'premium' %}
+          <small class="opacity-75">
+            <i class="bi bi-star me-1 align-middle"></i
+            ><span class="align-middle">Con 7 días de prueba gratis</span>
+          </small>
+          {% else %}
+          <small class="opacity-75">
+            <i class="bi bi-check-circle me-1 align-middle"></i
+            ><span class="align-middle">Gratis para siempre</span>
+          </small>
+          {% endif %}
+        </div>
+        <div class="card-body p-4">
+          <!-- Plan seleccionado -->
+          {% if plan %}
+          <div class="alert alert-info d-flex align-items-center mb-4">
+            {% if plan == 'premium' %}
+            <i class="bi bi-crown text-primary me-2 fs-4"></i>
+            <div>
+              <strong>Plan Premium seleccionado</strong>
+              <br /><small
+                >0,99 €/mes • 7 días gratis • Sin anuncios • Informes
+                avanzados</small
+              >
+            </div>
+            {% else %}
+            <i class="bi bi-tree text-success me-2 fs-4"></i>
+            <div>
+              <strong>Plan Gratuito seleccionado</strong>
+              <br /><small
+                >Cultivos ilimitados • Copia de seguridad • Gratis para
+                siempre</small
+              >
+            </div>
+            {% endif %}
+            <a
+              href="{{ url_for('auth.plan_selection') }}"
+              class="btn btn-sm btn-outline-primary ms-auto"
+            >
+              Cambiar Plan
+            </a>
+          </div>
+          {% endif %}
+
+          <!-- Formulario de registro -->
+          <form id="registerForm">
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input
+                type="email"
+                class="form-control"
+                id="email"
+                name="email"
+                required
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="password" class="form-label">Contraseña</label>
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                name="password"
+                required
+                minlength="6"
+              />
+              <div class="form-text">Mínimo 6 caracteres</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="confirmPassword" class="form-label"
+                >Confirmar Contraseña</label
+              >
+              <input
+                type="password"
+                class="form-control"
+                id="confirmPassword"
+                name="confirmPassword"
+                required
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="displayName" class="form-label"
+                >Nombre (opcional)</label
+              >
+              <input
+                type="text"
+                class="form-control"
+                id="displayName"
+                name="displayName"
+              />
+            </div>
+
+            <div class="mb-3 form-check">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                id="terms"
+                required
+              />
+              <label class="form-check-label" for="terms">
+                Acepto los
+                <a href="#" class="text-success">términos y condiciones</a>
+              </label>
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-success btn-lg">
+                <i class="bi bi-rocket-takeoff me-2"></i>
+                Crear Cuenta Gratis
+              </button>
+            </div>
+          </form>
+
+          <!-- Separador -->
+          <div class="text-center my-4">
+            <span class="text-muted">── o ──</span>
+          </div>
+
+          <!-- Login con Google (futuro) -->
+          <div class="d-grid mb-3">
+            <button class="btn btn-outline-secondary" disabled>
+              <i class="bi bi-google me-2"></i>
+              Continuar con Google (próximamente)
+            </button>
+          </div>
+
+          <!-- Link a login -->
+          <div class="text-center">
+            <p class="mb-0">
+              ¿Ya tienes cuenta?
+              <a href="{{ url_for('auth.login') }}" class="text-success"
+                >Iniciar sesión</a
+              >
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Beneficios del plan gratuito -->
+      <div class="card mt-4 border-0">
+        <div class="card-body text-center">
+          <h6 class="text-success mb-3">Tu plan gratuito incluye:</h6>
+          <div class="row">
+            <div class="col-6">
+              <small class="text-muted">
+                <i class="bi bi-check-circle text-success me-1"></i>
+                Cultivos ilimitados
+              </small>
+            </div>
+            <div class="col-6">
+              <small class="text-muted">
+                <i class="bi bi-check-circle text-success me-1"></i>
+                Backup en la nube
+              </small>
+            </div>
+            <div class="col-6 mt-2">
+              <small class="text-muted">
+                <i class="bi bi-check-circle text-success me-1"></i>
+                Sincronización automática
+              </small>
+            </div>
+            <div class="col-6 mt-2">
+              <small class="text-muted">
+                <i class="bi bi-check-circle text-success me-1"></i>
+                Análisis básicos
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Esperar a que el servicio de autenticación esté listo
+    const waitForAuthService = () => {
+      if (window.authService) {
+        setupRegisterForm();
+      } else {
+        setTimeout(waitForAuthService, 100);
+      }
+    };
+
+    waitForAuthService();
+
+    function setupRegisterForm() {
+      const form = document.getElementById("registerForm");
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const confirmPassword =
+          document.getElementById("confirmPassword").value;
+        const displayName = document.getElementById("displayName").value;
+        const terms = document.getElementById("terms").checked;
+
+        // Validaciones básicas
+        if (!terms) {
+          showAlert("error", "Debes aceptar los términos y condiciones");
+          return;
+        }
+
+        if (password !== confirmPassword) {
+          showAlert("error", "Las contraseñas no coinciden");
+          return;
+        }
+
+        if (password.length < 6) {
+          showAlert("error", "La contraseña debe tener al menos 6 caracteres");
+          return;
+        }
+
+        // Validar email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          showAlert("error", "Por favor, introduce un email válido");
+          return;
+        }
+
+        let originalText = null;
+        const submitBtn = document.querySelector('button[type="submit"]');
+        try {
+          // Mostrar estado de carga
+          originalText = submitBtn.innerHTML;
+          submitBtn.innerHTML =
+            '<i class="bi bi-hourglass-split me-2"></i>Creando cuenta...';
+          submitBtn.disabled = true;
+
+          // Obtener plan seleccionado de la URL o formulario
+          const urlParams = new URLSearchParams(window.location.search);
+          const selectedPlan =
+            urlParams.get("plan") || "{{ plan }}" || "gratuito";
+
+          // Registrar usuario usando el servicio de autenticación
+          let result;
+
+          // Intentar primero con el servicio simplificado
+          if (window.simpleRegistrationService && window.registerUser) {
+            console.log(
+              "🔧 Usando SimpleRegistrationService como método principal"
+            );
+            result = await window.registerUser(
+              email,
+              password,
+              displayName,
+              selectedPlan
+            );
+          } else if (window.authService) {
+            console.log("🔧 Fallback a AuthService tradicional");
+            result = await window.authService.register(
+              email,
+              password,
+              displayName,
+              selectedPlan // Pasar el plan seleccionado
+            );
+          } else {
+            throw new Error("No hay servicio de registro disponible");
+          }
+
+          if (result.success) {
+            // Mostrar mensaje de éxito
+            if (result.isLocal) {
+              showAlert(
+                "success",
+                `¡Bienvenido/a ${result.user.name}! Cuenta local creada exitosamente con plan ${selectedPlan}. Tus datos se guardarán en esta sesión.`
+              );
+            } else {
+              showAlert(
+                "success",
+                `¡Bienvenido/a ${result.user.name}! Cuenta creada exitosamente con plan ${selectedPlan}. Revisa tu email para verificar la cuenta.`
+              );
+            }
+
+            // Guardar información del usuario en localStorage como respaldo
+            localStorage.setItem(
+              "userRegistered",
+              JSON.stringify({
+                uid: result.user.uid,
+                email: result.user.email,
+                plan: selectedPlan,
+                timestamp: Date.now(),
+              })
+            );
+
+            // Guardar token Firebase como cookie para que el servidor pueda leerlo
+            const idToken = await firebase.auth().currentUser.getIdToken();
+            document.cookie = `firebase_id_token=${idToken}; path=/; max-age=3600; SameSite=Lax`;
+
+            // SINCRONIZACIÓN INMEDIATA: Hacer una llamada al backend para asegurar la sesión
+            console.log("🔄 Sincronizando sesión con backend...");
+            try {
+              await fetch("/auth/sync-user", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                credentials: "include",
+                body: JSON.stringify({
+                  idToken: idToken,
+                }),
+              });
+              console.log("✅ Sesión sincronizada");
+            } catch (syncError) {
+              console.warn("⚠️ Error sincronizando sesión:", syncError);
+            }
+
+            // REDIRECCIÓN INMEDIATA AL DASHBOARD tras registro exitoso
+            console.log("✅ Registro completado - redirigiendo al dashboard");
+
+            // Mostrar mensaje de éxito brevemente y redirigir
+            showAlert(
+              "success",
+              `¡Bienvenido/a ${result.user.name}! Redirigiendo al dashboard...`
+            );
+
+            // Redirigir con parámetros para identificar origen
+            setTimeout(() => {
+              window.location.href = `/dashboard?from=register&welcome=true&uid=${result.user.uid}`;
+            }, 1000);
+          } else {
+            throw new Error(result.error);
+          }
+        } catch (error) {
+          console.error("Error en registro:", error);
+          showAlert(
+            "error",
+            error.message ||
+              "Error al crear la cuenta. Por favor, inténtalo de nuevo."
+          );
+        } finally {
+          // Restaurar botón de envío de forma segura
+          if (submitBtn) {
+            submitBtn.innerHTML =
+              originalText ||
+              '<i class="bi bi-person-plus me-2"></i>Crear Cuenta Gratis';
+            submitBtn.disabled = false;
+          }
+        }
+      });
+    }
+
+    // Función para mostrar alertas
+    function showAlert(type, message) {
+      // Remover alertas previas
+      const existingAlerts = document.querySelectorAll(".alert");
+      existingAlerts.forEach((alert) => alert.remove());
+
+      // Crear nueva alerta
+      const alertDiv = document.createElement("div");
+      alertDiv.className = `alert alert-${
+        type === "error" ? "danger" : type
+      } alert-dismissible fade show`;
+      alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+
+      // Insertar al inicio del formulario
+      const form = document.getElementById("registerForm");
+      form.parentNode.insertBefore(alertDiv, form);
+
+      // Auto-remover después de 8 segundos para alertas de éxito
+      if (type === "success") {
+        setTimeout(() => {
+          if (alertDiv.parentNode) {
+            alertDiv.remove();
+          }
+        }, 8000);
+      }
+    }
+  });
+</script>
+
+<style>
+  .card {
+    border-radius: 15px;
+  }
+
+  .card-header {
+    border-radius: 15px 15px 0 0 !important;
+  }
+
+  .form-control:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+  }
+
+  .btn-success:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  }
+
+  /* Mejorar contraste de alertas de éxito */
+  .alert-success {
+    background-color: #d1e7dd !important;
+    border-color: #badbcc !important;
+    color: #0a3622 !important;
+  }
+
+  .alert-success .btn-close {
+    filter: invert(1) grayscale(100%) brightness(0) sepia(100%) saturate(1000%)
+      hue-rotate(0deg);
+  }
+</style>
+
+<!-- Servicio de registro simplificado como fallback -->
+<script src="{{ url_for('static', filename='js/simple-registration.js') }}"></script>
+
+{% endblock %}

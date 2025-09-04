@@ -1,0 +1,240 @@
+{% extends "base.html" %} {% block title %}Iniciar Sesión - HuertoRentable{%
+endblock %} {% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-5 col-md-7">
+      <div class="card shadow">
+        <div class="card-header bg-success text-white text-center">
+          <h4 class="mb-0">
+            <i class="bi bi-box-arrow-in-right me-2 align-middle"></i
+            ><span class="align-middle">Iniciar Sesión</span>
+          </h4>
+        </div>
+        <div class="card-body p-4">
+          <!-- Formulario de login -->
+          <form id="loginForm">
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input
+                type="email"
+                class="form-control"
+                id="email"
+                name="email"
+                required
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="password" class="form-label">Contraseña</label>
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                name="password"
+                required
+              />
+            </div>
+
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="remember" />
+              <label class="form-check-label" for="remember">
+                Recordarme
+              </label>
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-success btn-lg">
+                <i class="bi bi-box-arrow-in-right me-2 align-middle"></i
+                ><span class="align-middle">Iniciar Sesión</span>
+              </button>
+            </div>
+          </form>
+
+          <!-- Separador -->
+          <div class="text-center my-4">
+            <span class="text-muted">── o ──</span>
+          </div>
+
+          <!-- Login con Google (futuro) -->
+          <div class="d-grid mb-3">
+            <button class="btn btn-outline-secondary" disabled>
+              <i class="bi bi-google me-2 align-middle"></i
+              ><span class="align-middle"
+                >Continuar con Google (próximamente)</span
+              >
+            </button>
+          </div>
+
+          <!-- Links -->
+          <div class="text-center">
+            <p class="mb-2">
+              <a href="#" class="text-success small"
+                >¿Olvidaste tu contraseña?</a
+              >
+            </p>
+            <p class="mb-0">
+              ¿No tienes cuenta?
+              <a href="{{ url_for('auth.register') }}" class="text-success"
+                >Crear cuenta gratis</a
+              >
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Demo access -->
+      <div class="card mt-4 border-warning">
+        <div class="card-body text-center">
+          <h6 class="text-warning mb-2">
+            <i class="bi bi-eye me-2 align-middle"></i
+            ><span class="align-middle">Acceso de Prueba</span>
+          </h6>
+          <p class="small text-muted mb-3">
+            Explora la aplicación sin crear cuenta
+          </p>
+          <a
+            href="{{ url_for('main.dashboard') }}"
+            class="btn btn-outline-warning btn-sm"
+          >
+            <i class="bi bi-play-circle me-1 align-middle"></i
+            ><span class="align-middle">Ver Demo</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Esperar a que el servicio de autenticación esté listo
+    const waitForAuthService = () => {
+      if (window.authService) {
+        setupLoginForm();
+      } else {
+        setTimeout(waitForAuthService, 100);
+      }
+    };
+
+    waitForAuthService();
+
+    function setupLoginForm() {
+      const form = document.getElementById("loginForm");
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+
+        // Validaciones básicas
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          showAlert("error", "Por favor, introduce un email válido");
+          return;
+        }
+
+        if (password.length < 6) {
+          showAlert("error", "La contraseña debe tener al menos 6 caracteres");
+          return;
+        }
+
+        try {
+          // Mostrar estado de carga
+          const submitBtn = document.querySelector('button[type="submit"]');
+          const originalText = submitBtn.innerHTML;
+          submitBtn.innerHTML =
+            '<i class="bi bi-hourglass-split me-2"></i>Iniciando sesión...';
+          submitBtn.disabled = true;
+
+          // Iniciar sesión usando el servicio de autenticación
+          const result = await window.authService.login(email, password);
+
+          if (result.success) {
+            // Mostrar mensaje de éxito
+            if (result.isLocal) {
+              showAlert(
+                "success",
+                `¡Bienvenido/a de vuelta, ${result.user.name}! Accediendo con cuenta local.`
+              );
+            } else {
+              showAlert(
+                "success",
+                `¡Bienvenido/a de vuelta, ${result.user.name}! Accediendo con Firebase.`
+              );
+            }
+
+            // Redirigir al dashboard después de un momento
+            setTimeout(() => {
+              window.location.href = "/dashboard";
+            }, 1500);
+          } else {
+            throw new Error(result.error);
+          }
+        } catch (error) {
+          console.error("Error en login:", error);
+          showAlert(
+            "error",
+            error.message ||
+              "Error al iniciar sesión. Verifica tu email y contraseña."
+          );
+
+          // Restaurar botón
+          const submitBtn = document.querySelector('button[type="submit"]');
+          submitBtn.innerHTML = originalText;
+          submitBtn.disabled = false;
+        }
+      });
+    }
+
+    // Función para mostrar alertas
+    function showAlert(type, message) {
+      // Remover alertas previas
+      const existingAlerts = document.querySelectorAll(".alert");
+      existingAlerts.forEach((alert) => alert.remove());
+
+      // Crear nueva alerta
+      const alertDiv = document.createElement("div");
+      alertDiv.className = `alert alert-${
+        type === "error" ? "danger" : type
+      } alert-dismissible fade show`;
+      alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+
+      // Insertar al inicio del formulario
+      const form = document.getElementById("loginForm");
+      form.parentNode.insertBefore(alertDiv, form);
+
+      // Auto-remover después de 6 segundos para alertas de éxito
+      if (type === "success") {
+        setTimeout(() => {
+          if (alertDiv.parentNode) {
+            alertDiv.remove();
+          }
+        }, 6000);
+      }
+    }
+  });
+</script>
+
+<style>
+  .card {
+    border-radius: 15px;
+  }
+
+  .card-header {
+    border-radius: 15px 15px 0 0 !important;
+  }
+
+  .form-control:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+  }
+
+  .btn-success:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  }
+</style>
+{% endblock %}

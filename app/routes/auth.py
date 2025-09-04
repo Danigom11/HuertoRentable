@@ -520,7 +520,19 @@ def login():
         try:
             id_token_val = data.get('idToken')
             if id_token_val:
-                response.set_cookie('firebase_id_token', id_token_val, max_age=3600, secure=False, httponly=False, samesite='Lax', path='/')
+                # Si no estamos en localhost (Hosting/Cloud Run), necesitamos SameSite=None; Secure
+                from flask import request as _req
+                host = _req.host.split(':')[0]
+                is_local = host in ('localhost', '127.0.0.1') or host.endswith('.local')
+                response.set_cookie(
+                    'firebase_id_token',
+                    id_token_val,
+                    max_age=3600,
+                    secure=not is_local,
+                    httponly=False,
+                    samesite='Lax' if is_local else 'None',
+                    path='/'
+                )
         except Exception:
             pass
 
@@ -661,7 +673,7 @@ def register():
             'redirect_url': f"/dashboard?from=register&welcome=true&uid={user_data['uid']}"
         }))
 
-        # Establecer cookies de respaldo para navegadores con problemas de sesión
+    # Establecer cookies de respaldo para navegadores con problemas de sesión
         import uuid, json as _json
         session_id = str(uuid.uuid4())
         response.set_cookie('huerto_session', session_id, max_age=86400, secure=False, httponly=False, samesite='Lax', path='/')
@@ -677,7 +689,18 @@ def register():
         try:
             id_token_val = data.get('idToken')
             if id_token_val:
-                response.set_cookie('firebase_id_token', id_token_val, max_age=3600, secure=False, httponly=False, samesite='Lax', path='/')
+                from flask import request as _req
+                host = _req.host.split(':')[0]
+                is_local = host in ('localhost', '127.0.0.1') or host.endswith('.local')
+                response.set_cookie(
+                    'firebase_id_token',
+                    id_token_val,
+                    max_age=3600,
+                    secure=not is_local,
+                    httponly=False,
+                    samesite='Lax' if is_local else 'None',
+                    path='/'
+                )
         except Exception:
             pass
         session.permanent = True

@@ -136,7 +136,11 @@ class AuthService {
             86400
           );
           // Guardar también el idToken por 1h
-          this._setCookie("firebase_id_token", idToken, 3600);
+          // Asegurar que la cookie viaje vía Hosting→Cloud Run cuando es cross-site
+          this._setCookie("firebase_id_token", idToken, 3600, {
+            sameSite: this._isLocalhost() ? "Lax" : "None",
+            secure: !this._isLocalhost(),
+          });
           console.log("🍪 Cookies de respaldo establecidas tras registro");
         } catch (e) {
           console.warn("No se pudieron establecer cookies de respaldo:", e);
@@ -272,7 +276,10 @@ class AuthService {
             JSON.stringify(userCookie),
             86400
           );
-          this._setCookie("firebase_id_token", idToken, 3600);
+          this._setCookie("firebase_id_token", idToken, 3600, {
+            sameSite: this._isLocalhost() ? "Lax" : "None",
+            secure: !this._isLocalhost(),
+          });
           console.log("🍪 Cookies de respaldo establecidas tras login");
         } catch (e) {
           console.warn("No se pudieron establecer cookies de respaldo:", e);
@@ -407,11 +414,18 @@ class AuthService {
     return !!this.getCurrentUser();
   }
 
-  _setCookie(name, value, maxAgeSeconds) {
+  _isLocalhost() {
+    const h = window.location.hostname;
+    return h === "localhost" || h === "127.0.0.1" || h.endsWith(".local");
+  }
+
+  _setCookie(name, value, maxAgeSeconds, options = {}) {
     try {
+      const sameSite = options.sameSite || "Lax";
+      const secure = options.secure ? "; Secure" : "";
       document.cookie = `${name}=${encodeURIComponent(
         value
-      )}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax`;
+      )}; path=/; max-age=${maxAgeSeconds}; SameSite=${sameSite}${secure}`;
     } catch (e) {
       console.warn("No se pudo escribir cookie", name, e);
     }

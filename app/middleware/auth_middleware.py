@@ -23,17 +23,23 @@ def require_auth(f):
         auth_header = request.headers.get('Authorization', '')
         if auth_header.startswith('Bearer '):
             token = auth_header.replace('Bearer ', '')
+            logger.debug("[Auth] Token obtenido de Authorization header")
         
-        # Prioridad 2: Cookie de sesión
+        # Prioridad 2: Cookie Firebase ID token (nombre moderno)
+        elif 'firebase_id_token' in request.cookies:
+            token = request.cookies.get('firebase_id_token')
+            logger.debug("[Auth] Token obtenido de cookie firebase_id_token")
+
+        # Prioridad 3: Cookie de sesión (nombre legado)
         elif 'firebase_token' in request.cookies:
             token = request.cookies.get('firebase_token')
         
-        # Prioridad 3: Session Flask (fallback)
+        # Prioridad 4: Session Flask (fallback)
         elif session.get('firebase_token'):
             token = session.get('firebase_token')
         
         if not token:
-            logger.warning(f"Acceso no autorizado a {request.endpoint} - Sin token")
+            logger.warning(f"Acceso no autorizado a {request.endpoint} - Sin token. Cookies: {list(request.cookies.keys())}")
             if request.is_json:
                 return jsonify({'error': 'Token de autenticación requerido', 'redirect': '/auth/login'}), 401
             return redirect(url_for('auth.login'))
@@ -41,6 +47,7 @@ def require_auth(f):
         try:
             # 2. Verificar token con Firebase Admin SDK
             decoded_token = auth.verify_id_token(token)
+            logger.debug(f"[Auth] Token verificado para UID {decoded_token.get('uid')}")
             
             # 3. Establecer usuario actual en contexto global
             g.current_user = {
@@ -136,6 +143,8 @@ def optional_auth(f):
         auth_header = request.headers.get('Authorization', '')
         if auth_header.startswith('Bearer '):
             token = auth_header.replace('Bearer ', '')
+        elif 'firebase_id_token' in request.cookies:
+            token = request.cookies.get('firebase_id_token')
         elif 'firebase_token' in request.cookies:
             token = request.cookies.get('firebase_token')
         elif session.get('firebase_token'):

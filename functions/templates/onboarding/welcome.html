@@ -1,0 +1,252 @@
+{% extends "base.html" %} {% block title %}Bienvenido - HuertoRentable{%
+endblock %} {% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8 text-center">
+      <!-- Hero -->
+      <div class="mb-5">
+        <h1 class="display-4 text-success mb-3">
+          🌱 ¡Bienvenido a HuertoRentable!
+        </h1>
+        <p class="lead text-muted">
+          Transforma tu huerto en un negocio rentable con nuestra herramienta de
+          gestión profesional.
+        </p>
+      </div>
+
+      <!-- Features -->
+      <div class="row mb-5">
+        <div class="col-md-4 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+              <div class="feature-icon mb-3">
+                <i class="bi bi-grid-3x3-gap text-success fs-1"></i>
+              </div>
+              <h5 class="card-title">Gestión de Cultivos</h5>
+              <p class="card-text text-muted">
+                Registra y controla todos tus cultivos desde un solo lugar.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+              <div class="feature-icon mb-3">
+                <i class="bi bi-graph-up text-success fs-1"></i>
+              </div>
+              <h5 class="card-title">Informes Avanzados</h5>
+              <p class="card-text text-muted">
+                Visualiza tus beneficios y rendimiento con gráficas
+                interactivas.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+              <div class="feature-icon mb-3">
+                <i class="bi bi-cloud-check text-success fs-1"></i>
+              </div>
+              <h5 class="card-title">Copia de Seguridad</h5>
+              <p class="card-text text-muted">
+                Tus datos seguros y sincronizados en todos tus dispositivos.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA Buttons -->
+      <div class="row justify-content-center g-3 mb-4">
+        <div class="col-12 col-md-4">
+          <a
+            href="{{ url_for('auth.plan_selection') }}"
+            class="btn btn-success btn-lg btn-cta w-100 py-3 shadow-sm"
+          >
+            <i class="bi bi-person-plus me-2"></i>
+            <div class="d-block">
+              <strong>Comenzar</strong>
+              <small class="d-block text-white-50">Elige tu plan ideal</small>
+            </div>
+          </a>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <a
+            href="{{ url_for('auth.login') }}"
+            class="btn btn-outline-success btn-lg btn-cta w-100 py-3 shadow-sm"
+          >
+            <i class="bi bi-box-arrow-in-right me-2"></i>
+            <div class="d-block">
+              <strong>Iniciar Sesión</strong>
+              <small class="d-block text-muted">Accede a tu cuenta</small>
+            </div>
+          </a>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <a
+            href="{{ url_for('main.dashboard') }}?demo=true"
+            class="btn btn-outline-info btn-lg btn-cta w-100 py-3 shadow-sm"
+          >
+            <i class="bi bi-eye me-2"></i>
+            <div class="d-block">
+              <strong>Ver Demo</strong>
+              <small class="d-block text-muted">Con datos de ejemplo</small>
+            </div>
+          </a>
+        </div>
+      </div>
+      <!-- Separador visual -->
+      <div class="text-center">
+        <small class="text-muted fst-italic">
+          🔒 Tus datos están seguros con nosotros
+        </small>
+      </div>
+      <!-- Plans Preview -->
+      <div class="mt-5 pt-5">
+        <h3 class="text-center mb-4">Planes Disponibles</h3>
+        <div class="row justify-content-center">
+          <div class="col-md-6 mb-3">
+            <div class="card border-warning">
+              <div class="card-header text-center bg-warning text-dark">
+                <h5 class="mb-0">Gratuito</h5>
+              </div>
+              <div class="card-body text-center">
+                <h3 class="card-title">Gratis</h3>
+                <ul class="list-unstyled">
+                  <li>✅ Cultivos ilimitados</li>
+                  <li>✅ Copia de seguridad</li>
+                  <li>✅ Informes básicos</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <div class="card border-primary">
+              <div class="card-header text-center bg-primary text-white">
+                <h5 class="mb-0">Premium</h5>
+              </div>
+              <div class="card-body text-center">
+                <h3 class="card-title">€0.99/mes</h3>
+                <ul class="list-unstyled">
+                  <li>✅ Todo lo anterior</li>
+                  <li>✅ Sin anuncios</li>
+                  <li>✅ Informes avanzados</li>
+                  <li>✅ Exportar datos</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .feature-icon {
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card {
+    transition: transform 0.2s ease-in-out;
+  }
+
+  .card:hover {
+    transform: translateY(-5px);
+  }
+
+  /* Estilos para botones CTA mejorados */
+  .btn-cta {
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border-width: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-cta::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+    transition: left 0.5s;
+  }
+
+  .btn-cta:hover::before {
+    left: 100%;
+  }
+
+  .btn-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  .btn-success.btn-cta {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border-color: #28a745;
+  }
+
+  .btn-success.btn-cta:hover {
+    background: linear-gradient(135deg, #218838 0%, #1ea080 100%);
+    border-color: #1e7e34;
+  }
+
+  .btn-outline-success.btn-cta:hover {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border-color: #28a745;
+  }
+
+  .btn-outline-secondary.btn-cta {
+    border-color: #6c757d;
+    color: #6c757d;
+  }
+
+  .btn-outline-secondary.btn-cta:hover {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    border-color: #6c757d;
+    color: white;
+  }
+
+  /* Efectos para el contenido de los botones */
+  .btn-cta i {
+    transition: transform 0.3s ease;
+  }
+
+  .btn-cta:hover i {
+    transform: scale(1.1);
+  }
+
+  .btn-cta small {
+    font-size: 0.75rem;
+    line-height: 1;
+    margin-top: 2px;
+  }
+
+  /* Espaciado responsivo */
+  @media (max-width: 768px) {
+    .btn-cta {
+      margin-bottom: 1rem;
+    }
+  }
+</style>
+
+{% endblock %}

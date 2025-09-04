@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Completo HuertoRentable</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .test-card {
+        margin-bottom: 1rem;
+      }
+      .status-ok {
+        color: #198754;
+      }
+      .status-error {
+        color: #dc3545;
+      }
+      .status-warning {
+        color: #fd7e14;
+      }
+    </style>
+  </head>
+  <body class="bg-light">
+    <div class="container mt-4">
+      <h1 class="text-center mb-4">🧪 Test Completo HuertoRentable</h1>
+
+      <div class="row">
+        <div class="col-lg-8 mx-auto">
+          <!-- Firebase Tests -->
+          <div class="card test-card">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0">🔥 Firebase Configuration</h5>
+            </div>
+            <div class="card-body">
+              <div id="firebase-tests">
+                <div class="d-flex justify-content-center">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Testing...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Backend Tests -->
+          <div class="card test-card">
+            <div class="card-header bg-success text-white">
+              <h5 class="mb-0">🖥️ Backend API</h5>
+            </div>
+            <div class="card-body">
+              <div id="backend-tests">
+                <div class="d-flex justify-content-center">
+                  <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">Testing...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Navigation Tests -->
+          <div class="card test-card">
+            <div class="card-header bg-info text-white">
+              <h5 class="mb-0">🧭 Navigation</h5>
+            </div>
+            <div class="card-body">
+              <div id="navigation-tests">
+                <div class="d-flex justify-content-center">
+                  <div class="spinner-border text-info" role="status">
+                    <span class="visually-hidden">Testing...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Final Result -->
+          <div class="card">
+            <div class="card-header bg-dark text-white">
+              <h5 class="mb-0">📋 Resultado Final</h5>
+            </div>
+            <div class="card-body">
+              <div id="final-result" class="text-center">
+                <div class="spinner-border text-dark" role="status">
+                  <span class="visually-hidden">Calculating...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+    <!-- Our Firebase Config -->
+    <script src="/static/js/firebase-config-final.js"></script>
+
+    <script>
+      let testResults = {
+        firebase: [],
+        backend: [],
+        navigation: [],
+      };
+
+      function addTest(category, name, success, details = "") {
+        testResults[category].push({
+          name: name,
+          success: success,
+          details: details,
+        });
+      }
+
+      function displayTests(category, containerId) {
+        const container = document.getElementById(containerId);
+        const tests = testResults[category];
+
+        let html = "";
+        tests.forEach((test) => {
+          const icon = test.success ? "✅" : "❌";
+          const statusClass = test.success ? "status-ok" : "status-error";
+          html += `
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>${icon} ${test.name}</span>
+                        <span class="${statusClass}">${
+            test.success ? "OK" : "FALLO"
+          }</span>
+                    </div>
+                    ${
+                      test.details
+                        ? `<small class="text-muted d-block mb-2">${test.details}</small>`
+                        : ""
+                    }
+                `;
+        });
+
+        container.innerHTML = html;
+      }
+
+      function showFinalResult() {
+        const total = Object.values(testResults).flat().length;
+        const passed = Object.values(testResults)
+          .flat()
+          .filter((t) => t.success).length;
+        const percentage = Math.round((passed / total) * 100);
+
+        let resultClass = "text-success";
+        let resultIcon = "🎉";
+        let resultText = "EXCELENTE";
+
+        if (percentage < 70) {
+          resultClass = "text-danger";
+          resultIcon = "❌";
+          resultText = "NECESITA CORRECCIÓN";
+        } else if (percentage < 90) {
+          resultClass = "text-warning";
+          resultIcon = "⚠️";
+          resultText = "NECESITA MEJORAS";
+        }
+
+        document.getElementById("final-result").innerHTML = `
+                <h3 class="${resultClass}">${resultIcon} ${resultText}</h3>
+                <p class="mb-0">Pruebas pasadas: ${passed}/${total} (${percentage}%)</p>
+            `;
+      }
+
+      // Test Firebase
+      function testFirebase() {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            // Test 1: Firebase SDK
+            addTest(
+              "firebase",
+              "Firebase SDK Cargado",
+              typeof firebase !== "undefined"
+            );
+
+            // Test 2: HuertoFirebase
+            addTest(
+              "firebase",
+              "HuertoFirebase Disponible",
+              typeof window.HuertoFirebase !== "undefined"
+            );
+
+            if (window.HuertoFirebase) {
+              const status = window.HuertoFirebase.getStatus();
+
+              // Test 3-6: Status checks
+              addTest("firebase", "App Inicializada", status.appInitialized);
+              addTest("firebase", "Auth Inicializado", status.authInitialized);
+              addTest("firebase", "Config Presente", status.config);
+
+              // Test 7: Try auth
+              if (status.authInitialized) {
+                addTest(
+                  "firebase",
+                  "Auth Service Ready",
+                  true,
+                  "Firebase Auth está listo para usar"
+                );
+              } else {
+                addTest(
+                  "firebase",
+                  "Auth Service Ready",
+                  false,
+                  "Firebase Auth no está disponible"
+                );
+              }
+            }
+
+            displayTests("firebase", "firebase-tests");
+            resolve();
+          }, 1000);
+        });
+      }
+
+      // Test Backend APIs
+      function testBackend() {
+        return new Promise((resolve) => {
+          const endpoints = [
+            { url: "/api/health", name: "Health Check" },
+            { url: "/api/crops", name: "Crops API" },
+          ];
+
+          let completed = 0;
+
+          endpoints.forEach((endpoint) => {
+            fetch(endpoint.url)
+              .then((response) => {
+                addTest(
+                  "backend",
+                  endpoint.name,
+                  response.ok,
+                  `Status: ${response.status}`
+                );
+              })
+              .catch((error) => {
+                addTest(
+                  "backend",
+                  endpoint.name,
+                  false,
+                  `Error: ${error.message}`
+                );
+              })
+              .finally(() => {
+                completed++;
+                if (completed === endpoints.length) {
+                  displayTests("backend", "backend-tests");
+                  resolve();
+                }
+              });
+          });
+        });
+      }
+
+      // Test Navigation
+      function testNavigation() {
+        return new Promise((resolve) => {
+          const pages = ["/", "/onboarding", "/auth/register", "/auth/login"];
+
+          let completed = 0;
+
+          pages.forEach((page) => {
+            fetch(page)
+              .then((response) => {
+                addTest(
+                  "navigation",
+                  `Página ${page}`,
+                  response.ok,
+                  `Status: ${response.status}`
+                );
+              })
+              .catch((error) => {
+                addTest(
+                  "navigation",
+                  `Página ${page}`,
+                  false,
+                  `Error: ${error.message}`
+                );
+              })
+              .finally(() => {
+                completed++;
+                if (completed === pages.length) {
+                  displayTests("navigation", "navigation-tests");
+                  resolve();
+                }
+              });
+          });
+        });
+      }
+
+      // Run all tests
+      async function runAllTests() {
+        try {
+          await testFirebase();
+          await testBackend();
+          await testNavigation();
+          showFinalResult();
+        } catch (error) {
+          console.error("Error running tests:", error);
+        }
+      }
+
+      // Start tests when ready
+      document.addEventListener("DOMContentLoaded", () => {
+        setTimeout(runAllTests, 2000);
+      });
+    </script>
+  </body>
+</html>

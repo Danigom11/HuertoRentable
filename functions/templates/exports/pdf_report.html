@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reporte HuertoRentable</title>
+    <style>
+      /* Estilos optimizados para PDF */
+      @page {
+        size: A4;
+        margin: 2cm;
+        @bottom-center {
+          content: "HuertoRentable - Página " counter(page);
+          font-size: 10px;
+          color: #666;
+        }
+      }
+
+      body {
+        font-family: "DejaVu Sans", Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        margin: 0;
+        padding: 0;
+      }
+
+      .header {
+        text-align: center;
+        border-bottom: 3px solid #198754;
+        padding-bottom: 20px;
+        margin-bottom: 30px;
+      }
+
+      .header h1 {
+        color: #198754;
+        font-size: 2.5em;
+        margin: 0;
+        font-weight: bold;
+      }
+
+      .header .subtitle {
+        color: #666;
+        font-size: 1.1em;
+        margin-top: 10px;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .info-card {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #198754;
+      }
+
+      .info-card h3 {
+        margin: 0 0 10px 0;
+        color: #198754;
+        font-size: 1.1em;
+      }
+
+      .info-card .value {
+        font-size: 1.8em;
+        font-weight: bold;
+        color: #333;
+        margin: 5px 0;
+      }
+
+      .summary-section {
+        background: #e8f5e8;
+        padding: 20px;
+        border-radius: 10px;
+        margin: 20px 0;
+        page-break-inside: avoid;
+      }
+
+      .summary-section h2 {
+        color: #198754;
+        margin-top: 0;
+        border-bottom: 2px solid #198754;
+        padding-bottom: 10px;
+      }
+
+      .crops-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        page-break-inside: avoid;
+      }
+
+      .crops-table th {
+        background: #198754;
+        color: white;
+        padding: 12px 8px;
+        text-align: left;
+        font-weight: bold;
+        font-size: 0.9em;
+      }
+
+      .crops-table td {
+        padding: 10px 8px;
+        border-bottom: 1px solid #ddd;
+        font-size: 0.9em;
+      }
+
+      .crops-table tr:nth-child(even) {
+        background: #f8f9fa;
+      }
+
+      .crops-table tr:hover {
+        background: #e8f5e8;
+      }
+
+      .metric {
+        text-align: center;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .metric .number {
+        font-size: 2em;
+        font-weight: bold;
+        color: #198754;
+        display: block;
+      }
+
+      .metric .label {
+        color: #666;
+        font-size: 0.9em;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .chart-placeholder {
+        background: #f8f9fa;
+        border: 2px dashed #198754;
+        border-radius: 10px;
+        padding: 40px;
+        text-align: center;
+        color: #666;
+        margin: 20px 0;
+        page-break-inside: avoid;
+      }
+
+      .chart-placeholder .icon {
+        font-size: 3em;
+        color: #198754;
+        margin-bottom: 10px;
+      }
+
+      .badge {
+        background: #198754;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        font-weight: bold;
+      }
+
+      .badge.inactive {
+        background: #6c757d;
+      }
+
+      .footer {
+        text-align: center;
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid #ddd;
+        color: #666;
+        font-size: 0.9em;
+      }
+
+      /* Evitar saltos de página en elementos importantes */
+      .no-break {
+        page-break-inside: avoid;
+      }
+
+      /* Forzar salto de página */
+      .page-break {
+        page-break-before: always;
+      }
+
+      .text-center {
+        text-align: center;
+      }
+
+      .text-right {
+        text-align: right;
+      }
+
+      .mb-20 {
+        margin-bottom: 20px;
+      }
+
+      .mt-20 {
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Encabezado del reporte -->
+    <div class="header no-break">
+      <h1>🌱 HuertoRentable</h1>
+      <div class="subtitle">Reporte Completo de Análisis</div>
+      <div class="subtitle">{{ titulo_usuario }} | {{ fecha_reporte }}</div>
+    </div>
+
+    <!-- Resumen ejecutivo -->
+    <div class="summary-section no-break">
+      <h2>📊 Resumen Ejecutivo</h2>
+      <div class="info-grid">
+        <div class="info-card">
+          <h3>🌾 Total de Cultivos</h3>
+          <div class="value">{{ total_cultivos }}</div>
+          <small>Cultivos gestionados</small>
+        </div>
+        <div class="info-card">
+          <h3>⚖️ Producción Total</h3>
+          <div class="value">{{ "%.1f"|format(total_kilos) }} kg</div>
+          <small>Kilogramos cosechados</small>
+        </div>
+        <div class="info-card">
+          <h3>💰 Beneficios Totales</h3>
+          <div class="value">€{{ "%.2f"|format(total_beneficios) }}</div>
+          <small>Ingresos generados</small>
+        </div>
+        <div class="info-card">
+          <h3>📈 Beneficio Promedio</h3>
+          <div class="value">€{{ "%.2f"|format(beneficio_promedio) }}</div>
+          <small>Por cultivo</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gráfica placeholder (simulada) -->
+    <div class="chart-placeholder no-break">
+      <div class="icon">📊</div>
+      <h3>Distribución de Producción por Cultivo</h3>
+      <p>Visualización de datos de producción</p>
+      <div
+        style="display: flex; justify-content: space-around; margin-top: 20px"
+      >
+        {% for cultivo in cultivos[:5] %}
+        <div style="text-align: center">
+          <div
+            style="background: #198754; height: {{ (cultivo.get('kilos_totales', 0) * 3)|int }}px; width: 40px; margin: 0 auto 10px;"
+          ></div>
+          <small>{{ cultivo.nombre[:8] }}</small>
+          <br />
+          <strong
+            >{{ "%.1f"|format(cultivo.get('kilos_totales', 0)) }} kg</strong
+          >
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Detalle de cultivos -->
+    <div class="page-break">
+      <h2 style="color: #198754; margin-bottom: 20px">
+        🌱 Detalle de Cultivos
+      </h2>
+
+      {% if cultivos %}
+      <table class="crops-table">
+        <thead>
+          <tr>
+            <th>Cultivo</th>
+            <th>Fecha Siembra</th>
+            <th>Plantas</th>
+            <th>Precio/kg</th>
+            <th>Kilos Totales</th>
+            <th>Beneficio</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cultivo in cultivos %}
+          <tr>
+            <td><strong>{{ cultivo.nombre.title() }}</strong></td>
+            <td>{{ cultivo.fecha_siembra.strftime('%d/%m/%Y') }}</td>
+            <td class="text-center">
+              {{ cultivo.get('plantas_sembradas', 0) }}
+            </td>
+            <td class="text-right">
+              €{{ "%.2f"|format(cultivo.get('precio_por_kilo', 0)) }}
+            </td>
+            <td class="text-right">
+              {{ "%.1f"|format(cultivo.get('kilos_totales', 0)) }} kg
+            </td>
+            <td class="text-right">
+              <strong
+                >€{{ "%.2f"|format(cultivo.get('beneficio_total', 0)) }}</strong
+              >
+            </td>
+            <td>
+              {% if cultivo.get('activo', True) %}
+              <span class="badge">Activo</span>
+              {% else %}
+              <span class="badge inactive">Cosechado</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="text-center mt-20">
+        <p style="color: #666; font-style: italic">
+          No hay cultivos registrados
+        </p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Análisis de rentabilidad -->
+    <div class="summary-section no-break mt-20">
+      <h2>💹 Análisis de Rentabilidad</h2>
+      <div class="info-grid">
+        <div>
+          <h4>🏆 Cultivo Más Rentable</h4>
+          {% if cultivos %} {% set cultivo_top =
+          cultivos|sort(attribute='beneficio_total', reverse=true)|first %}
+          <p><strong>{{ cultivo_top.nombre.title() }}</strong></p>
+          <p>
+            Beneficio:
+            <strong
+              >€{{ "%.2f"|format(cultivo_top.get('beneficio_total', 0))
+              }}</strong
+            >
+          </p>
+          <p>
+            Producción: {{ "%.1f"|format(cultivo_top.get('kilos_totales', 0)) }}
+            kg
+          </p>
+          {% else %}
+          <p style="color: #666">Sin datos suficientes</p>
+          {% endif %}
+        </div>
+        <div>
+          <h4>📊 Estadísticas Generales</h4>
+          <p>
+            Cultivos activos:
+            <strong>{{ cultivos|selectattr('activo')|list|length }}</strong>
+          </p>
+          <p>
+            Cultivos cosechados:
+            <strong>{{ cultivos|rejectattr('activo')|list|length }}</strong>
+          </p>
+          {% if total_kilos > 0 %}
+          <p>
+            Rentabilidad:
+            <strong>€{{ "%.2f"|format(total_beneficios/total_kilos) }}</strong
+            >/kg
+          </p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Pie de página -->
+    <div class="footer">
+      <p>
+        🌱 <strong>HuertoRentable</strong> - Gestión inteligente de huertos
+        rentables
+      </p>
+      <p>Reporte generado el {{ fecha_reporte }}</p>
+      <p style="font-size: 0.8em; color: #999">
+        Este reporte contiene información confidencial sobre la gestión del
+        huerto.
+      </p>
+    </div>
+  </body>
+</html>

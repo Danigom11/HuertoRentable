@@ -97,6 +97,9 @@ const cropsModule = require("./crops");
 const analyticsModule = require("./analytics");
 const authModule = require("./auth");
 
+// Importar la aplicación Flask SIMPLE
+const { flaskApp } = require("./flask-simple");
+
 // ============================================
 // CONFIGURAR EXPRESS APPS
 // ============================================
@@ -124,6 +127,9 @@ authModule.setupRoutes(authApp, db, admin);
 // ============================================
 // EXPORTAR CLOUD FUNCTIONS
 // ============================================
+
+// Función principal de la aplicación Flask - NUEVA
+exports.flaskApp = flaskApp;
 
 // Función principal para gestión de cultivos
 exports.crops = functions.https.onRequest(cropsApp);

@@ -299,15 +299,34 @@ def check_version():
 def firebase_web_config():
     """Devolver configuración Firebase Web para el frontend"""
     from flask import current_app
+    # Nota: Las claves del SDK Web de Firebase NO son secretas. Sirven como identificadores públicos del proyecto.
     cfg = current_app.config
-    return jsonify({
-        'apiKey': cfg.get('FIREBASE_WEB_API_KEY'),
-        'authDomain': cfg.get('FIREBASE_AUTH_DOMAIN'),
-        'projectId': cfg.get('FIREBASE_PROJECT_ID'),
-        'storageBucket': cfg.get('FIREBASE_STORAGE_BUCKET'),
-        'messagingSenderId': cfg.get('FIREBASE_MESSAGING_SENDER_ID'),
-        'appId': cfg.get('FIREBASE_APP_ID'),
-    })
+
+    # Fallbacks públicos para producción si no hay variables de entorno configuradas en Cloud Run
+    default_config = {
+        'apiKey': 'AIzaSyANFRY9_m3KL_Riiiep9V0t5EbY0UBu-zo',
+        'authDomain': 'huerto-rentable.firebaseapp.com',
+        'projectId': 'huerto-rentable',
+        'storageBucket': 'huerto-rentable.firebasestorage.app',
+        'messagingSenderId': '887320361443',
+        'appId': '1:887320361443:web:61da1fbb63380e7b2e88d6',
+    }
+
+    result = {
+        'apiKey': cfg.get('FIREBASE_WEB_API_KEY') or default_config['apiKey'],
+        'authDomain': cfg.get('FIREBASE_AUTH_DOMAIN') or default_config['authDomain'],
+        'projectId': cfg.get('FIREBASE_PROJECT_ID') or default_config['projectId'],
+        'storageBucket': cfg.get('FIREBASE_STORAGE_BUCKET') or default_config['storageBucket'],
+        'messagingSenderId': cfg.get('FIREBASE_MESSAGING_SENDER_ID') or default_config['messagingSenderId'],
+        'appId': cfg.get('FIREBASE_APP_ID') or default_config['appId'],
+    }
+
+    # Evitar cache para cambios rápidos de configuración
+    resp = jsonify(result)
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 @main_bp.route('/')
 def home():
@@ -370,9 +389,8 @@ def dashboard():
     
     print(f"✅ [Dashboard] Usuario autenticado: {user_uid}")
     
-    # Inicializar servicios con UID seguro
-    crop_service = CropService()
-    user_service = UserService()
+    # Inicializar servicios con DB de la app
+    crop_service = CropService(current_app.db)
     
     try:
         # 1. Obtener cultivos del usuario
@@ -435,17 +453,36 @@ def dashboard():
         plan_config = get_plan_config(user_plan)
         
         print(f"📊 [Dashboard] Métricas calculadas - Cultivos: {len(crops)}, Kilos: {total_kilos:.2f}, Beneficios: {total_beneficios:.2f}")
-        
+
+        # Alias y banderas para compatibilidad con la plantilla
+        show_upgrade = should_show_upgrade_banner(user_plan, len(crops))
+        is_guest_mode = (user_plan == 'invitado')
+        is_demo_mode = bool(session.get('demo_mode_chosen')) or request.args.get('demo') == 'true'
+
         return render_template('dashboard.html',
+            # Datos de usuario/estado
             user=user,
+            is_authenticated=True,
+            is_demo_mode=is_demo_mode,
+            is_guest_mode=is_guest_mode,
+            show_upgrade_banner=show_upgrade,
+            plan=user_plan,
+
+            # Colecciones y métricas (nombres nuevos y alias)
             crops=crops,
+            cultivos=crops,  # alias esperado por la plantilla
             active_crops=active_crops,
             finished_crops=finished_crops,
             total_crops=len(crops),
             total_kilos=round(total_kilos, 2),
+            total_production=round(total_kilos, 2),  # alias
             total_beneficios=round(total_beneficios, 2),
+            total_revenue=round(total_beneficios, 2),  # alias
             recent_productions=recent_productions,
+
+            # Configuración de plan (nombres nuevos y alias)
             plan_config=plan_config,
+            plan_limits=plan_config,  # alias esperado por la plantilla
             user_plan=user_plan
         )
         
@@ -455,17 +492,35 @@ def dashboard():
         traceback.print_exc()
         
         # En caso de error, mostrar dashboard básico
+        # Preparar contexto mínimo seguro para la plantilla
+        safe_plan = user.get('plan', 'gratuito') if isinstance(user, dict) else 'gratuito'
+        plan_cfg = get_plan_config(safe_plan)
         return render_template('dashboard.html',
+            # Datos de usuario/estado
             user=user,
+            is_authenticated=True,
+            is_demo_mode=False,
+            is_guest_mode=(safe_plan == 'invitado'),
+            show_upgrade_banner=False,
+            plan=safe_plan,
+
+            # Colecciones y métricas vacías + alias
             crops=[],
+            cultivos=[],
             active_crops=[],
             finished_crops=[],
             total_crops=0,
             total_kilos=0,
+            total_production=0,
             total_beneficios=0,
+            total_revenue=0,
             recent_productions=[],
-            plan_config=get_plan_config('gratuito'),
-            user_plan=user.get('plan', 'gratuito'),
+
+            # Config de plan + alias
+            plan_config=plan_cfg,
+            plan_limits=plan_cfg,
+            user_plan=safe_plan,
+
             error="Error cargando datos del dashboard"
         )
 
@@ -598,121 +653,6 @@ def test_cultivo_simple():
     except Exception as e:
         import traceback
         return f"<h1>❌ Error general</h1><p>{e}</p><pre>{traceback.format_exc()}</pre>"
-    """Dashboard principal con resumen de cultivos"""
-    from flask import current_app
-    
-    # Obtener parámetros de URL para determinar el modo
-    demo_mode = request.args.get('demo') == 'true'
-    guest_mode = request.args.get('mode') == 'guest'
-    from_register = request.args.get('from') == 'register'
-    
-    # También verificar si hay sesión activa de modo invitado
-    guest_session_active = session.get('guest_mode_active', False)
-    demo_session_active = session.get('demo_mode_chosen', False)
-    
-    user = get_current_user()
-    
-    # Si viene de registro pero no hay usuario, mostrar página de espera
-    if from_register and not user:
-        return render_template('auth/waiting.html', 
-                             message="Configurando tu cuenta...",
-                             redirect_url="/dashboard")
-    
-    # Determinar el tipo de sesión y plan (priorizar usuario autenticado)
-    if user:
-        # Usuario autenticado (Firebase o local)
-        if user.get('is_local'):
-            plan = user.get('plan', 'gratuito')
-            user_type = 'local'
-        else:
-            # Preferir el plan del token/sesión si está presente (más fiable justo tras registro)
-            token_plan = user.get('plan')
-            if token_plan:
-                plan = token_plan
-            else:
-                user_service = UserService(current_app.db)
-                plan = user_service.get_user_plan(user['uid'])
-            user_type = 'firebase'
-        is_authenticated = True
-        use_demo_data = False
-    
-    elif demo_mode or demo_session_active:
-        # Modo demo con datos de ejemplo
-        plan = 'invitado'
-        is_authenticated = False
-        use_demo_data = True
-        user_type = 'demo'
-        session['demo_mode_chosen'] = True
-        
-    elif guest_mode or guest_session_active or (user and user.get('isGuest')):
-        # Modo invitado sin datos (vacío)
-        plan = 'invitado'
-        is_authenticated = False
-        use_demo_data = False
-        user_type = 'guest'
-        session['guest_mode_active'] = True
-        
-    else:
-        # Sin usuario ni modo específico -> redirección al onboarding
-        return redirect(url_for('main.onboarding'))
-    
-    # Obtener límites del plan
-    plan_limits = plan_limit_helper(plan)
-    
-    # Obtener cultivos según el tipo de usuario
-    crop_service = CropService(current_app.db)
-    
-    if use_demo_data:
-        # Datos demo con ejemplos
-        cultivos = crop_service.get_demo_crops()
-        total_kilos, total_beneficios = crop_service.get_demo_totals()
-        
-    elif user_type == 'guest':
-        # Modo invitado vacío (datos desde localStorage en frontend)
-        cultivos = []
-        total_kilos, total_beneficios = 0, 0
-        
-    elif user_type == 'local':
-        # Usuario local registrado
-        cultivos = crop_service.get_local_user_crops(user['uid'])
-        total_kilos, total_beneficios = crop_service.get_local_user_totals(user['uid'])
-        
-    elif user_type == 'firebase':
-        # Usuario Firebase
-        cultivos = crop_service.get_user_crops(user['uid'])
-        total_kilos, total_beneficios = crop_service.get_user_totals(user['uid'])
-        
-    else:
-        # Fallback
-        cultivos = []
-        total_kilos, total_beneficios = 0, 0
-    
-    # Marcar como visitado
-    session['visited_before'] = True
-    
-    # Calcular estadísticas adicionales
-    total_crops = len(cultivos)
-    active_crops = len([c for c in cultivos if c.get('activo', True)])
-    
-    context = {
-        'cultivos': cultivos,
-        'total_kilos': total_kilos,
-        'total_beneficios': total_beneficios,
-        'total_production': total_kilos,  # Alias para compatibilidad con template
-        'total_revenue': total_beneficios,  # Alias para compatibilidad con template
-        'total_crops': total_crops,
-        'active_crops': active_crops,
-        'plan': plan,
-        'plan_limits': plan_limits,
-        'is_authenticated': is_authenticated,
-        'user_type': user_type,  # Añadir tipo de usuario
-        'is_demo_mode': use_demo_data,  # Para banners específicos
-        'is_guest_mode': user_type == 'guest',  # Para funcionalidad local
-        'show_upgrade_banner': should_show_upgrade_banner(plan, len(cultivos)),
-        'demo_mode': use_demo_data  # Para mostrar banner demo
-    }
-    
-    return render_template('dashboard.html', **context)
 
 @main_bp.route('/profile')
 @require_auth

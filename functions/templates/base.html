@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="HuertoRentable - Gestión inteligente de huertos rentables"
+    />
+    <meta name="theme-color" content="#198754" />
+
+    <!-- Bootstrap 5 CDN - diseño responsivo y accesible -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <!-- Fallback para Bootstrap Icons -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css"
+      rel="stylesheet"
+      integrity="sha512-dPXYcDub/aeb08c63jRq/k6GaKccl256JQy/AnOq7CAnEZ9FzSL9wSbcZkMp4R26qAlAi/E4WwVoRUx3i4p5Lsg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
+    <!-- PWA Manifest - hace la app instalable -->
+    <link
+      rel="manifest"
+      href="{{ url_for('static', filename='../manifest.json') }}"
+    />
+
+    <!-- Iconos PWA para diferentes dispositivos -->
+    <link
+      rel="apple-touch-icon"
+      href="{{ url_for('static', filename='img/icon.png') }}"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      href="{{ url_for('static', filename='img/icon.png') }}"
+    />
+
+    <!-- CSS personalizado con versión fija -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/styles.css') }}?v=2.5"
+    />
+
+    <title>{% block title %}HuertoRentable{% endblock %}</title>
+  </head>
+  <body class="bg-light">
+    <!-- Navegación principal - siempre visible y accesible -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-success shadow-sm">
+      <div class="container">
+        <!-- Logo y nombre de la app -->
+        {% if not session.get('user') and request.endpoint != 'main.onboarding'
+        %}
+        <a class="navbar-brand fw-bold" href="{{ url_for('main.onboarding') }}">
+          <i class="bi bi-flower2 me-2"></i>
+          HuertoRentable
+        </a>
+        {% elif request.endpoint == 'main.onboarding' %}
+        <a class="navbar-brand fw-bold" href="{{ url_for('main.onboarding') }}">
+          <i class="bi bi-flower2 me-2"></i>
+          HuertoRentable
+        </a>
+        {% else %}
+        <a class="navbar-brand fw-bold" href="{{ url_for('main.dashboard') }}">
+          <i class="bi bi-flower2 me-2"></i>
+          HuertoRentable
+        </a>
+        {% endif %}
+
+        <!-- Botón hamburguesa para móviles -->
+        {% if request.endpoint != 'main.onboarding' %}
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        {% endif %}
+
+        <!-- Enlaces de navegación -->
+        <div class="collapse navbar-collapse" id="navbarNav">
+          {% if request.endpoint != 'main.onboarding' %}
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+              <a
+                class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}"
+                href="{{ url_for('main.dashboard') }}"
+              >
+                <i class="bi bi-house-door me-1 align-middle"></i
+                ><span class="align-middle">Inicio</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link {% if request.endpoint == 'crops.list_crops' %}active{% endif %}"
+                href="{{ url_for('crops.list_crops') }}"
+              >
+                <i class="bi bi-tree me-1 align-middle"></i
+                ><span class="align-middle">Cultivos</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link {% if request.endpoint == 'analytics.analytics_dashboard' %}active{% endif %}"
+                href="{{ url_for('analytics.analytics_dashboard') }}"
+              >
+                <i class="bi bi-graph-up me-1 align-middle"></i
+                ><span class="align-middle">Análisis</span>
+              </a>
+            </li>
+          </ul>
+
+          <!-- Enlaces de autenticación para usuarios no registrados -->
+          {% if not session.get('user') %}
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a
+                class="nav-link {% if request.endpoint == 'auth.login' %}active{% endif %}"
+                href="{{ url_for('auth.login') }}"
+              >
+                <i class="bi bi-box-arrow-in-right me-1 align-middle"></i
+                ><span class="align-middle">Iniciar Sesión</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link {% if request.endpoint == 'auth.register' %}active{% endif %}"
+                href="{{ url_for('auth.register') }}"
+              >
+                <i class="bi bi-person-plus me-1 align-middle"></i
+                ><span class="align-middle">Registrarse</span>
+              </a>
+            </li>
+          </ul>
+          {% else %}
+          <!-- Enlaces para usuarios autenticados -->
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item dropdown">
+              <a
+                class="nav-link dropdown-toggle"
+                href="#"
+                id="navbarDropdown"
+                role="button"
+                data-bs-toggle="dropdown"
+              >
+                <i class="bi bi-person-circle me-1 align-middle"></i
+                ><span class="align-middle"
+                  >{{ session.user.name or session.user.email or 'Usuario'
+                  }}</span
+                >
+              </a>
+              <ul class="dropdown-menu">
+                <li>
+                  <a class="dropdown-item" href="{{ url_for('main.profile') }}">
+                    <i class="bi bi-person me-2 align-middle"></i
+                    ><span class="align-middle">Perfil</span>
+                  </a>
+                </li>
+                <li><hr class="dropdown-divider" /></li>
+                <li>
+                  <a class="dropdown-item" href="#" onclick="logout()">
+                    <i class="bi bi-box-arrow-right me-2 align-middle"></i
+                    ><span class="align-middle">Cerrar Sesión</span>
+                  </a>
+                </li>
+              </ul>
+            </li>
+          </ul>
+          {% endif %} {% endif %}
+        </div>
+      </div>
+    </nav>
+
+    <!-- Contenido principal -->
+    <main class="container mt-4 mb-5">
+      <!-- Mensajes flash para feedback al usuario -->
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %}
+      <div class="row">
+        <div class="col-12">
+          {% for category, message in messages %}
+          <div
+            class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} alert-dismissible fade show"
+            role="alert"
+          >
+            {{ message }}
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="alert"
+            ></button>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %} {% endwith %}
+
+      <!-- Contenido específico de cada página -->
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer con información útil -->
+    <footer class="bg-success text-white py-3 mt-auto">
+      <div class="container">
+        <div class="row">
+          <div class="col-md-8">
+            <p class="mb-0">
+              <i class="bi bi-flower2 me-2"></i>
+              HuertoRentable - Gestión inteligente de cultivos
+            </p>
+          </div>
+          <div class="col-md-4 text-md-end">
+            <small>
+              <span id="app-version">PWA v1.0</span> |
+              <span id="last-sync">Sincronizado</span>
+            </small>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Bootstrap 5 JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Firebase SDK - versión actualizada y consistente -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <!-- Chart.js para gráficas - solo se carga donde es necesario -->
+    {% block chart_js %}{% endblock %}
+
+    <!-- Configuración y servicios de Firebase -->
+    <script src="{{ url_for('static', filename='js/firebase-config-final.js') }}?v=3.0"></script>
+    <script src="{{ url_for('static', filename='js/auth-service.js') }}?v=1.0"></script>
+
+    <!-- JavaScript personalizado con versión fija -->
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=2.3"></script>
+
+    <!-- Service Worker para PWA - funcionalidad offline -->
+    <script>
+      // TEMPORAL: Service Worker deshabilitado para debug
+      console.log("🔧 Service Worker deshabilitado para evitar cache issues");
+      /*
+      // Registrar Service Worker sin parámetros dinámicos
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker
+            .register("/service-worker.js")
+            .then(function (registration) {
+              console.log("✅ Service Worker registrado:", registration.scope);
+
+              // Verificar actualizaciones menos frecuentemente
+              registration.update();
+
+              // Detectar nuevo Service Worker
+              registration.addEventListener("updatefound", () => {
+                const newWorker = registration.installing;
+                newWorker.addEventListener("statechange", () => {
+                  if (
+                    newWorker.state === "installed" &&
+                    navigator.serviceWorker.controller
+                  ) {
+                    console.log(
+                      "🔄 Nueva versión del Service Worker disponible"
+                    );
+                    // El Service Worker enviará un mensaje para notificar la actualización
+                  }
+                });
+              });
+            })
+            .catch(function (error) {
+              console.log("❌ Error registrando Service Worker:", error);
+            });
+        });
+      }
+      */
+
+      // Detectar cuando la app se puede instalar
+      let deferredPrompt;
+      window.addEventListener("beforeinstallprompt", (e) => {
+        console.log("💾 App se puede instalar");
+        deferredPrompt = e;
+        // Mostrar botón de instalación personalizado si queremos
+      });
+
+      // Verificar que Bootstrap Icons se cargue correctamente
+      document.addEventListener("DOMContentLoaded", function () {
+        // Pequeño delay para que carguen los CSS
+        setTimeout(function () {
+          const testIcon = document.querySelector(".bi-tree");
+          if (testIcon) {
+            const computedStyle = window.getComputedStyle(testIcon, "::before");
+            if (!computedStyle.content || computedStyle.content === "none") {
+              console.warn(
+                "🔧 Bootstrap Icons no se cargó correctamente, aplicando fallback"
+              );
+              // Fallback: añadir texto simple
+              document.querySelectorAll(".bi-tree").forEach((icon) => {
+                if (!icon.textContent) {
+                  icon.textContent = "🌱";
+                  icon.style.fontFamily = "emoji";
+                }
+              });
+            }
+          }
+        }, 1000);
+      });
+    </script>
+
+    <!-- JavaScript específico de cada página -->
+    {% block page_js %}{% endblock %}
+  </body>
+</html>

@@ -106,51 +106,73 @@ def init_firebase(config):
         firestore.Client: Cliente de Firestore inicializado
     """
     try:
-        # Verificar si Firebase ya está inicializado
+        import os
+        # 1) Si ya está inicializado, solo intenta crear el cliente Firestore
         if firebase_admin._apps:
-            app_firebase = firebase_admin.get_app()
+            try:
+                db = firestore.client()
+                print("✅ Firebase ya inicializado (reutilizado)")
+                return db
+            except Exception as e:
+                print(f"⚠️ Firebase inicializado pero error creando Firestore client: {e}")
+                return None
+
+        # 2) Inicialización por variables de entorno explícitas (producción gestionada)
+        if config.get('FIREBASE_TYPE'):
+            print("✅ Cargando credenciales Firebase desde variables de entorno")
+            private_key = config.get('FIREBASE_PRIVATE_KEY')
+            if private_key:
+                private_key = private_key.replace('\\n', '\n')
+            cred_dict = {
+                "type": config.get('FIREBASE_TYPE'),
+                "project_id": config.get('FIREBASE_PROJECT_ID'),
+                "private_key_id": config.get('FIREBASE_PRIVATE_KEY_ID'),
+                "private_key": private_key,
+                "client_email": config.get('FIREBASE_CLIENT_EMAIL'),
+                "client_id": config.get('FIREBASE_CLIENT_ID'),
+                "auth_uri": config.get('FIREBASE_AUTH_URI'),
+                "token_uri": config.get('FIREBASE_TOKEN_URI'),
+                "auth_provider_x509_cert_url": config.get('FIREBASE_AUTH_PROVIDER_X509_CERT_URL'),
+                "client_x509_cert_url": config.get('FIREBASE_CLIENT_X509_CERT_URL'),
+                "universe_domain": config.get('FIREBASE_UNIVERSE_DOMAIN')
+            }
+            cred = credentials.Certificate(cred_dict)
+            firebase_admin.initialize_app(cred)
         else:
-            # Configuración desde variables de entorno
-            if config.get('FIREBASE_TYPE'):
-                print("✅ Cargando credenciales Firebase desde variables de entorno")
-                
-                # Reconstruir private_key con saltos de línea
-                private_key = config.get('FIREBASE_PRIVATE_KEY')
-                if private_key:
-                    private_key = private_key.replace('\\n', '\n')
-                
-                cred_dict = {
-                    "type": config.get('FIREBASE_TYPE'),
-                    "project_id": config.get('FIREBASE_PROJECT_ID'),
-                    "private_key_id": config.get('FIREBASE_PRIVATE_KEY_ID'),
-                    "private_key": private_key,
-                    "client_email": config.get('FIREBASE_CLIENT_EMAIL'),
-                    "client_id": config.get('FIREBASE_CLIENT_ID'),
-                    "auth_uri": config.get('FIREBASE_AUTH_URI'),
-                    "token_uri": config.get('FIREBASE_TOKEN_URI'),
-                    "auth_provider_x509_cert_url": config.get('FIREBASE_AUTH_PROVIDER_X509_CERT_URL'),
-                    "client_x509_cert_url": config.get('FIREBASE_CLIENT_X509_CERT_URL'),
-                    "universe_domain": config.get('FIREBASE_UNIVERSE_DOMAIN')
-                }
-                
-                cred = credentials.Certificate(cred_dict)
-                
+            # 3) Si estamos en Cloud Run/GCP, usar ADC (sin credenciales explícitas)
+            if os.environ.get('K_SERVICE') or os.environ.get('GOOGLE_CLOUD_PROJECT'):
+                print("✅ Detectado entorno GCP (Cloud Run) - usando Application Default Credentials")
+                firebase_admin.initialize_app()
             else:
-                # Fallback: usar archivo local en desarrollo
-                print("⚠️ Usando credenciales locales de desarrollo")
-                cred = credentials.Certificate('serviceAccountKey.json')
-            
-            # Inicializar Firebase
-            app_firebase = firebase_admin.initialize_app(cred)
-        
-        # Crear cliente Firestore
-        db = firestore.client()
-        print("✅ Firebase inicializado correctamente")
-        return db
-        
+                # 4) Desarrollo: buscar serviceAccountKey.json de forma robusta
+                print("⚠️ Buscando serviceAccountKey.json localmente")
+                possible_paths = [
+                    'serviceAccountKey.json',
+                    os.path.join(os.getcwd(), 'serviceAccountKey.json'),
+                    os.path.join(os.path.dirname(__file__), '..', 'serviceAccountKey.json'),
+                    os.path.join(os.path.dirname(__file__), '..', '..', 'serviceAccountKey.json'),
+                ]
+                sa_path = next((p for p in possible_paths if os.path.exists(p)), None)
+                if not sa_path:
+                    print("❌ serviceAccountKey.json no encontrado. Intentando ADC por defecto.")
+                    firebase_admin.initialize_app()
+                else:
+                    print(f"✅ Usando credenciales locales: {sa_path}")
+                    cred = credentials.Certificate(sa_path)
+                    firebase_admin.initialize_app(cred)
+
+        # Intentar crear cliente Firestore (opcional para autenticación)
+        try:
+            db = firestore.client()
+            print("✅ Firebase inicializado correctamente (Firestore OK)")
+            return db
+        except Exception as e:
+            print(f"⚠️ Firebase inicializado, pero Firestore no disponible: {e}")
+            return None
+
     except Exception as error:
-        print(f"❌ Error inicializando Firebase: {error}")
-        print("⚠️ Modo demo activado - los datos no se guardarán")
+        print(f"❌ Error inicializando Firebase (fase crítica): {error}")
+        # En este caso, la verificación de tokens podría fallar. No forzamos salida, pero dejamos rastro.
         return None
 
 def register_blueprints(app):

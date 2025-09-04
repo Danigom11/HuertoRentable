@@ -1,0 +1,1401 @@
+{% extends "base.html" %} {% block title %}Inicio - HuertoRentable{% endblock %}
+{% block content %}
+
+<!-- Banner específico según el modo -->
+{% if is_demo_mode %}
+<div class="alert alert-info alert-dismissible fade show" role="alert">
+  <i class="bi bi-eye me-2"></i>
+  <strong>Modo Demo</strong> - Estás viendo datos de ejemplo para conocer todas
+  las funcionalidades.
+  <a href="{{ url_for('auth.plan_selection') }}" class="alert-link"
+    >Crear cuenta</a
+  >
+  para gestionar tus cultivos reales.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% elif is_guest_mode %}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+  <i class="bi bi-person me-2"></i>
+  <strong>Modo Invitado</strong> - Tus datos se guardan localmente y pueden
+  perderse.
+  <a href="{{ url_for('auth.plan_selection') }}" class="alert-link"
+    >Crear cuenta gratis</a
+  >
+  para respaldarlos en la nube.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% elif not is_authenticated %}
+<div class="alert alert-secondary alert-dismissible fade show" role="alert">
+  <i class="bi bi-info-circle me-2"></i>
+  <strong>Sesión temporal</strong> -
+  <a href="{{ url_for('auth.login') }}" class="alert-link">Inicia sesión</a>
+  o <a href="{{ url_for('auth.register') }}" class="alert-link">regístrate</a>
+  para guardar tus datos permanentemente.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<!-- Banner de upgrade de plan -->
+{% if show_upgrade_banner %}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+  <i class="bi bi-star me-2"></i>
+  <strong>¡Mejora tu plan!</strong>
+  {% if plan == 'invitado' %} Tienes casi lleno el límite de 3 cultivos.
+  <a href="{{ url_for('main.pricing') }}" class="alert-link"
+    >Registrarse gratis</a
+  >
+  {% else %} Aprovecha todas las funciones premium.
+  <a href="{{ url_for('main.pricing') }}" class="alert-link">Ver planes</a>
+  {% endif %}
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<!-- Header de inicio -->
+<div class="row mb-4">
+  <div class="col-md-8">
+    <h1 class="display-6 text-success mb-2">
+      <i class="bi bi-house-gear me-2 align-middle"></i
+      ><span class="align-middle">Mi Huerto</span>
+    </h1>
+    <p class="lead text-muted">
+      Gestiona tus cultivos, registra cosechas y monitorea tu rentabilidad
+    </p>
+  </div>
+  <div class="col-md-4 text-md-end">
+    <div class="d-grid gap-2 d-md-block">
+      {% if is_authenticated %}
+      <button
+        type="button"
+        class="btn btn-success me-2"
+        data-bs-toggle="modal"
+        data-bs-target="#modalNuevoCultivo"
+      >
+        <i class="bi bi-plus-circle me-1 align-middle"></i
+        ><span class="align-middle">Nuevo Cultivo</span>
+      </button>
+      <a
+        href="{{ url_for('crops.list_crops') }}"
+        class="btn btn-outline-success"
+      >
+        <i class="bi bi-pencil-square me-1 align-middle"></i
+        ><span class="align-middle">Editar Cultivos</span>
+      </a>
+      {% else %}
+      <a href="{{ url_for('auth.register') }}" class="btn btn-outline-success">
+        <i class="bi bi-person-plus me-1 align-middle"></i
+        ><span class="align-middle">Registrarse</span>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Tarjetas de estadísticas generales -->
+<div class="row mb-4">
+  <div class="col-lg-4 col-md-6 mb-3">
+    <div class="card bg-success text-white h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="card-title text-uppercase">Cultivos Activos</h6>
+            <h2 class="mb-0" data-stat="total-crops">{{ active_crops }}</h2>
+            <small
+              >de
+              <span data-stat="total-crops-total">{{ total_crops }}</span>
+              totales</small
+            >
+          </div>
+          <div class="align-self-center">
+            <i class="bi bi-grid-3x3-gap fs-1"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4 col-md-6 mb-3">
+    <div class="card bg-warning text-white h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="card-title text-uppercase">Kilos Totales</h6>
+            <h2 class="mb-0" data-stat="total-kilos">
+              {{ total_production|spanish_format(2) }} kg
+            </h2>
+            <small
+              >{% if plan_limits.max_crops != -1 %}Límite: {{
+              plan_limits.max_crops }} cultivos{% else %}Sin límite de
+              cultivos{% endif %}</small
+            >
+          </div>
+          <div class="align-self-center">
+            <i class="bi bi-basket fs-1"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4 col-md-6 mb-3">
+    <div class="card bg-info text-white h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="card-title text-uppercase">Beneficio Total</h6>
+            <h2 class="mb-0" data-stat="total-beneficios">
+              {{ total_revenue|spanish_format(2) }} €
+            </h2>
+            <small
+              >{% if total_crops > 0 %}{{ (total_revenue /
+              total_crops)|spanish_format(2) }} € promedio{% endif %}</small
+            >
+          </div>
+          <div class="align-self-center">
+            <i class="bi bi-currency-euro fs-1"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sección principal de cultivos -->
+<div class="row">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header bg-success text-white">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            <i class="bi bi-grid-3x3-gap me-2 align-middle"></i
+            ><span class="align-middle">Mis Cultivos Activos</span>
+          </h5>
+          {% if is_authenticated %}
+          <button
+            type="button"
+            id="btnReordenar"
+            class="btn btn-outline-light btn-sm"
+            onclick="toggleReorderMode()"
+          >
+            <i class="bi bi-arrows-move me-1 align-middle"></i
+            ><span class="align-middle">Reordenar</span>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body p-4">
+        {% if cultivos %}
+        <!-- Grid responsive de tarjetas de cultivos -->
+        <div class="row g-4" id="cropsContainer" data-crops-container>
+          {% for cultivo in cultivos %} {% if not cultivo.fecha_cosecha %}
+          <div
+            class="col-12 col-md-6 col-lg-4 col-xl-3 crop-item"
+            draggable="false"
+            data-crop-id="{{ cultivo.id }}"
+            data-crop-name="{{ cultivo.nombre }}"
+          >
+            <div
+              class="card h-100 shadow-sm border-0 cultivo-card cultivo-activo"
+            >
+              <!-- Cabecera de la tarjeta con icono del cultivo -->
+              <div
+                class="card-header text-center py-3 text-white position-relative"
+                style="background-color: {{ cultivo.color_cultivo or '#28a745' }};"
+              >
+                <!-- Icono del cultivo -->
+                <div class="cultivo-icon mb-2">
+                  {% if 'tomate' in cultivo.nombre.lower() %}
+                  <span style="font-size: 4rem">🍅</span>
+                  {% elif 'lechuga' in cultivo.nombre.lower() %}
+                  <span style="font-size: 4rem">🥬</span>
+                  {% elif 'zanahoria' in cultivo.nombre.lower() %}
+                  <span style="font-size: 4rem">🥕</span>
+                  {% elif 'pimiento' in cultivo.nombre.lower() %}
+                  <span style="font-size: 4rem">🌶️</span>
+                  {% elif 'calabacin' in cultivo.nombre.lower() %}
+                  <span style="font-size: 4rem">🥒</span>
+                  {% else %}
+                  <span style="font-size: 4rem">🌱</span>
+                  {% endif %}
+                </div>
+                <h6 class="mb-0 text-uppercase fw-bold">
+                  {{ cultivo.nombre }}
+                </h6>
+
+                <!-- Estado del cultivo -->
+                <div class="position-absolute top-0 end-0 m-2">
+                  {% if cultivo.fecha_cosecha %}
+                  <span class="badge bg-light text-dark">
+                    <i class="bi bi-check-circle me-1 align-middle"></i
+                    ><span class="align-middle">Finalizado</span>
+                  </span>
+                  {% else %}
+                  <span class="badge bg-warning text-dark">
+                    <i class="bi bi-clock me-1 align-middle"></i
+                    ><span class="align-middle">Activo</span>
+                  </span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- Cuerpo de la tarjeta con información -->
+              <div class="card-body p-3">
+                <!-- Mini tarjetas de métricas -->
+                <div class="row g-2 mb-3">
+                  <div class="col-6">
+                    <div class="card border-0 bg-light shadow-sm">
+                      <div class="card-body p-2 text-center">
+                        <span style="font-size: 2rem">🌱</span>
+                        <div class="fw-bold text-primary h5 mb-0">
+                          {{ cultivo.plantas_sembradas or 0 }}
+                        </div>
+                        <small class="text-muted">Plantas</small>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="card border-0 bg-light shadow-sm">
+                      <div class="card-body p-2 text-center">
+                        <span style="font-size: 2rem">🧺</span>
+                        <div class="fw-bold text-warning h5 mb-0">
+                          {{ cultivo.unidades_recolectadas or 0 }}
+                        </div>
+                        <small class="text-muted">Unidades</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Mini tarjetas de producción -->
+                <div class="row g-2 mb-3">
+                  <div class="col-6">
+                    <div class="card border-0 bg-light shadow-sm">
+                      <div class="card-body p-2 text-center">
+                        <span style="font-size: 2rem">⚖️</span>
+                        <div class="fw-bold text-success h5 mb-0">
+                          {{ cultivo.kilos_totales|spanish_format(2) }}
+                        </div>
+                        <small class="text-muted">Kilos</small>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="card border-0 bg-light shadow-sm">
+                      <div class="card-body p-2 text-center">
+                        <span style="font-size: 2rem">💰</span>
+                        <div class="fw-bold text-success h5 mb-0">
+                          {{ cultivo.beneficio_total|spanish_format(2) }} €
+                        </div>
+                        <small class="text-muted">Beneficio</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Información adicional -->
+                <div class="mb-3">
+                  <div
+                    class="d-flex justify-content-between align-items-center small text-muted"
+                  >
+                    <span>
+                      <i class="bi bi-calendar3 me-1"></i>
+                      {% if cultivo.fecha_siembra %} {{
+                      cultivo.fecha_siembra.strftime('%d/%m/%Y') }} {% else %}
+                      Sin fecha {% endif %}
+                    </span>
+                    <span>
+                      <i class="bi bi-tag me-1"></i>
+                      {{ cultivo.precio_por_kilo|spanish_format(2) }} €/kg
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Sección de recolección (solo para cultivos activos) -->
+                {% if not cultivo.fecha_cosecha %}
+                <div class="border-top pt-3">
+                  <div class="text-center mb-2">
+                    <small class="text-muted fw-bold">
+                      <span style="font-size: 1.2rem">🗓️</span> RECOLECTAR HOY
+                    </small>
+                  </div>
+
+                  <!-- Controles de recolección -->
+                  <div
+                    class="d-flex align-items-center justify-content-center gap-2"
+                  >
+                    <button
+                      class="btn btn-light border-0 p-2"
+                      type="button"
+                      onclick="decrementarUnidades('{{ cultivo.id }}')"
+                      style="font-size: 1.5rem"
+                    >
+                      ➖
+                    </button>
+                    <input
+                      type="number"
+                      class="form-control text-center fw-bold"
+                      id="unidades_{{ cultivo.id }}"
+                      value="1"
+                      min="1"
+                      max="999"
+                      style="
+                        background-color: #f8f9fa;
+                        width: 60px;
+                        max-width: 60px;
+                      "
+                    />
+                    <button
+                      class="btn btn-light border-0 p-2"
+                      type="button"
+                      onclick="incrementarUnidades('{{ cultivo.id }}')"
+                      style="font-size: 1.5rem"
+                    >
+                      ➕
+                    </button>
+                  </div>
+
+                  <!-- Botones de acciones de recolección -->
+                  <div class="d-flex gap-2 mt-2">
+                    <button
+                      class="btn btn-success btn-sm w-100 fw-bold"
+                      onclick="añadirRecoleccion('{{ cultivo.id }}')"
+                    >
+                      <i class="bi bi-check-lg me-1"></i> AÑADIR
+                    </button>
+                    <button
+                      class="btn btn-outline-secondary btn-sm fw-bold"
+                      onclick="deshacerRecoleccion('{{ cultivo.id }}')"
+                      title="Deshacer última recolección"
+                    >
+                      <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                  </div>
+                  <a
+                    class="btn btn-outline-info btn-sm w-100 mt-2"
+                    href="{{ url_for('crops.crop_history', crop_id=cultivo.id, uid=(user.uid if user else request.args.get('uid') or request.cookies.get('huerto_user_uid')), demo='true' if is_demo_mode else None) }}"
+                  >
+                    <i class="bi bi-clock-history me-1"></i> Ver historial
+                  </a>
+                </div>
+                {% else %}
+                <!-- Cultivo finalizado -->
+                <div class="border-top pt-3 text-center">
+                  <small class="text-muted">
+                    <i class="bi bi-calendar-check me-1"></i>
+                    Cosechado el {{ cultivo.fecha_cosecha.strftime('%d/%m/%Y')
+                    }}
+                  </small>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endif %} {% endfor %}
+        </div>
+        {% else %}
+        <!-- Estado vacío - primera experiencia del usuario -->
+        <div class="text-center py-5" data-crops-container>
+          <i class="bi bi-seedling text-muted" style="font-size: 4rem"></i>
+          <h4 class="text-muted mt-3">¡Comienza tu huerto rentable!</h4>
+          <p class="text-muted mb-4">
+            Aún no tienes cultivos registrados. <br />
+            Añade tu primer cultivo para comenzar a gestionar tu huerto.
+          </p>
+          {% if is_guest_mode %}
+          <a href="/crops/create" class="btn btn-success btn-lg">
+            <i class="bi bi-plus-circle me-2"></i>
+            Añadir Primer Cultivo (Local)
+          </a>
+          {% else %}
+          <a
+            href="{{ url_for('crops.list_crops') }}"
+            class="btn btn-success btn-lg"
+          >
+            <i class="bi bi-plus-circle me-2"></i>
+            Añadir Primer Cultivo
+          </a>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Enlace a analytics si hay datos -->
+{% if cultivos %}
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="card bg-light border-0">
+      <div class="card-body text-center">
+        <h5 class="text-muted mb-3">
+          <i class="bi bi-graph-up me-2"></i>
+          ¿Quieres ver análisis detallados?
+        </h5>
+        <p class="text-muted mb-3">
+          Explora gráficas de producción, beneficios por año y comparativas
+          entre cultivos
+        </p>
+        <a
+          href="{{ url_for('analytics.analytics_dashboard') }}"
+          class="btn btn-outline-success"
+        >
+          <i class="bi bi-bar-chart me-2"></i>
+          Ver Análisis Completo
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %} {% endblock %} {% block page_css %}
+<style>
+  /* Estilos para las tarjetas de cultivos */
+  .cultivo-card {
+    transition: all 0.3s ease;
+    border-radius: 15px !important;
+  }
+
+  .cultivo-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .cultivo-activo {
+    border-left: 4px solid #198754 !important;
+  }
+
+  .cultivo-finalizado {
+    border-left: 4px solid #6c757d !important;
+    opacity: 0.8;
+  }
+
+  .cultivo-icon {
+    position: relative;
+    display: inline-block;
+  }
+
+  .icon-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.2rem;
+    pointer-events: none;
+  }
+
+  .info-item {
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .info-item:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .cultivo-card .card-header {
+    border-radius: 15px 15px 0 0 !important;
+    background: linear-gradient(
+      135deg,
+      var(--bs-success) 0%,
+      #157347 100%
+    ) !important;
+  }
+
+  .cultivo-finalizado .card-header {
+    background: linear-gradient(
+      135deg,
+      var(--bs-secondary) 0%,
+      #495057 100%
+    ) !important;
+  }
+
+  /* Animaciones de entrada */
+  .cultivo-card {
+    animation: fadeInUp 0.6s ease-out;
+  }
+
+  .cultivo-card:nth-child(1) {
+    animation-delay: 0.1s;
+  }
+  .cultivo-card:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .cultivo-card:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+  .cultivo-card:nth-child(4) {
+    animation-delay: 0.4s;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Responsive mejoras */
+  @media (max-width: 768px) {
+    .cultivo-icon {
+      font-size: 2rem !important;
+    }
+
+    .icon-overlay {
+      font-size: 1rem;
+    }
+  }
+
+  /* Estilos para drag & drop */
+  .reorder-mode .crop-item {
+    cursor: move;
+  }
+
+  .crop-item.dragging {
+    opacity: 0.5;
+    transform: rotate(5deg);
+    z-index: 1000;
+  }
+
+  .crop-item.drag-over {
+    transform: scale(1.05);
+    border: 2px dashed #198754;
+    border-radius: 15px;
+  }
+
+  .reorder-mode .cultivo-card:hover {
+    transform: none !important;
+    box-shadow: 0 4px 15px rgba(25, 135, 84, 0.3) !important;
+  }
+</style>
+{% endblock %} {% block page_js %}
+<script>
+  // Funcionalidad específica del dashboard
+  document.addEventListener("DOMContentLoaded", function () {
+    // Actualizar timestamp de última sincronización
+    const lastSync = document.getElementById("last-sync");
+    if (lastSync && navigator.onLine) {
+      lastSync.textContent = `Actualizado: ${new Date().toLocaleTimeString(
+        "es-ES"
+      )}`;
+    }
+
+    // Animación sutil para las tarjetas de estadísticas
+    const statCards = document.querySelectorAll(".card");
+    statCards.forEach((card, index) => {
+      card.style.animationDelay = `${index * 0.1}s`;
+      card.classList.add("animate__animated", "animate__fadeInUp");
+    });
+
+    console.log("✅ Inicio cargado correctamente");
+  });
+
+  // =====================================
+  // FUNCIONES DE RECOLECCIÓN
+  // =====================================
+
+  function incrementarUnidades(cultivoId) {
+    const input = document.getElementById(`unidades_${cultivoId}`);
+    if (input) {
+      input.value = parseInt(input.value) + 1;
+    }
+  }
+
+  function decrementarUnidades(cultivoId) {
+    const input = document.getElementById(`unidades_${cultivoId}`);
+    if (input && parseInt(input.value) > 1) {
+      input.value = parseInt(input.value) - 1;
+    }
+  }
+
+  function añadirRecoleccion(cultivoId) {
+    const input = document.getElementById(`unidades_${cultivoId}`);
+    if (!input) {
+      alert("Error: No se encontró el campo de cantidad");
+      return;
+    }
+
+    const cantidad = parseInt(input.value, 10);
+    if (!cantidad || cantidad <= 0) {
+      alert("Por favor, especifica una cantidad válida (> 0)");
+      return;
+    }
+
+    // UID de respaldo para contextos sin cookie de sesión
+    const uidParam =
+      "{{ (user.uid if user else request.args.get('uid') or request.cookies.get('huerto_user_uid'))|default('', true) }}";
+    const url = `/crops/${cultivoId}/production${
+      uidParam ? `?uid=${uidParam}` : ""
+    }`;
+
+    const body = new URLSearchParams({ unidades: String(cantidad) }).toString();
+
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    })
+      .then((response) => {
+        // El endpoint devuelve redirect/HTML; tratamos cualquier 2xx/3xx como éxito visual
+        if (response.ok || response.redirected) {
+          // Pequeña pausa para mostrar feedback si fuese necesario
+          setTimeout(() => location.reload(), 400);
+          return;
+        }
+        // Intentar leer JSON de error si lo hubiera
+        return response
+          .json()
+          .then((data) => {
+            throw new Error(data.error || `Error ${response.status}`);
+          })
+          .catch(() => {
+            throw new Error("Error al procesar la recolección");
+          });
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        alert(error.message || "Error al procesar la recolección");
+      });
+  }
+
+  function deshacerRecoleccion(cultivoId) {
+    // UID de respaldo para contextos sin cookie de sesión
+    const uidParam =
+      "{{ (user.uid if user else request.args.get('uid') or request.cookies.get('huerto_user_uid'))|default('', true) }}";
+    const url = `/crops/${cultivoId}/production/undo${
+      uidParam ? `?uid=${uidParam}` : ""
+    }`;
+
+    fetch(url, { method: "POST" })
+      .then((response) => {
+        if (response.ok || response.redirected) {
+          setTimeout(() => location.reload(), 300);
+          return;
+        }
+        throw new Error("No se pudo deshacer la última recolección");
+      })
+      .catch((error) => {
+        console.error(error);
+        alert(error.message || "Error al deshacer");
+      });
+  }
+</script>
+
+<!-- Script para reordenar cultivos con drag & drop -->
+<script>
+  let reorderMode = false;
+  let draggedElement = null;
+
+  function toggleReorderMode() {
+    reorderMode = !reorderMode;
+    const container = document.getElementById("cropsContainer");
+    const btn = document.getElementById("btnReordenar");
+    const cropItems = document.querySelectorAll(".crop-item");
+
+    if (reorderMode) {
+      // Activar modo reordenar
+      container.classList.add("reorder-mode");
+      btn.classList.remove("btn-outline-light");
+      btn.classList.add("btn-warning");
+      btn.innerHTML =
+        '<i class="bi bi-check-lg me-1 align-middle"></i><span class="align-middle">Guardar Orden</span>';
+
+      // Hacer elementos arrastrables
+      cropItems.forEach((item) => {
+        item.draggable = true;
+        item.addEventListener("dragstart", handleDragStart);
+        item.addEventListener("dragover", handleDragOver);
+        item.addEventListener("drop", handleDrop);
+        item.addEventListener("dragend", handleDragEnd);
+      });
+    } else {
+      // Desactivar modo reordenar
+      container.classList.remove("reorder-mode");
+      btn.classList.remove("btn-warning");
+      btn.classList.add("btn-outline-light");
+      btn.innerHTML =
+        '<i class="bi bi-arrows-move me-1 align-middle"></i><span class="align-middle">Reordenar</span>';
+
+      // Quitar arrastrables
+      cropItems.forEach((item) => {
+        item.draggable = false;
+        item.removeEventListener("dragstart", handleDragStart);
+        item.removeEventListener("dragover", handleDragOver);
+        item.removeEventListener("drop", handleDrop);
+        item.removeEventListener("dragend", handleDragEnd);
+      });
+
+      // Guardar orden en localStorage
+      saveOrder();
+    }
+  }
+
+  function handleDragStart(e) {
+    draggedElement = this;
+    this.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+
+    if (this !== draggedElement) {
+      this.classList.add("drag-over");
+    }
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    this.classList.remove("drag-over");
+
+    if (this !== draggedElement) {
+      const container = this.parentNode;
+      const allItems = [...container.children];
+      const draggedIndex = allItems.indexOf(draggedElement);
+      const targetIndex = allItems.indexOf(this);
+
+      if (draggedIndex < targetIndex) {
+        container.insertBefore(draggedElement, this.nextSibling);
+      } else {
+        container.insertBefore(draggedElement, this);
+      }
+    }
+  }
+
+  function handleDragEnd(e) {
+    this.classList.remove("dragging");
+    document.querySelectorAll(".crop-item").forEach((item) => {
+      item.classList.remove("drag-over");
+    });
+  }
+
+  function saveOrder() {
+    const container = document.getElementById("cropsContainer");
+    const items = container.querySelectorAll(".crop-item");
+    const order = Array.from(items).map((item) => item.dataset.cropId);
+
+    localStorage.setItem("cropOrder", JSON.stringify(order));
+    console.log("Orden guardado:", order);
+  }
+
+  function loadOrder() {
+    const savedOrder = localStorage.getItem("cropOrder");
+    if (!savedOrder) return;
+
+    try {
+      const order = JSON.parse(savedOrder);
+      const container = document.getElementById("cropsContainer");
+      const items = container.querySelectorAll(".crop-item");
+
+      // Reordenar elementos según el orden guardado
+      order.forEach((cropId, index) => {
+        const item = container.querySelector(`[data-crop-id="${cropId}"]`);
+        if (item) {
+          container.appendChild(item);
+        }
+      });
+    } catch (e) {
+      console.error("Error cargando orden:", e);
+    }
+  }
+
+  // Cargar orden al cargar la página
+  document.addEventListener("DOMContentLoaded", loadOrder);
+</script>
+
+<!-- Script para modo invitado con almacenamiento local -->
+{% if is_guest_mode %}
+<script>
+  // Servicio de almacenamiento local para usuarios invitados
+  class LocalCropService {
+    constructor() {
+      this.storageKey = "huerto_cultivos_local";
+      this.maxCrops = 3;
+    }
+
+    getUserCrops() {
+      try {
+        const data = localStorage.getItem(this.storageKey);
+        return data ? JSON.parse(data) : [];
+      } catch (error) {
+        console.error("Error obteniendo cultivos locales:", error);
+        return [];
+      }
+    }
+
+    createCrop(cropData) {
+      try {
+        const crops = this.getUserCrops();
+
+        if (crops.length >= this.maxCrops) {
+          throw new Error(`Máximo ${this.maxCrops} cultivos en modo invitado`);
+        }
+
+        const newCrop = {
+          id: "crop_" + Date.now(),
+          nombre: cropData.nombre,
+          fecha_siembra: new Date().toISOString(),
+          fecha_cosecha: null,
+          precio_por_kilo: parseFloat(cropData.precio || 0),
+          abonos: [],
+          produccion_diaria: [],
+          activo: true,
+          creado_en: new Date().toISOString(),
+        };
+
+        crops.push(newCrop);
+        localStorage.setItem(this.storageKey, JSON.stringify(crops));
+        return true;
+      } catch (error) {
+        console.error("❌ Error creando cultivo local:", error);
+        throw error;
+      }
+    }
+
+    getCropsSummary() {
+      const crops = this.getUserCrops();
+
+      let totalKilos = 0;
+      let totalBeneficios = 0;
+
+      crops.forEach((crop) => {
+        const kilosCrop = crop.produccion_diaria.reduce(
+          (sum, p) => sum + (p.kilos || 0),
+          0
+        );
+        const beneficioCrop = kilosCrop * (crop.precio_por_kilo || 0);
+
+        totalKilos += kilosCrop;
+        totalBeneficios += beneficioCrop;
+      });
+
+      return {
+        total_cultivos: crops.length,
+        total_kilos: totalKilos,
+        total_beneficios: totalBeneficios,
+        limite_cultivos: this.maxCrops,
+        cultivos_restantes: this.maxCrops - crops.length,
+      };
+    }
+  }
+
+  // Inicializar servicio local
+  window.localCropService = new LocalCropService();
+
+  document.addEventListener("DOMContentLoaded", function () {
+    loadLocalCrops();
+
+    function loadLocalCrops() {
+      try {
+        const crops = window.localCropService.getUserCrops();
+        const summary = window.localCropService.getCropsSummary();
+
+        updateDashboardStats(summary);
+        updateCropsList(crops);
+      } catch (error) {
+        console.error("Error cargando cultivos locales:", error);
+      }
+    }
+
+    function updateDashboardStats(summary) {
+      // Actualizar contadores en inicio
+      const totalCropsEl = document.querySelector('[data-stat="total-crops"]');
+      const totalKilosEl = document.querySelector('[data-stat="total-kilos"]');
+      const totalBeneficiosEl = document.querySelector(
+        '[data-stat="total-beneficios"]'
+      );
+
+      if (totalCropsEl) totalCropsEl.textContent = summary.total_cultivos;
+      if (totalKilosEl)
+        totalKilosEl.textContent = formatNumber(summary.total_kilos, 2) + " kg";
+      if (totalBeneficiosEl)
+        totalBeneficiosEl.textContent =
+          formatNumber(summary.total_beneficios, 2) + " €";
+
+      // Actualizar progreso de límites
+      const progressEl = document.querySelector('[data-progress="crops"]');
+      if (progressEl) {
+        const percentage =
+          (summary.total_cultivos / summary.limite_cultivos) * 100;
+        progressEl.style.width = percentage + "%";
+        progressEl.setAttribute("aria-valuenow", summary.total_cultivos);
+      }
+    }
+
+    function updateCropsList(crops) {
+      const cropsContainer = document.querySelector("[data-crops-container]");
+      if (!cropsContainer) return;
+
+      if (crops.length === 0) {
+        const isGuestMode =
+          new URLSearchParams(window.location.search).get("mode") === "guest";
+        const cropsLink = isGuestMode ? "/crops?mode=guest" : "/crops/create";
+
+        cropsContainer.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="bi bi-seedling text-muted" style="font-size: 3rem;"></i>
+                    <h5 class="text-muted mt-3">No tienes cultivos todavía</h5>
+                    <p class="text-muted">¡Añade tu primer cultivo para empezar!</p>
+                    <a href="${cropsLink}" class="btn btn-success">
+                        <i class="bi bi-plus-circle me-1"></i>
+                        Añadir Cultivo
+                    </a>
+                </div>
+            `;
+        return;
+      }
+
+      // Renderizar cultivos existentes
+      let cropsHTML = "";
+      crops.forEach((crop) => {
+        const fechaSiembra = new Date(crop.fecha_siembra).toLocaleDateString();
+        const kilosTotal = crop.produccion_diaria.reduce(
+          (sum, p) => sum + (p.kilos || 0),
+          0
+        );
+        const beneficio = kilosTotal * (crop.precio_por_kilo || 0);
+
+        cropsHTML += `
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title text-success">${
+                              crop.nombre
+                            }</h6>
+                            <p class="card-text">
+                                <small class="text-muted">Sembrado: ${fechaSiembra}</small><br>
+                                <strong>${formatNumber(
+                                  kilosTotal,
+                                  2
+                                )} kg</strong> producidos<br>
+                                <strong>${formatNumber(
+                                  beneficio,
+                                  2
+                                )} €</strong> generados
+                            </p>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <small class="text-muted">Plan Invitado • Datos locales</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+      });
+
+      cropsContainer.innerHTML = cropsHTML;
+    }
+
+    // Función global para añadir cultivo desde modo invitado
+    window.addLocalCrop = function (cropData) {
+      try {
+        window.localCropService.createCrop(cropData);
+        loadLocalCrops(); // Recargar vista
+        return true;
+      } catch (error) {
+        alert("Error: " + error.message);
+        return false;
+      }
+    };
+  });
+</script>
+{% endif %}
+
+<!-- Modal para nuevo cultivo -->
+<div class="modal fade" id="modalNuevoCultivo" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-plus-circle me-2"></i>
+          Nuevo Cultivo
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+
+      <form
+        id="formNuevoCultivo"
+        action="{{ url_for('crops.create_crop') }}"
+        method="POST"
+      >
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="nombre" class="form-label">
+              <i class="bi bi-seedling me-1"></i>
+              Nombre del Cultivo
+            </label>
+            <div class="input-group">
+              <input
+                type="text"
+                class="form-control"
+                id="nombre"
+                name="nombre"
+                placeholder="ej: Tomates, Lechugas, Zanahorias..."
+                required
+              />
+              <button
+                type="button"
+                class="btn btn-outline-secondary rounded-circle"
+                id="colorPickerBtn"
+                style="
+                  background-color: #28a745;
+                  width: 50px;
+                  height: 50px;
+                  border: 2px solid #fff;
+                "
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                title="Seleccionar color"
+              ></button>
+              <div class="dropdown-menu p-3" id="colorPalette">
+                <div class="d-flex flex-wrap gap-2">
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#28a745"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #28a745;
+                      cursor: pointer;
+                    "
+                    title="Verde"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#dc3545"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #dc3545;
+                      cursor: pointer;
+                    "
+                    title="Rojo"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#0d6efd"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #0d6efd;
+                      cursor: pointer;
+                    "
+                    title="Azul"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#fd7e14"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #fd7e14;
+                      cursor: pointer;
+                    "
+                    title="Naranja"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#6f42c1"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #6f42c1;
+                      cursor: pointer;
+                    "
+                    title="Morado"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#20c997"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #20c997;
+                      cursor: pointer;
+                    "
+                    title="Turquesa"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#ffc107"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #ffc107;
+                      cursor: pointer;
+                    "
+                    title="Amarillo"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#e83e8c"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #e83e8c;
+                      cursor: pointer;
+                    "
+                    title="Rosa"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#6c757d"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #6c757d;
+                      cursor: pointer;
+                    "
+                    title="Gris"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#198754"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #198754;
+                      cursor: pointer;
+                    "
+                    title="Verde Oscuro"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#0dcaf0"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #0dcaf0;
+                      cursor: pointer;
+                    "
+                    title="Cian"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#795548"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #795548;
+                      cursor: pointer;
+                    "
+                    title="Marrón"
+                  ></div>
+                </div>
+              </div>
+              <input
+                type="hidden"
+                id="color_cultivo"
+                name="color_cultivo"
+                value="#28a745"
+              />
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="precio" class="form-label">
+              <i class="bi bi-currency-euro me-1"></i>
+              Precio por Kilo (€)
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="precio"
+              name="precio"
+              step="0.01"
+              min="0"
+              placeholder="ej: 3.50"
+              required
+            />
+            <div class="form-text">Precio estimado de venta por kilogramo</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="numero_plantas" class="form-label">
+              <i class="bi bi-collection me-1"></i>
+              Número de Plantas
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="numero_plantas"
+              name="numero_plantas"
+              min="1"
+              placeholder="ej: 12"
+              required
+            />
+            <div class="form-text">
+              Cantidad de plantas sembradas en este cultivo
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="peso_promedio" class="form-label">
+              <i class="bi bi-calculator me-1"></i>
+              Peso Promedio por Unidad (g)
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="peso_promedio"
+              name="peso_promedio"
+              step="0.1"
+              min="0.1"
+              placeholder="ej: 150.0"
+              required
+            />
+            <div class="form-text">
+              Peso en gramos de cada unidad (tomate, lechuga, etc.) para
+              calcular automáticamente los kilos
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="fecha_siembra" class="form-label">
+              <i class="bi bi-calendar-event me-1"></i>
+              Fecha de Siembra
+            </label>
+            <input
+              type="date"
+              class="form-control"
+              id="fecha_siembra"
+              name="fecha_siembra"
+              required
+            />
+            <div class="form-text">
+              Fecha en la que se sembró o plantó el cultivo
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-plus-circle me-1"></i>
+            Crear Cultivo
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Inicializar fecha por defecto en el modal de nuevo cultivo
+  document.addEventListener("DOMContentLoaded", function () {
+    const fechaSiembraInput = document.getElementById("fecha_siembra");
+    if (fechaSiembraInput) {
+      // Establecer fecha de hoy como valor por defecto
+      const today = new Date();
+      const todayString =
+        today.getFullYear() +
+        "-" +
+        String(today.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(today.getDate()).padStart(2, "0");
+      fechaSiembraInput.value = todayString;
+    }
+
+    // Inicializar selector de colores
+    initDashboardColorPicker();
+
+    // Generar color automático para nuevo cultivo
+    generateDashboardNextColor();
+  });
+
+  // Array de colores disponibles
+  const dashboardAvailableColors = [
+    "#28a745",
+    "#dc3545",
+    "#0d6efd",
+    "#fd7e14",
+    "#6f42c1",
+    "#20c997",
+    "#ffc107",
+    "#e83e8c",
+    "#6c757d",
+    "#198754",
+    "#0dcaf0",
+    "#795548",
+  ];
+
+  // Función para generar el siguiente color disponible en dashboard
+  function generateDashboardNextColor() {
+    // Obtener colores ya usados de las tarjetas de cultivos en el dashboard
+    const existingColors = Array.from(
+      document.querySelectorAll('.cultivo-card [style*="background-color"]')
+    )
+      .map((el) => {
+        const style = el.getAttribute("style");
+        const match = style.match(/background-color:\s*([^;]+)/);
+        return match ? match[1].trim() : null;
+      })
+      .filter((color) => color && color !== "#28a745"); // Excluir color por defecto
+
+    const usedColors = [...new Set(existingColors)]; // Eliminar duplicados
+
+    // Encontrar primer color no usado
+    let nextColor = dashboardAvailableColors.find(
+      (color) => !usedColors.includes(color)
+    );
+
+    // Si todos están usados, usar uno aleatorio
+    if (!nextColor) {
+      nextColor =
+        dashboardAvailableColors[
+          Math.floor(Math.random() * dashboardAvailableColors.length)
+        ];
+    }
+
+    // Actualizar el selector de color del nuevo cultivo
+    const colorBtn = document.getElementById("colorPickerBtn");
+    const colorInput = document.getElementById("color_cultivo");
+    if (colorBtn && colorInput) {
+      colorBtn.style.backgroundColor = nextColor;
+      colorInput.value = nextColor;
+    }
+  }
+
+  // Función para inicializar el selector de colores en dashboard
+  function initDashboardColorPicker() {
+    // Selector para nuevo cultivo
+    document
+      .querySelectorAll("#colorPalette .color-option")
+      .forEach((option) => {
+        option.addEventListener("click", function () {
+          const color = this.getAttribute("data-color");
+          const colorBtn = document.getElementById("colorPickerBtn");
+          const colorInput = document.getElementById("color_cultivo");
+
+          if (colorBtn && colorInput) {
+            colorBtn.style.backgroundColor = color;
+            colorInput.value = color;
+          }
+
+          // Cerrar dropdown
+          const dropdown = bootstrap.Dropdown.getInstance(
+            document.getElementById("colorPickerBtn")
+          );
+          if (dropdown) {
+            dropdown.hide();
+          }
+        });
+      });
+  }
+</script>
+
+{% endblock %}

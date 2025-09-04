@@ -1,0 +1,23 @@
+# Dependencias para Cloud Functions Python
+# Copiadas exactas de tu requirements.txt principal
+
+# Functions Framework para Cloud Functions
+functions-framework==3.*
+
+# Core Flask - EXACTO como tu app
+Flask==2.3.3
+python-dotenv==1.0.0
+
+# Firebase para base de datos y autenticación - EXACTO
+firebase-admin==6.2.0
+
+# JWT para autenticación personalizada - EXACTO
+PyJWT==2.10.1
+
+# Exportación de datos - EXACTO
+openpyxl==3.1.2
+weasyprint==61.2
+reportlab==4.0.9
+
+# Utilidades adicionales - EXACTO
+python-dateutil==2.9.0

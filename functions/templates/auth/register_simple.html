@@ -1,0 +1,265 @@
+{% extends "base.html" %} {% block title %}Registro Simplificado -
+HuertoRentable{% endblock %} {% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
+      <!-- Información de Debug -->
+      <div class="card mb-4" id="debugCard" style="display: none">
+        <div class="card-header bg-info text-white">
+          <h6 class="mb-0">🔍 Información de Debug</h6>
+        </div>
+        <div class="card-body">
+          <div
+            id="debugInfo"
+            style="
+              font-family: monospace;
+              font-size: 12px;
+              max-height: 200px;
+              overflow-y: auto;
+            "
+          ></div>
+          <button class="btn btn-sm btn-secondary mt-2" onclick="toggleDebug()">
+            Ocultar Debug
+          </button>
+        </div>
+      </div>
+
+      <!-- Formulario de Registro -->
+      <div class="card shadow">
+        <div class="card-header bg-success text-white text-center">
+          <h4 class="mb-0">
+            <i class="bi bi-person-plus me-2"></i>
+            Crear Cuenta - HuertoRentable
+          </h4>
+          <small class="opacity-75">Registro Simplificado</small>
+        </div>
+        <div class="card-body p-4">
+          <!-- Alertas -->
+          <div id="alertContainer"></div>
+
+          <!-- Formulario -->
+          <form id="simpleRegisterForm">
+            <div class="mb-3">
+              <label for="email" class="form-label">
+                <i class="bi bi-envelope me-1"></i>Email
+              </label>
+              <input
+                type="email"
+                class="form-control"
+                id="email"
+                required
+                autocomplete="email"
+                placeholder="tu@email.com"
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="password" class="form-label">
+                <i class="bi bi-lock me-1"></i>Contraseña
+              </label>
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                required
+                autocomplete="new-password"
+                placeholder="Mínimo 6 caracteres"
+                minlength="6"
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="displayName" class="form-label">
+                <i class="bi bi-person me-1"></i>Nombre
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                id="displayName"
+                placeholder="Tu nombre completo"
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="plan" class="form-label">
+                <i class="bi bi-star me-1"></i>Plan
+              </label>
+              <select class="form-control" id="plan">
+                <option value="gratuito">Gratuito - Básico</option>
+                <option value="premium">Premium - 0,99 €/mes</option>
+              </select>
+            </div>
+
+            <div class="d-grid gap-2">
+              <button
+                type="submit"
+                class="btn btn-success btn-lg"
+                id="submitBtn"
+              >
+                <i class="bi bi-person-plus me-2"></i>
+                Crear Cuenta
+              </button>
+            </div>
+          </form>
+
+          <!-- Enlaces adicionales -->
+          <div class="text-center mt-3">
+            <p class="mb-1">
+              ¿Ya tienes cuenta?
+              <a
+                href="{{ url_for('auth.login') }}"
+                class="text-decoration-none"
+              >
+                Iniciar sesión
+              </a>
+            </p>
+            <button class="btn btn-link btn-sm" onclick="toggleDebug()">
+              <i class="bi bi-bug"></i> Mostrar Debug
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block page_js %}
+<!-- Servicio de registro simplificado -->
+<script src="{{ url_for('static', filename='js/simple-registration.js') }}"></script>
+
+<script>
+  let debugVisible = false;
+
+  function addDebugLog(message) {
+    const debugInfo = document.getElementById("debugInfo");
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = document.createElement("div");
+    logEntry.innerHTML = `<span style="color: #666;">${timestamp}:</span> ${message}`;
+    debugInfo.appendChild(logEntry);
+    debugInfo.scrollTop = debugInfo.scrollHeight;
+    console.log(`[${timestamp}] ${message}`);
+  }
+
+  function toggleDebug() {
+    debugVisible = !debugVisible;
+    const debugCard = document.getElementById("debugCard");
+    debugCard.style.display = debugVisible ? "block" : "none";
+  }
+
+  function showAlert(type, message) {
+    const container = document.getElementById("alertContainer");
+    container.innerHTML = "";
+
+    const alert = document.createElement("div");
+    alert.className = `alert alert-${
+      type === "error" ? "danger" : type
+    } alert-dismissible fade show`;
+    alert.innerHTML = `
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    container.appendChild(alert);
+
+    // Auto-dismiss success alerts
+    if (type === "success") {
+      setTimeout(() => {
+        if (alert.parentNode) {
+          alert.remove();
+        }
+      }, 5000);
+    }
+  }
+
+  // Inicialización
+  document.addEventListener("DOMContentLoaded", async function () {
+    addDebugLog("📱 Página cargada, inicializando servicio...");
+
+    try {
+      // Esperar un poco para que todos los scripts se carguen
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      if (window.simpleRegistrationService) {
+        addDebugLog("✅ SimpleRegistrationService disponible");
+
+        const initialized = await window.simpleRegistrationService.initialize();
+        if (initialized) {
+          addDebugLog("✅ Servicio inicializado correctamente");
+        } else {
+          addDebugLog("❌ Error al inicializar servicio");
+        }
+      } else {
+        addDebugLog("❌ SimpleRegistrationService no disponible");
+      }
+    } catch (error) {
+      addDebugLog(`❌ Error en inicialización: ${error.message}`);
+    }
+  });
+
+  // Manejo del formulario
+  document
+    .getElementById("simpleRegisterForm")
+    .addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const submitBtn = document.getElementById("submitBtn");
+      const originalText = submitBtn.innerHTML;
+
+      // Deshabilitar botón
+      submitBtn.disabled = true;
+      submitBtn.innerHTML =
+        '<i class="spinner-border spinner-border-sm me-2"></i>Registrando...';
+
+      try {
+        // Obtener datos del formulario
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+        const displayName = document.getElementById("displayName").value.trim();
+        const plan = document.getElementById("plan").value;
+
+        addDebugLog(`📝 Iniciando registro: ${email}, plan: ${plan}`);
+
+        // Validaciones básicas
+        if (!email || !password) {
+          throw new Error("Email y contraseña son obligatorios");
+        }
+
+        if (password.length < 6) {
+          throw new Error("La contraseña debe tener al menos 6 caracteres");
+        }
+
+        addDebugLog("✅ Validaciones básicas pasadas");
+
+        // Llamar al servicio de registro
+        addDebugLog("📤 Llamando a registerUser...");
+        const result = await window.registerUser(
+          email,
+          password,
+          displayName,
+          plan
+        );
+
+        if (result.success) {
+          addDebugLog("🎉 Registro exitoso!");
+          showAlert(
+            "success",
+            `¡Bienvenido/a ${result.user.name}! Cuenta creada exitosamente.`
+          );
+
+          // Redirigir al dashboard después de un momento
+          setTimeout(() => {
+            window.location.href = "/dashboard?from=register";
+          }, 2000);
+        } else {
+          addDebugLog(`❌ Registro falló: ${result.error}`);
+          showAlert("error", result.error);
+        }
+      } catch (error) {
+        addDebugLog(`❌ Error en formulario: ${error.message}`);
+        showAlert("error", error.message);
+      } finally {
+        // Restaurar botón
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    });
+</script>
+{% endblock %}

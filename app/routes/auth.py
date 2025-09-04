@@ -430,6 +430,9 @@ def sync_user():
             path='/'
         )
         
+        # También soportar flujo tradicional: si el cliente no espera JSON, redirigir
+        if request.headers.get('Accept', '').startswith('text/html'):
+            return redirect(f"/dashboard?from=register&welcome=true&uid={user_data['uid']}")
         return response
         
     except Exception as e:
@@ -536,10 +539,31 @@ def login():
         except Exception:
             pass
 
-        # Asegurar que la sesión Flask se persista
         session.permanent = True
         session.modified = True
 
+        # SOLUCIÓN ANTI-BUCLE: Las cookies no viajan por el proxy Hosting→Cloud Run
+        # Hacer redirect directo del servidor tras establecer sesión
+        print(f"✅ [login] Sesión creada exitosamente en servidor, redirigiendo a dashboard")
+        
+        # Si es request AJAX/JSON, devolver JSON con redirect_url
+        if request.is_json or request.headers.get('Content-Type', '').startswith('application/json'):
+            return jsonify({
+                'success': True,
+                'token': session_token,
+                'user': {
+                    'uid': user_data['uid'],
+                    'email': user_data['email'],
+                    'name': user_data.get('name', user_data['email'].split('@')[0])
+                },
+                'redirect_url': f"/dashboard?from=login&uid={user_data['uid']}"
+            })
+        
+        # Si es request HTML normal, hacer redirect DIRECTO del servidor
+        return redirect(f"/dashboard?from=login&uid={user_data['uid']}")
+
+        if request.headers.get('Accept', '').startswith('text/html'):
+            return redirect(f"/dashboard?from=login&uid={user_data['uid']}")
         return response
         
     except Exception as e:
@@ -590,6 +614,33 @@ def upgrade_plan():
         print(f"Error actualizando plan: {e}")
         return jsonify({'error': 'Error interno'}), 500
 
+@auth_bp.route('/test-cookie-simple', methods=['POST'])
+def test_cookie_simple():
+    """Test ultra simple para verificar cookies desde Hosting→Cloud Run"""
+    try:
+        # Crear una respuesta que establezca cookies básicas
+        response = make_response(jsonify({
+            'message': 'Test cookie establecida',
+            'timestamp': str(datetime.datetime.now()),
+            'received_cookies': dict(request.cookies),
+            'host': request.host
+        }))
+        
+        # Establecer cookies con diferentes configuraciones
+        response.set_cookie('test_basic', 'valor1', max_age=3600, path='/')
+        response.set_cookie('test_lax', 'valor2', max_age=3600, path='/', samesite='Lax')
+        response.set_cookie('test_none_secure', 'valor3', max_age=3600, path='/', 
+                           samesite='None', secure=True)
+        
+        # También establecer la sesión Flask agresivamente
+        session.permanent = True
+        session['test_cookie_time'] = str(datetime.datetime.now())
+        session.modified = True
+        
+        return response
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     """Página e endpoint de registro con selección de plan"""
@@ -608,8 +659,12 @@ def register():
     try:
         print("📝 [/auth/register] Solicitud recibida")
         data = request.get_json()
+        print(f"🔍 [Debug] Datos recibidos: {data}")
         id_token = data.get('idToken')
         selected_plan = data.get('plan', 'gratuito')
+        display_name = data.get('displayName', '')  # ✅ Capturar displayName del frontend
+        
+        print(f"🔍 [Debug] displayName extraído: '{display_name}'")
         
         if not id_token:
             return jsonify({'error': 'Token requerido'}), 400
@@ -622,6 +677,13 @@ def register():
         user_data = AuthService.verify_firebase_token(id_token)
         if not user_data:
             return jsonify({'error': 'Token inválido'}), 401
+        
+        # Sobrescribir con el nombre del formulario si se proporcionó
+        if display_name.strip():
+            user_data['name'] = display_name.strip()
+            print(f"✅ Usando nombre del formulario: {display_name.strip()}")
+        else:
+            print(f"⚠️ No se proporcionó displayName, usando: {user_data.get('name', 'Sin nombre')}")
         
         # Añadir plan seleccionado a los datos del usuario
         user_data['plan'] = selected_plan
@@ -705,6 +767,28 @@ def register():
             pass
         session.permanent = True
         session.modified = True
+
+        # SOLUCIÓN ANTI-BUCLE: Las cookies no viajan por el proxy Hosting→Cloud Run
+        # En lugar de depender de cookies, hacer redirect directo del servidor
+        print(f"✅ [register] Sesión creada exitosamente en servidor, redirigiendo a dashboard")
+        
+        # Si es request AJAX/JSON, devolver JSON con redirect_url
+        if request.is_json or request.headers.get('Content-Type', '').startswith('application/json'):
+            return jsonify({
+                'success': True,
+                'token': session_token,
+                'user': {
+                    'uid': user_data['uid'],
+                    'email': user_data['email'],
+                    'name': user_data.get('name', user_data['email'].split('@')[0]),
+                    'plan': selected_plan
+                },
+                'message': f'Cuenta creada con plan {selected_plan}',
+                'redirect_url': f"/dashboard?from=register&welcome=true&uid={user_data['uid']}"
+            })
+        
+        # Si es request HTML normal, hacer redirect DIRECTO del servidor (sin depender del frontend)
+        return redirect(f"/dashboard?from=register&welcome=true&uid={user_data['uid']}")
 
         return response
 

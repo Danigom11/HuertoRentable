@@ -99,7 +99,9 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="card-title text-uppercase">Cultivos Activos</h6>
-            <h2 class="mb-0" data-stat="total-crops">{{ active_crops }}</h2>
+            <h2 class="mb-0" data-stat="total-crops">
+              {{ active_crops|length }}
+            </h2>
             <small
               >de
               <span data-stat="total-crops-total">{{ total_crops }}</span>

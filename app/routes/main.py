@@ -312,8 +312,13 @@ def firebase_web_config():
         'appId': '1:887320361443:web:61da1fbb63380e7b2e88d6',
     }
 
+    # Sanitizar apiKey: algunas revisiones pueden tener valores corruptos por env mal seteadas
+    env_api_key = (cfg.get('FIREBASE_WEB_API_KEY') or '').strip()
+    if not env_api_key or not env_api_key.startswith('AIza'):
+        env_api_key = default_config['apiKey']
+
     result = {
-        'apiKey': cfg.get('FIREBASE_WEB_API_KEY') or default_config['apiKey'],
+        'apiKey': env_api_key,
         'authDomain': cfg.get('FIREBASE_AUTH_DOMAIN') or default_config['authDomain'],
         'projectId': cfg.get('FIREBASE_PROJECT_ID') or default_config['projectId'],
         'storageBucket': cfg.get('FIREBASE_STORAGE_BUCKET') or default_config['storageBucket'],
@@ -395,24 +400,35 @@ def dashboard():
     try:
         # 1. Obtener cultivos del usuario
         crops = crop_service.get_user_crops(user_uid)
-        print(f"🌱 [Dashboard] Cultivos encontrados: {len(crops)}")
         
-        # 2. Calcular métricas
-        active_crops = [c for c in crops if not c.get('fecha_cosecha')]
-        finished_crops = [c for c in crops if c.get('fecha_cosecha')]
-        
-        # 3. Calcular producción total
+        # 2. Calcular métricas para cada cultivo y añadir campos calculados
         total_kilos = 0
         total_beneficios = 0
         
         for crop in crops:
             produccion = crop.get('produccion_diaria', [])
             kilos_cultivo = sum(p.get('kilos', 0) for p in produccion)
+            unidades_cultivo = sum(p.get('unidades', 0) for p in produccion)
             precio = crop.get('precio_por_kilo', 0)
             beneficio_cultivo = kilos_cultivo * precio
             
+            # Añadir campos calculados al cultivo
+            crop['kilos_totales'] = kilos_cultivo
+            crop['unidades_recolectadas'] = unidades_cultivo
+            crop['beneficio_total'] = beneficio_cultivo
+            
+            # Asegurar compatibilidad de campos (problemas de naming)
+            if 'numero_plantas' in crop and 'plantas_sembradas' not in crop:
+                crop['plantas_sembradas'] = crop['numero_plantas']
+            if 'precio' in crop and 'precio_por_kilo' not in crop:
+                crop['precio_por_kilo'] = crop['precio']
+            
             total_kilos += kilos_cultivo
             total_beneficios += beneficio_cultivo
+        
+        # 3. Clasificar cultivos
+        active_crops = [c for c in crops if not c.get('fecha_cosecha')]
+        finished_crops = [c for c in crops if c.get('fecha_cosecha')]
         
         # 4. Últimas producciones (últimos 7 días)
         import datetime

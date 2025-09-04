@@ -35,7 +35,8 @@ def analytics_dashboard():
     user_uid = get_current_user_uid()
     user = get_current_user()
     
-    crop_service = CropService()
+    from flask import current_app
+    crop_service = CropService(current_app.db)
     
     # Obtener datos del usuario autenticado
     cultivos = crop_service.get_user_crops(user_uid)
@@ -114,7 +115,8 @@ def advanced():
     user_uid = get_current_user_uid()
     user = get_current_user()
     
-    crop_service = CropService()
+    from flask import current_app
+    crop_service = CropService(current_app.db)
     
     # Obtener datos del usuario autenticado
     cultivos = crop_service.get_user_crops(user_uid)

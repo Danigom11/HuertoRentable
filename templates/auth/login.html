@@ -163,10 +163,11 @@ endblock %} {% block content %}
               );
             }
 
-            // Redirigir al dashboard después de un momento
+            // Redirigir usando la URL devuelta (incluye from=login)
+            const redirectTo = result.redirect || "/dashboard";
             setTimeout(() => {
-              window.location.href = "/dashboard";
-            }, 1500);
+              window.location.href = redirectTo;
+            }, 800);
           } else {
             throw new Error(result.error);
           }

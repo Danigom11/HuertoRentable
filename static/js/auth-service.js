@@ -62,6 +62,10 @@ class AuthService {
       console.log(`📊 Firebase disponible: ${this.isFirebaseReady}`);
 
       if (this.isFirebaseReady) {
+        // Asegurar que Firebase esté listo
+        if (!firebase.apps || !firebase.apps.length) {
+          await window.HuertoFirebase.initialize();
+        }
         // Registro con Firebase
         console.log("🔥 Registrando usuario con Firebase");
 
@@ -100,6 +104,7 @@ class AuthService {
           body: JSON.stringify({
             idToken: idToken,
             plan: plan,
+            displayName: displayName.trim() || "", // ✅ Enviar displayName al backend
           }),
           credentials: "include",
           signal: controller.signal,
@@ -146,7 +151,7 @@ class AuthService {
           console.warn("No se pudieron establecer cookies de respaldo:", e);
         }
 
-        return {
+        const output = {
           success: true,
           user: {
             uid: user.uid,
@@ -156,7 +161,9 @@ class AuthService {
             plan: plan,
           },
           message: result.message,
+          redirect: "/dashboard?from=register&welcome=true&uid=" + user.uid,
         };
+        return output;
       } else {
         // Registro local (fallback)
         console.log("🏠 Registrando usuario localmente");
@@ -242,6 +249,9 @@ class AuthService {
         // Login con Firebase
         console.log("🔥 Iniciando sesión con Firebase");
 
+        if (!firebase.apps || !firebase.apps.length) {
+          await window.HuertoFirebase.initialize();
+        }
         const userCredential = await firebase
           .auth()
           .signInWithEmailAndPassword(email, password);
@@ -285,7 +295,7 @@ class AuthService {
           console.warn("No se pudieron establecer cookies de respaldo:", e);
         }
 
-        return {
+        const output = {
           success: true,
           user: {
             uid: user.uid,
@@ -293,7 +303,9 @@ class AuthService {
             name: user.displayName || email.split("@")[0],
             emailVerified: user.emailVerified,
           },
+          redirect: "/dashboard?from=login&uid=" + user.uid,
         };
+        return output;
       } else {
         // Login local (fallback)
         console.log("🏠 Iniciando sesión localmente");

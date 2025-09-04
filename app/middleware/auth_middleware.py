@@ -16,6 +16,19 @@ def require_auth(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # DEBUG: Mostrar todas las cookies que llegan
+        logger.debug(f"[Auth] Cookies recibidas: {dict(request.cookies)}")
+        logger.debug(f"[Auth] Session actual: {dict(session)}")
+        
+        # Detectar si estamos en desarrollo local
+        is_local = request.host.startswith('127.0.0.1') or request.host.startswith('localhost')
+        
+        # En desarrollo local, si ya hay sesión válida, usar directamente
+        if is_local and session.get('is_authenticated') and session.get('user_uid'):
+            logger.debug(f"[Auth] Desarrollo local - usando sesión existente para {session.get('user_uid')}")
+            g.current_user = session.get('user', {})
+            return f(*args, **kwargs)
+        
         # 1. Obtener token del header o cookie
         token = None
         
@@ -39,6 +52,144 @@ def require_auth(f):
             token = session.get('firebase_token')
         
         if not token:
+            # NUEVA LÓGICA: Si viene con from=register|login en URL, permitir paso para reconstruir sesión
+            if request.args.get('from') in ['register', 'login'] and request.args.get('uid'):
+                uid = request.args.get('uid')
+                logger.info(f"[Auth] Usuario viene de {request.args.get('from')} con UID {uid[:8]}..., permitiendo paso para reconstruir sesión")
+                
+                # Obtener datos reales del usuario desde Firestore
+                try:
+                    from flask import current_app
+                    db = current_app.db
+                    user_doc = db.collection('usuarios').document(uid).get()
+                    
+                    if user_doc.exists:
+                        user_data = user_doc.to_dict()
+                        logger.info(f"[Auth] Datos reales del usuario recuperados desde Firestore")
+                        
+                        # Reconstruir sesión con datos reales
+                        session.permanent = True
+                        session['user_uid'] = uid
+                        session['is_authenticated'] = True
+                        session['user'] = {
+                            'uid': uid,
+                            'email': user_data.get('email', f'user-{uid[:8]}@huerto.com'),
+                            'name': user_data.get('name', f'Usuario {uid[:8]}'),
+                            'plan': user_data.get('plan', 'gratuito')
+                        }
+                        session.modified = True
+                        
+                        # Establecer usuario en contexto
+                        g.current_user = session['user']
+                        
+                        logger.info(f"[Auth] Sesión reconstruida desde Firestore para {user_data.get('name', 'usuario')}")
+                        return f(*args, **kwargs)
+                    else:
+                        logger.warning(f"[Auth] Usuario {uid} no encontrado en Firestore, usando datos mínimos")
+                        
+                except Exception as e:
+                    logger.error(f"[Auth] Error recuperando datos de Firestore: {e}")
+                
+                # Fallback con datos mínimos si falla Firestore
+                session.permanent = True
+                session['user_uid'] = uid
+                session['is_authenticated'] = True
+                session['user'] = {
+                    'uid': uid,
+                    'email': f'user-{uid[:8]}@huerto.com',
+                    'name': f'Usuario {uid[:8]}',
+                    'plan': 'gratuito'
+                }
+                session.modified = True
+                
+                # Establecer usuario en contexto
+                g.current_user = session['user']
+                
+                logger.info(f"[Auth] Sesión reconstruida desde URL tras {request.args.get('from')}")
+                return f(*args, **kwargs)
+            
+            # Reconstrucción mejorada desde cookies de respaldo si existen
+            backup_uid = request.cookies.get('huerto_user_uid')
+            backup_data = request.cookies.get('huerto_user_data')
+            if backup_uid:
+                logger.info(f"[Auth] Intentando reconstruir sesión desde cookies de backup para UID {backup_uid[:8]}...")
+                try:
+                    # Obtener datos reales del usuario desde Firestore
+                    from flask import current_app
+                    db = current_app.db
+                    user_doc = db.collection('usuarios').document(backup_uid).get()
+                    
+                    if user_doc.exists:
+                        user_data = user_doc.to_dict()
+                        logger.info(f"[Auth] Datos del usuario recuperados desde Firestore: {user_data.get('name', 'Sin nombre')}")
+                        
+                        # Reconstruir sesión completa con datos reales
+                        session.permanent = True
+                        session['user_uid'] = backup_uid
+                        session['is_authenticated'] = True
+                        session['user'] = {
+                            'uid': backup_uid,
+                            'email': user_data.get('email', f'user-{backup_uid[:8]}@huerto.com'),
+                            'name': user_data.get('name', f'Usuario {backup_uid[:8]}'),
+                            'plan': user_data.get('plan', 'gratuito')
+                        }
+                        session.modified = True
+                        
+                        # Establecer usuario en contexto
+                        g.current_user = session['user']
+                        
+                        logger.info(f"[Auth] Sesión reconstruida desde Firestore para {user_data.get('name', 'usuario')} mediante cookies backup")
+                        return f(*args, **kwargs)
+                    else:
+                        logger.warning(f"[Auth] Usuario {backup_uid} no encontrado en Firestore")
+                        
+                except Exception as e:
+                    logger.error(f"[Auth] Error recuperando datos de Firestore desde backup: {e}")
+                
+                # Fallback con datos del cookie backup
+                try:
+                    import json as _json
+                    user_data = None
+                    if backup_data:
+                        try:
+                            user_data = _json.loads(backup_data)
+                        except Exception:
+                            user_data = None
+
+                    # Construir usuario mínimo si no hay datos completos
+                    if not user_data:
+                        user_data = {
+                            'uid': backup_uid,
+                            'email': None,
+                            'email_verified': False,
+                            'name': None,
+                            'provider': 'cookie'
+                        }
+
+                    # Establecer usuario actual en contexto y sesión para evitar bucles
+                    g.current_user = {
+                        'uid': user_data.get('uid') or backup_uid,
+                        'email': user_data.get('email'),
+                        'email_verified': bool(user_data.get('email_verified', False)),
+                        'name': user_data.get('name'),
+                        'picture': None,
+                        'provider': 'cookie-fallback'
+                    }
+                    session['user_uid'] = g.current_user['uid']
+                    session['user_email'] = g.current_user.get('email')
+                    session['user'] = {
+                        'uid': g.current_user['uid'],
+                        'email': g.current_user.get('email'),
+                        'name': g.current_user.get('name') or (g.current_user.get('email') or 'Usuario'),
+                        'plan': (user_data.get('plan') or 'gratuito') if isinstance(user_data, dict) else 'gratuito'
+                    }
+                    session['is_authenticated'] = True
+                    session.modified = True
+
+                    logger.info("[Auth] Sesión reconstruida desde cookies de respaldo. Evitando redirección a login.")
+                    return f(*args, **kwargs)
+                except Exception as _e:
+                    logger.warning(f"[Auth] Error reconstruyendo sesión desde cookies: {_e}")
             logger.warning(f"Acceso no autorizado a {request.endpoint} - Sin token. Cookies: {list(request.cookies.keys())}")
             if request.is_json:
                 return jsonify({'error': 'Token de autenticación requerido', 'redirect': '/auth/login'}), 401
@@ -88,6 +239,51 @@ def require_auth(f):
             return redirect(url_for('auth.login'))
             
         except Exception as e:
+            # Si el token falla pero hay cookies de respaldo, reconstruir sesión para evitar bucles
+            backup_uid = request.cookies.get('huerto_user_uid')
+            backup_data = request.cookies.get('huerto_user_data')
+            if backup_uid:
+                try:
+                    import json as _json
+                    user_data = None
+                    if backup_data:
+                        try:
+                            user_data = _json.loads(backup_data)
+                        except Exception:
+                            user_data = None
+
+                    if not user_data:
+                        user_data = {
+                            'uid': backup_uid,
+                            'email': None,
+                            'email_verified': False,
+                            'name': None,
+                            'provider': 'cookie'
+                        }
+
+                    g.current_user = {
+                        'uid': user_data.get('uid') or backup_uid,
+                        'email': user_data.get('email'),
+                        'email_verified': bool(user_data.get('email_verified', False)),
+                        'name': user_data.get('name'),
+                        'picture': None,
+                        'provider': 'cookie-fallback'
+                    }
+                    session['user_uid'] = g.current_user['uid']
+                    session['user_email'] = g.current_user.get('email')
+                    session['user'] = {
+                        'uid': g.current_user['uid'],
+                        'email': g.current_user.get('email'),
+                        'name': g.current_user.get('name') or (g.current_user.get('email') or 'Usuario'),
+                        'plan': (user_data.get('plan') or 'gratuito') if isinstance(user_data, dict) else 'gratuito'
+                    }
+                    session['is_authenticated'] = True
+                    session.modified = True
+
+                    logger.info("[Auth] Token inválido, pero sesión reconstruida desde cookies. Continuando.")
+                    return f(*args, **kwargs)
+                except Exception as _e:
+                    logger.warning(f"[Auth] Error reconstruyendo sesión (post-fallo token): {_e}")
             logger.error(f"Error verificando token: {str(e)}")
             if request.is_json:
                 return jsonify({'error': 'Error de autenticación', 'redirect': '/auth/login'}), 401

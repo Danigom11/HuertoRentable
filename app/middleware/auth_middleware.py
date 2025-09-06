@@ -16,56 +16,41 @@ def require_auth(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # DEBUG: Mostrar todas las cookies que llegan
-        logger.debug(f"[Auth] Cookies recibidas: {dict(request.cookies)}")
-        logger.debug(f"[Auth] Session actual: {dict(session)}")
+        # DEBUG: Mostrar información de cookies y sesión
+        logger.debug(f"[Auth] ==> INICIO AUTH CHECK para {request.endpoint}")
+        logger.debug(f"[Auth] Cookies disponibles: {list(request.cookies.keys())}")
+        logger.debug(f"[Auth] Session keys: {list(session.keys())}")
         logger.debug(f"[Auth] URL: {request.url}")
         logger.debug(f"[Auth] Method: {request.method}")
         
-        # Detectar si estamos en desarrollo local
-        is_local = request.host.startswith('127.0.0.1') or request.host.startswith('localhost')
-        
-        # En desarrollo local, si ya hay sesión válida, usar directamente
-        if is_local and session.get('is_authenticated') and session.get('user_uid'):
+        # PRIORITARIO: Verificar si ya hay sesión Flask válida
+        if session.get('is_authenticated') and session.get('user_uid'):
+            user_uid = session.get('user_uid')
+            logger.debug(f"[Auth] ✅ Sesión Flask válida encontrada para UID {user_uid[:8] if user_uid else 'None'}...")
+            
             # Verificar si la sesión ha expirado (más de 24 horas)
             login_timestamp = session.get('login_timestamp', 0)
             current_time = int(__import__('time').time())
             session_age_hours = (current_time - login_timestamp) / 3600
             
             if session_age_hours > 24:
-                logger.info(f"[Auth] Sesión expirada ({session_age_hours:.1f}h), limpiando y redirigiendo a login")
+                logger.info(f"[Auth] Sesión expirada ({session_age_hours:.1f}h), limpiando")
                 session.clear()
-                # Limpiar también las cookies de backup
-                from flask import make_response
-                response = make_response(redirect(url_for('auth.login')))
-                response.set_cookie('huerto_user_uid', '', expires=0)
-                response.set_cookie('huerto_user_data', '', expires=0)
-                response.set_cookie('huerto_session', '', expires=0)
-                return response
-            
-            # Renovar timestamp cada hora para mantener sesión activa
-            if session_age_hours > 1:
-                session['login_timestamp'] = current_time
-                session.modified = True
-                logger.debug(f"[Auth] Timestamp de sesión renovado")
-            
-            logger.debug(f"[Auth] Desarrollo local - usando sesión existente para {session.get('user_uid')} (edad: {session_age_hours:.1f}h)")
-            
-            # CORRECCIÓN: Asegurar que g.current_user tiene la estructura correcta
-            user_data = session.get('user', {})
-            user_uid = session.get('user_uid')
-            
-            # Si no hay datos completos del usuario en sesión pero sí hay UID, reconstruir
-            if user_uid and (not user_data or not user_data.get('uid')):
-                user_data = {
-                    'uid': user_uid,
-                    'email': session.get('user', {}).get('email') or f'user@local.dev',
-                    'name': session.get('user', {}).get('name') or 'Usuario Local',
-                    'is_local': True
-                }
-            
-            g.current_user = user_data
-            return f(*args, **kwargs)
+            else:
+                # Renovar timestamp cada hora
+                if session_age_hours > 1:
+                    session['login_timestamp'] = current_time
+                    session.modified = True
+                
+                # Asegurar que g.current_user está configurado
+                user_data = session.get('user', {})
+                if user_data and user_data.get('uid'):
+                    g.current_user = user_data
+                    logger.debug(f"[Auth] ✅ Usuario autenticado desde sesión: {user_data.get('name', 'Sin nombre')}")
+                    return f(*args, **kwargs)
+        
+        # Si llegamos aquí, no hay sesión válida, intentar reconstruir desde cookies
+        logger.debug(f"[Auth] No hay sesión válida, intentando reconstruir desde cookies...")
         
         # 1. Obtener token del header o cookie
         token = None
@@ -91,28 +76,31 @@ def require_auth(f):
         
         if not token:
             # NUEVA LÓGICA: Si viene con from=register|login en URL, permitir paso para reconstruir sesión
-            if request.args.get('from') in ['register', 'login'] and request.args.get('uid'):
-                uid = request.args.get('uid')
-                logger.info(f"[Auth] Usuario viene de {request.args.get('from')} con UID {uid[:8]}..., permitiendo paso para reconstruir sesión")
+            from_param = request.args.get('from')
+            uid_param = request.args.get('uid')
+            
+            if from_param in ['register', 'login'] and uid_param:
+                logger.info(f"[Auth] Usuario viene de {from_param} con UID {uid_param[:8]}..., permitiendo paso para reconstruir sesión")
                 
                 # Obtener datos reales del usuario desde Firestore
                 try:
                     from flask import current_app
                     db = current_app.db
-                    user_doc = db.collection('usuarios').document(uid).get()
+                    user_doc = db.collection('usuarios').document(uid_param).get()
                     
                     if user_doc.exists:
                         user_data = user_doc.to_dict()
-                        logger.info(f"[Auth] Datos reales del usuario recuperados desde Firestore")
+                        logger.info(f"[Auth] Datos reales del usuario recuperados desde Firestore: {user_data.get('name', 'Sin nombre')}")
                         
                         # Reconstruir sesión con datos reales
                         session.permanent = True
-                        session['user_uid'] = uid
+                        session['user_uid'] = uid_param
                         session['is_authenticated'] = True
+                        session['login_timestamp'] = int(__import__('time').time())  # Timestamp actual
                         session['user'] = {
-                            'uid': uid,
-                            'email': user_data.get('email', f'user-{uid[:8]}@huerto.com'),
-                            'name': user_data.get('name', f'Usuario {uid[:8]}'),
+                            'uid': uid_param,
+                            'email': user_data.get('email', f'user-{uid_param[:8]}@huerto.com'),
+                            'name': user_data.get('name', f'Usuario {uid_param[:8]}'),
                             'plan': user_data.get('plan', 'gratuito')
                         }
                         session.modified = True
@@ -120,22 +108,23 @@ def require_auth(f):
                         # Establecer usuario en contexto
                         g.current_user = session['user']
                         
-                        logger.info(f"[Auth] Sesión reconstruida desde Firestore para {user_data.get('name', 'usuario')}")
+                        logger.info(f"[Auth] ✅ Sesión reconstruida desde Firestore para {user_data.get('name', 'usuario')}")
                         return f(*args, **kwargs)
                     else:
-                        logger.warning(f"[Auth] Usuario {uid} no encontrado en Firestore, usando datos mínimos")
+                        logger.warning(f"[Auth] Usuario {uid_param} no encontrado en Firestore, usando datos mínimos")
                         
                 except Exception as e:
                     logger.error(f"[Auth] Error recuperando datos de Firestore: {e}")
                 
                 # Fallback con datos mínimos si falla Firestore
                 session.permanent = True
-                session['user_uid'] = uid
+                session['user_uid'] = uid_param
                 session['is_authenticated'] = True
+                session['login_timestamp'] = int(__import__('time').time())
                 session['user'] = {
-                    'uid': uid,
-                    'email': f'user-{uid[:8]}@huerto.com',
-                    'name': f'Usuario {uid[:8]}',
+                    'uid': uid_param,
+                    'email': f'user-{uid_param[:8]}@huerto.com',
+                    'name': f'Usuario {uid_param[:8]}',
                     'plan': 'gratuito'
                 }
                 session.modified = True
@@ -143,7 +132,7 @@ def require_auth(f):
                 # Establecer usuario en contexto
                 g.current_user = session['user']
                 
-                logger.info(f"[Auth] Sesión reconstruida desde URL tras {request.args.get('from')}")
+                logger.info(f"[Auth] ✅ Sesión reconstruida desde URL tras {from_param}")
                 return f(*args, **kwargs)
             
             # Reconstrucción mejorada desde cookies de respaldo si existen

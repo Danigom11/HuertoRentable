@@ -415,27 +415,32 @@ def home():
     print(f"🔍 [HOME] Session: {dict(session)}")
     print(f"🔍 [HOME] Cookies: {dict(request.cookies)}")
     
-    # PRIORIDAD MÁXIMA: Si viene del registro, ir directo al dashboard
-    if (request.args.get('from') == 'register' or 
-        request.referrer and 'register' in request.referrer):
-        print("🎯 [HOME] Usuario viene del registro - redirigir a dashboard")
+    # PRIORIDAD MÁXIMA: Si viene del registro o login con UID, ir directo al dashboard
+    if (request.args.get('from') in ['register', 'login'] and request.args.get('uid')):
+        print(f"🎯 [HOME] Usuario viene de {request.args.get('from')} con UID - redirigir a dashboard")
         return redirect(url_for('main.dashboard', **request.args))
+    
+    # Si viene del referrer de login/register sin UID, también redirigir
+    elif (request.referrer and ('register' in request.referrer or 'login' in request.referrer)):
+        print(f"🎯 [HOME] Usuario viene de referrer de login/register - redirigir a dashboard")
+        return redirect(url_for('main.dashboard'))
     
     # 1) Priorizar sesión de Flask (reciente tras registro/login)
     if session.get('is_authenticated') and session.get('user'):
         print("✅ [HOME] Usuario autenticado en sesión - ir a dashboard")
-        return redirect(url_for('main.dashboard'))
+        # Preservar parámetros de la URL si existen
+        return redirect(url_for('main.dashboard', **request.args))
 
     # 2) Fallback: obtener usuario desde helper (token Firebase o g.current_user)
     user = get_current_user()
     if user:
         print("✅ [HOME] Usuario detectado por helper - ir a dashboard")
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('main.dashboard', **request.args))
     
     # 3) Si hay cookie de usuario, ir al dashboard
     if request.cookies.get('huerto_user_uid') or request.cookies.get('firebase_id_token'):
         print("✅ [HOME] Cookie de usuario detectada - ir a dashboard")
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('main.dashboard', **request.args))
     
     # CAMBIO: Por defecto ir al onboarding para mejor UX
     # Solo ir directo al dashboard si explícitamente han elegido demo
@@ -459,6 +464,12 @@ def dashboard():
     from flask import current_app
     from app.services.crop_service import CropService
     
+    # DEBUG: Log detallado al entrar al dashboard
+    print(f"🔍 [Dashboard] === ENTRADA AL DASHBOARD ===")
+    print(f"🔍 [Dashboard] Request args: {dict(request.args)}")
+    print(f"🔍 [Dashboard] Session: {dict(session)}")
+    print(f"🔍 [Dashboard] User en sesión: {session.get('user', 'No user')}")
+    
     # Obtener UID del usuario autenticado de forma segura
     user_uid = get_current_user_uid()
     
@@ -466,6 +477,7 @@ def dashboard():
     user = get_current_user()
     
     print(f"✅ [Dashboard] Usuario autenticado: {user_uid}")
+    print(f"✅ [Dashboard] Datos de usuario: {user}")
     
     # Inicializar servicios con DB de la app
     crop_service = CropService(current_app.db)

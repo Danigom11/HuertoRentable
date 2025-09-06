@@ -513,34 +513,47 @@ def login():
         }))
 
         import uuid, json as _json
+        from flask import request as _req
+        
+        # Detectar si estamos en HTTPS (producción) o HTTP (desarrollo)
+        is_production = (request.is_secure or 
+                        request.headers.get('X-Forwarded-Proto') == 'https' or
+                        'run.app' in request.host or
+                        not request.host.startswith(('localhost', '127.0.0.1')))
+        
+        print(f"🔍 [Login] Entorno detectado: {'PRODUCCIÓN (HTTPS)' if is_production else 'DESARROLLO (HTTP)'}")
+        
         session_id = str(uuid.uuid4())
-        response.set_cookie('huerto_session', session_id, max_age=86400, secure=False, httponly=False, samesite='Lax', path='/')
-        response.set_cookie('huerto_user_uid', user_data['uid'], max_age=86400, secure=False, httponly=False, samesite='Lax', path='/')
+        
+        # Configurar cookies con parámetros correctos según entorno
+        cookie_secure = is_production
+        cookie_samesite = 'Lax'  # Funciona tanto en HTTP como HTTPS
+        
+        response.set_cookie('huerto_session', session_id, 
+                          max_age=86400, secure=cookie_secure, 
+                          httponly=True, samesite=cookie_samesite, path='/')
+        response.set_cookie('huerto_user_uid', user_data['uid'], 
+                          max_age=86400, secure=cookie_secure, 
+                          httponly=True, samesite=cookie_samesite, path='/')
         response.set_cookie('huerto_user_data', _json.dumps({
             'uid': user_data['uid'],
             'email': user_data['email'],
             'name': user_data.get('name', user_data['email'].split('@')[0]),
             'plan': 'gratuito',
             'authenticated': True
-        }), max_age=86400, secure=False, httponly=False, samesite='Lax', path='/')
+        }), max_age=86400, secure=cookie_secure, 
+           httponly=True, samesite=cookie_samesite, path='/')
+        
+        # Token Firebase
         try:
             id_token_val = data.get('idToken')
             if id_token_val:
-                # Si no estamos en localhost (Hosting/Cloud Run), necesitamos SameSite=None; Secure
-                from flask import request as _req
-                host = _req.host.split(':')[0]
-                is_local = host in ('localhost', '127.0.0.1') or host.endswith('.local')
-                response.set_cookie(
-                    'firebase_id_token',
-                    id_token_val,
-                    max_age=3600,
-                    secure=not is_local,
-                    httponly=False,
-                    samesite='Lax' if is_local else 'None',
-                    path='/'
-                )
-        except Exception:
-            pass
+                response.set_cookie('firebase_id_token', id_token_val,
+                                  max_age=3600, secure=cookie_secure,
+                                  httponly=True, samesite=cookie_samesite, path='/')
+                print(f"✅ [Login] Token Firebase guardado en cookie")
+        except Exception as e:
+            print(f"⚠️ [Login] Error guardando token Firebase: {e}")
 
         session.permanent = True
         session.modified = True

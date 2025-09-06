@@ -412,43 +412,27 @@ def home():
     
     # DEBUG: Log de la petición
     print(f"🔍 [HOME] Request args: {dict(request.args)}")
-    print(f"🔍 [HOME] Session: {dict(session)}")
-    print(f"🔍 [HOME] Cookies: {dict(request.cookies)}")
+    print(f"🔍 [HOME] Session keys: {list(session.keys())}")
+    print(f"🔍 [HOME] User en sesión: {session.get('user', 'No user')}")
     
-    # PRIORIDAD MÁXIMA: Si viene del registro o login con UID, ir directo al dashboard
-    if (request.args.get('from') in ['register', 'login'] and request.args.get('uid')):
-        print(f"🎯 [HOME] Usuario viene de {request.args.get('from')} con UID - redirigir a dashboard")
-        return redirect(url_for('main.dashboard', **request.args))
-    
-    # Si viene del referrer de login/register sin UID, también redirigir
-    elif (request.referrer and ('register' in request.referrer or 'login' in request.referrer)):
-        print(f"🎯 [HOME] Usuario viene de referrer de login/register - redirigir a dashboard")
-        return redirect(url_for('main.dashboard'))
-    
-    # 1) Priorizar sesión de Flask (reciente tras registro/login)
+    # 1) Verificar si hay sesión activa y válida
     if session.get('is_authenticated') and session.get('user'):
         print("✅ [HOME] Usuario autenticado en sesión - ir a dashboard")
-        # Preservar parámetros de la URL si existen
-        return redirect(url_for('main.dashboard', **request.args))
+        return redirect(url_for('main.dashboard'))
 
-    # 2) Fallback: obtener usuario desde helper (token Firebase o g.current_user)
+    # 2) Fallback: obtener usuario desde helper
     user = get_current_user()
     if user:
         print("✅ [HOME] Usuario detectado por helper - ir a dashboard")
-        return redirect(url_for('main.dashboard', **request.args))
+        return redirect(url_for('main.dashboard'))
     
-    # 3) Si hay cookie de usuario, ir al dashboard
-    if request.cookies.get('huerto_user_uid') or request.cookies.get('firebase_id_token'):
-        print("✅ [HOME] Cookie de usuario detectada - ir a dashboard")
-        return redirect(url_for('main.dashboard', **request.args))
-    
-    # CAMBIO: Por defecto ir al onboarding para mejor UX
+    # 3) CAMBIO: Por defecto ir al onboarding para mejor UX
     # Solo ir directo al dashboard si explícitamente han elegido demo
     if session.get('demo_mode_chosen') or request.args.get('demo') == 'true':
         print("✅ [HOME] Modo demo - ir a dashboard")
         return redirect(url_for('main.dashboard', **request.args))
     
-    # Primera visita o sin elección → onboarding
+    # Primera visita o sin sesión → onboarding
     print("❌ [HOME] No hay usuario - ir a onboarding")
     return redirect(url_for('main.onboarding'))
 

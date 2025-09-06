@@ -489,94 +489,31 @@ def login():
             'uid': user_data['uid'],
             'email': user_data['email'],
             'name': user_data.get('name', user_data['email'].split('@')[0]),
+            'plan': 'gratuito'  # Por defecto
         }
         session['is_authenticated'] = True
-        # IMPORTANTE: Añadir timestamp para el middleware de autenticación
         session['login_timestamp'] = int(time.time())
 
-        # Debug: Verificar que la sesión se guardó
-        print(f"🔍 [Login] Sesión creada: {dict(session)}")
+        print(f"🔍 [Login] Sesión creada: user_uid={user_data['uid']}, email={user_data['email']}")
 
-        # Limpiar flags de modos especiales para evitar entrar en demo/invitado
+        # Limpiar flags de modos especiales
         session.pop('demo_mode_chosen', None)
         session.pop('guest_mode_active', None)
         
-        # Preparar respuesta JSON y setear cookies de respaldo
-        response = make_response(jsonify({
-            'success': True,
-            'token': session_token,
-            'user': {
-                'uid': user_data['uid'],
-                'email': user_data['email'],
-                'name': user_data.get('name', user_data['email'].split('@')[0])
-            }
-        }))
-
-        import uuid, json as _json
-        from flask import request as _req
-        
-        # Detectar si estamos en HTTPS (producción) o HTTP (desarrollo)
-        is_production = (request.is_secure or 
-                        request.headers.get('X-Forwarded-Proto') == 'https' or
-                        'run.app' in request.host or
-                        not request.host.startswith(('localhost', '127.0.0.1')))
-        
-        print(f"🔍 [Login] Entorno detectado: {'PRODUCCIÓN (HTTPS)' if is_production else 'DESARROLLO (HTTP)'}")
-        
-        session_id = str(uuid.uuid4())
-        
-        # Configurar cookies con parámetros correctos según entorno
-        cookie_secure = is_production
-        cookie_samesite = 'Lax'  # Funciona tanto en HTTP como HTTPS
-        
-        response.set_cookie('huerto_session', session_id, 
-                          max_age=86400, secure=cookie_secure, 
-                          httponly=True, samesite=cookie_samesite, path='/')
-        response.set_cookie('huerto_user_uid', user_data['uid'], 
-                          max_age=86400, secure=cookie_secure, 
-                          httponly=True, samesite=cookie_samesite, path='/')
-        response.set_cookie('huerto_user_data', _json.dumps({
-            'uid': user_data['uid'],
-            'email': user_data['email'],
-            'name': user_data.get('name', user_data['email'].split('@')[0]),
-            'plan': 'gratuito',
-            'authenticated': True
-        }), max_age=86400, secure=cookie_secure, 
-           httponly=True, samesite=cookie_samesite, path='/')
-        
-        # Token Firebase
-        try:
-            id_token_val = data.get('idToken')
-            if id_token_val:
-                response.set_cookie('firebase_id_token', id_token_val,
-                                  max_age=3600, secure=cookie_secure,
-                                  httponly=True, samesite=cookie_samesite, path='/')
-                print(f"✅ [Login] Token Firebase guardado en cookie")
-        except Exception as e:
-            print(f"⚠️ [Login] Error guardando token Firebase: {e}")
-
-        session.permanent = True
-        session.modified = True
-
-        # SOLUCIÓN ANTI-BUCLE: Las cookies no viajan por el proxy Hosting→Cloud Run
-        # Hacer redirect directo del servidor tras establecer sesión
-        print(f"✅ [login] Sesión creada exitosamente en servidor, redirigiendo a dashboard")
+        # SIMPLIFICADO: Siempre redirigir directo al dashboard sin parámetros complicados
+        print(f"✅ [Login] Redirigiendo directamente al dashboard")
         
         # Si es request AJAX/JSON, devolver JSON con redirect_url
         if request.is_json or request.headers.get('Content-Type', '').startswith('application/json'):
             return jsonify({
                 'success': True,
                 'token': session_token,
-                'user': {
-                    'uid': user_data['uid'],
-                    'email': user_data['email'],
-                    'name': user_data.get('name', user_data['email'].split('@')[0])
-                },
-                'redirect_url': f"/dashboard?from=login&uid={user_data['uid']}"
+                'user': session['user'],
+                'redirect_url': "/dashboard"
             })
         
         # Si es request HTML normal, hacer redirect DIRECTO del servidor
-        return redirect(f"/dashboard?from=login&uid={user_data['uid']}")
+        return redirect("/dashboard")
 
         if request.headers.get('Accept', '').startswith('text/html'):
             return redirect(f"/dashboard?from=login&uid={user_data['uid']}")
@@ -585,11 +522,32 @@ def login():
     except Exception as e:
         return jsonify({'error': f'Error en login: {str(e)}'}), 500
 
-@auth_bp.route('/logout', methods=['POST'])
+@auth_bp.route('/logout', methods=['GET', 'POST'])
 def logout():
     """Cerrar sesión"""
+    print("🔓 [Logout] Cerrando sesión del usuario")
+    
+    # Limpiar sesión Flask
     session.clear()
-    return jsonify({'success': True})
+    
+    # Crear respuesta de redirect al onboarding
+    response = make_response(redirect(url_for('main.onboarding')))
+    
+    # Limpiar todas las cookies relacionadas
+    response.set_cookie('huerto_session', '', expires=0, path='/')
+    response.set_cookie('huerto_user_uid', '', expires=0, path='/')
+    response.set_cookie('huerto_user_data', '', expires=0, path='/')
+    response.set_cookie('firebase_id_token', '', expires=0, path='/')
+    response.set_cookie('firebase_token', '', expires=0, path='/')
+    
+    print("✅ [Logout] Sesión cerrada, redirigiendo a onboarding")
+    
+    # Si es request AJAX, devolver JSON
+    if request.is_json or request.headers.get('Content-Type', '').startswith('application/json'):
+        return jsonify({'success': True, 'redirect_url': url_for('main.onboarding')})
+    
+    # Si es request normal, hacer redirect
+    return response
 
 @auth_bp.route('/upgrade-plan', methods=['POST'])
 def upgrade_plan():

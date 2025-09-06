@@ -10,12 +10,12 @@ from app.utils.helpers import get_plan_limits
 crops_bp = Blueprint('crops', __name__)
 
 @crops_bp.route('/')
-@optional_auth
+@require_auth
 def list_crops():
-    """Listar cultivos del usuario (modo demo disponible) - SEGURO"""
-    from flask import current_app, session
+    """Listar cultivos del usuario - SEGURO"""
+    from flask import current_app
     
-    # Obtener usuario autenticado de forma segura
+    # Obtener usuario autenticado (garantizado por @require_auth)
     user = get_current_user()
     user_uid = get_current_user_uid()
     demo_mode = request.args.get('demo') == 'true'
@@ -25,24 +25,10 @@ def list_crops():
         # Modo demo: cultivos de ejemplo
         cultivos = crop_service.get_demo_crops()
         return render_template('crops.html', cultivos=cultivos, demo_mode=True, user_uid=None)
-    elif user and user_uid:
-        # Usuario autenticado: usar user_uid desde middleware
-        if user.get('is_local'):
-            cultivos = crop_service.get_local_user_crops(user_uid)
-        else:
-            cultivos = crop_service.get_user_crops(user_uid)
-        return render_template('crops.html', cultivos=cultivos, demo_mode=False, user_uid=user_uid)
     else:
-        # Sin usuario: NO activar demo automáticamente
-        # Intentar obtener UID de respaldo desde cookies o parámetros de URL y mostrar sus cultivos (solo lectura)
-        tentative_uid = request.cookies.get('huerto_user_uid') or request.args.get('user_uid')
-        cultivos = []
-        if tentative_uid:
-            try:
-                cultivos = crop_service.get_user_crops(tentative_uid)
-            except Exception as e:
-                print('⚠️ Error cargando cultivos:', e)
-        return render_template('crops.html', cultivos=cultivos, demo_mode=False, user_uid=tentative_uid)
+        # Usuario autenticado: usar get_user_crops (incluye búsqueda en Firebase)
+        cultivos = crop_service.get_user_crops(user_uid)
+        return render_template('crops.html', cultivos=cultivos, demo_mode=False, user_uid=user_uid)
 
 @crops_bp.route('/create', methods=['GET', 'POST'])
 @require_auth

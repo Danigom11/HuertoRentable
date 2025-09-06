@@ -2,7 +2,7 @@
 Rutas principales de la aplicación
 Dashboard, onboarding y páginas principales
 """
-from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify, make_response
+from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify, make_response, current_app, abort
 from app.auth.auth_service import get_current_user, UserService
 from app.middleware.auth_middleware import require_auth, optional_auth, get_current_user_uid
 from app.services.crop_service import CropService
@@ -10,6 +10,40 @@ from app.utils.helpers import get_plan_limits as get_plan_config
 import time
 
 main_bp = Blueprint('main', __name__)
+
+@main_bp.route('/debug-session-info')
+def debug_session_info():
+    """Debug de estado de sesión (temporal)"""
+    import time
+    from datetime import datetime
+    
+    current_time = int(time.time())
+    login_timestamp = session.get('login_timestamp', 0)
+    session_age_hours = (current_time - login_timestamp) / 3600 if login_timestamp else 0
+    
+    debug_info = {
+        'session_data': dict(session),
+        'cookies': dict(request.cookies),
+        'current_timestamp': current_time,
+        'current_datetime': datetime.fromtimestamp(current_time).isoformat(),
+        'login_timestamp': login_timestamp,
+        'session_age_hours': round(session_age_hours, 2),
+        'is_authenticated': session.get('is_authenticated', False),
+        'user_uid': session.get('user_uid'),
+        'session_valid': session_age_hours < 24 if login_timestamp else False
+    }
+    
+    return jsonify(debug_info)
+
+@main_bp.route('/debug-clear-session')
+def debug_clear_session():
+    """Limpiar sesión para testing (temporal)"""
+    session.clear()
+    resp = make_response(jsonify({'message': 'Sesión limpiada'}))
+    resp.set_cookie('huerto_user_uid', '', expires=0)
+    resp.set_cookie('huerto_user_data', '', expires=0)
+    resp.set_cookie('huerto_session', '', expires=0)
+    return resp
 
 def should_show_upgrade_banner(plan, crop_count):
     """Determina si mostrar banner de upgrade"""
@@ -54,44 +88,83 @@ def ping():
     """Endpoint simple para verificar conectividad"""
     return "PONG - Servidor funcionando correctamente"
 
-@main_bp.route('/debug/session')
-def debug_session():
-    """Debug detallado de sesión"""
-    import time
-    
-    data = {
-        'timestamp': time.time(),
-        'session_data': dict(session),
-        'cookies': dict(request.cookies),
-        'is_authenticated': session.get('is_authenticated', False),
-        'user_uid': session.get('user_uid'),
-        'user_data': session.get('user'),
-        'headers': dict(request.headers),
-        'method': request.method,
-        'url': request.url,
-        'has_firebase_token': 'firebase_id_token' in request.cookies,
-        'has_user_cookie': 'huerto_user_uid' in request.cookies
-    }
-    
-    return jsonify(data)
-
 @main_bp.route('/debug/force-session')
 def force_session():
     """Forzar creación de sesión para debug"""
     session.permanent = True
     session['debug'] = True
-    session['test_user'] = {
-        'uid': 'test123',
-        'email': 'test@test.com',
-        'name': 'Test User'
+    session['user'] = {
+        'uid': 'local_danigom11_gmail_com',
+        'email': 'danigom11@gmail.com',
+        'name': 'danigom11',
+        'is_local': True,
+        'plan': 'gratuito',
+        'registered_at': '2025-09-06T12:29:16.228278'
     }
+    session['user_uid'] = 'local_danigom11_gmail_com'
     session['is_authenticated'] = True
     session.modified = True
     
     return jsonify({
-        'message': 'Sesión forzada creada',
+        'message': 'Sesión forzada creada para danigom11',
         'session': dict(session)
     })
+
+@main_bp.route('/debug/test-crops')
+def debug_test_crops():
+    """Endpoint para debug - prueba función get_user_crops directamente"""
+    # Solo disponible en desarrollo
+    if not current_app.config.get('DEVELOPMENT', True):
+        abort(404)
+    
+    # Crear instancia de CropService
+    from app.services.crop_service import CropService
+    crop_service = CropService(current_app.db)
+    
+    # Probar con el usuario local
+    print("🚀 [DEBUG] Probando get_user_crops directamente...")
+    cultivos = crop_service.get_user_crops('local_danigom11_gmail_com')
+    
+    return jsonify({
+        'success': True,
+        'user_uid': 'local_danigom11_gmail_com',
+        'cultivos_count': len(cultivos),
+        'cultivos': cultivos[:3] if cultivos else [],  # Solo primeros 3 para no sobrecargar
+        'mensaje': f'Función ejecutada, encontrados {len(cultivos)} cultivos'
+    })
+
+@main_bp.route('/debug/test-crops-page')
+def debug_test_crops_page():
+    """Endpoint para probar página de cultivos con sesión forzada"""
+    # Solo disponible en desarrollo
+    if not current_app.config.get('DEVELOPMENT', True):
+        abort(404)
+    
+    from flask import session
+    from app.services.crop_service import CropService
+    
+    # Forzar sesión de prueba como usuario local autenticado
+    session.clear()
+    session['is_authenticated'] = True
+    session['user'] = {
+        'email': 'danigom11@gmail.com', 
+        'is_local': True, 
+        'name': 'danigom11', 
+        'plan': 'gratuito', 
+        'registered_at': '2025-09-06T12:29:16.228278', 
+        'uid': 'local_danigom11_gmail_com'
+    }
+    session['user_uid'] = 'local_danigom11_gmail_com'
+    
+    print("🚀 [DEBUG] Accediendo a página cultivos con sesión forzada...")
+    
+    crop_service = CropService(current_app.db)
+    user_uid = "local_danigom11_gmail_com"
+    cultivos = crop_service.get_user_crops(user_uid)
+    
+    print(f"🌱 [DEBUG] En página cultivos: {len(cultivos)} cultivos encontrados")
+    
+    return render_template('crops.html', cultivos=cultivos, demo_mode=False, user_uid=user_uid)
 
 @main_bp.route('/test-registro-manual')
 def test_registro_manual():

@@ -19,14 +19,52 @@ def require_auth(f):
         # DEBUG: Mostrar todas las cookies que llegan
         logger.debug(f"[Auth] Cookies recibidas: {dict(request.cookies)}")
         logger.debug(f"[Auth] Session actual: {dict(session)}")
+        logger.debug(f"[Auth] URL: {request.url}")
+        logger.debug(f"[Auth] Method: {request.method}")
         
         # Detectar si estamos en desarrollo local
         is_local = request.host.startswith('127.0.0.1') or request.host.startswith('localhost')
         
         # En desarrollo local, si ya hay sesión válida, usar directamente
         if is_local and session.get('is_authenticated') and session.get('user_uid'):
-            logger.debug(f"[Auth] Desarrollo local - usando sesión existente para {session.get('user_uid')}")
-            g.current_user = session.get('user', {})
+            # Verificar si la sesión ha expirado (más de 24 horas)
+            login_timestamp = session.get('login_timestamp', 0)
+            current_time = int(__import__('time').time())
+            session_age_hours = (current_time - login_timestamp) / 3600
+            
+            if session_age_hours > 24:
+                logger.info(f"[Auth] Sesión expirada ({session_age_hours:.1f}h), limpiando y redirigiendo a login")
+                session.clear()
+                # Limpiar también las cookies de backup
+                from flask import make_response
+                response = make_response(redirect(url_for('auth.login')))
+                response.set_cookie('huerto_user_uid', '', expires=0)
+                response.set_cookie('huerto_user_data', '', expires=0)
+                response.set_cookie('huerto_session', '', expires=0)
+                return response
+            
+            # Renovar timestamp cada hora para mantener sesión activa
+            if session_age_hours > 1:
+                session['login_timestamp'] = current_time
+                session.modified = True
+                logger.debug(f"[Auth] Timestamp de sesión renovado")
+            
+            logger.debug(f"[Auth] Desarrollo local - usando sesión existente para {session.get('user_uid')} (edad: {session_age_hours:.1f}h)")
+            
+            # CORRECCIÓN: Asegurar que g.current_user tiene la estructura correcta
+            user_data = session.get('user', {})
+            user_uid = session.get('user_uid')
+            
+            # Si no hay datos completos del usuario en sesión pero sí hay UID, reconstruir
+            if user_uid and (not user_data or not user_data.get('uid')):
+                user_data = {
+                    'uid': user_uid,
+                    'email': session.get('user', {}).get('email') or f'user@local.dev',
+                    'name': session.get('user', {}).get('name') or 'Usuario Local',
+                    'is_local': True
+                }
+            
+            g.current_user = user_data
             return f(*args, **kwargs)
         
         # 1. Obtener token del header o cookie
@@ -306,7 +344,7 @@ def get_current_user_uid():
     Returns: str UID del usuario o None
     """
     user = get_current_user()
-    return user['uid'] if user else None
+    return user.get('uid') if user else None
 
 def require_verified_email(f):
     """

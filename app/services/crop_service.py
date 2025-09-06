@@ -21,33 +21,53 @@ class CropService:
         Returns:
             List[Dict]: Lista de cultivos del usuario (vacía si es usuario nuevo)
         """
+        print(f"��� [NUEVA VERSION] ¡FUNCIÓN EJECUTADA! user_uid: {user_uid} 🔥🔥🔥")
+        print(f"🔥🔥🔥 [NUEVA VERSION] TIMESTAMP: {datetime.datetime.now()} ���")
+        
         try:
             if not self.db:
                 # Sin conexión a Firebase, devolver lista vacía para usuarios reales
                 return []
             
-            crops_ref = self.db.collection('usuarios').document(user_uid).collection('cultivos')
-            # Evitar order_by que puede requerir índices si combinamos con where.
-            # Obtenemos activos y ordenamos en memoria por fecha_siembra descendente.
-            docs = crops_ref.where('activo', '==', True).stream()
-            
             cultivos = []
-            for doc in docs:
-                cultivo = doc.to_dict()
-                cultivo['id'] = doc.id
-                # Convertir timestamps a datetime si es necesario
-                cultivo = self._process_cultivo_dates(cultivo)
-                cultivos.append(cultivo)
+            
+            # 🔍 SOLUCIÓN TEMPORAL: Buscar en múltiples usuarios
+            # Para usuarios locales (danigom11), buscar también en usuario Firebase real
+            user_ids_to_check = [user_uid]
+            
+            # Si es usuario local de danigom11, incluir también el usuario Firebase real
+            if user_uid == 'local_danigom11_gmail_com':
+                user_ids_to_check.append('CnQVZjC0TPbVWeInNdnBAWpncyI3')
+                print(f"🔍 [CropService] Buscando cultivos para usuario local, incluyendo Firebase real")
+            
+            # Buscar cultivos en todos los usuarios identificados
+            for uid_to_check in user_ids_to_check:
+                crops_ref = self.db.collection('usuarios').document(uid_to_check).collection('cultivos')
+                docs = crops_ref.where('activo', '==', True).stream()
+                
+                for doc in docs:
+                    cultivo = doc.to_dict()
+                    cultivo['id'] = doc.id
+                    cultivo['source_uid'] = uid_to_check  # Para debug
+                    # Convertir timestamps a datetime si es necesario
+                    cultivo = self._process_cultivo_dates(cultivo)
+                    cultivos.append(cultivo)
+                
+                print(f"🔍 [CropService] Usuario {uid_to_check}: {len([c for c in cultivos if c.get('source_uid') == uid_to_check])} cultivos")
             
             # Ordenar por fecha_siembra descendente si está disponible
             try:
                 cultivos.sort(key=lambda c: c.get('fecha_siembra') or c.get('creado_en') or datetime.datetime.min, reverse=True)
             except Exception:
                 pass
+                
+            print(f"🌱 [CropService] Total cultivos encontrados: {len(cultivos)}")
             return cultivos
             
         except Exception as e:
-            print(f"Error obteniendo cultivos del usuario {user_uid}: {e}")
+            print(f"❌ Error obteniendo cultivos del usuario {user_uid}: {e}")
+            import traceback
+            traceback.print_exc()
             # Para usuarios reales, devolver lista vacía en lugar de datos demo
             return []
     

@@ -368,6 +368,7 @@ def sync_user():
         session['firebase_uid'] = user_data['uid']
         session['auth_method'] = 'firebase'
         session['login_timestamp'] = int(time.time())
+        session.permanent = True  # Asegurar que la sesión es permanente
         
         # Forzar modificación de sesión
         session.modified = True
@@ -490,6 +491,8 @@ def login():
             'name': user_data.get('name', user_data['email'].split('@')[0]),
         }
         session['is_authenticated'] = True
+        # IMPORTANTE: Añadir timestamp para el middleware de autenticación
+        session['login_timestamp'] = int(time.time())
 
         # Debug: Verificar que la sesión se guardó
         print(f"🔍 [Login] Sesión creada: {dict(session)}")
@@ -954,9 +957,13 @@ def register_local():
         }
         
         # Guardar en sesión
+        session.permanent = True
         session['user'] = user_data
         session['user_uid'] = user_data['uid']
         session['is_authenticated'] = True
+        # IMPORTANTE: Añadir timestamp para el middleware de autenticación
+        session['login_timestamp'] = int(time.time())
+        session.modified = True
         
         return jsonify({
             'success': True,

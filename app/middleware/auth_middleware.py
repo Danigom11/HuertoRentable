@@ -230,8 +230,15 @@ def require_auth(f):
                     logger.warning(f"[Auth] Error reconstruyendo sesión desde cookies: {_e}")
             logger.warning(f"Acceso no autorizado a {request.endpoint} - Sin token. Cookies: {list(request.cookies.keys())}")
             if request.is_json:
-                return jsonify({'error': 'Token de autenticación requerido', 'redirect': '/auth/login'}), 401
-            return redirect(url_for('auth.login'))
+                return jsonify({'error': 'Token de autenticación requerido', 'redirect': '/onboarding'}), 401
+            
+            # Evitar bucles de redirección: si ya estamos en onboarding o login, no redirigir
+            if request.endpoint in ['main.onboarding', 'auth.login']:
+                logger.warning(f"[Auth] Ya en {request.endpoint}, evitando bucle de redirección")
+                return f(*args, **kwargs)
+            
+            # Redirigir a onboarding en lugar de login directo para mejor UX
+            return redirect(url_for('main.onboarding'))
         
         try:
             # 2. Verificar token con Firebase Admin SDK

@@ -24,7 +24,15 @@ def create_app(config_name=None):
     """
     # Determinar configuración
     if config_name is None:
-        config_name = os.environ.get('FLASK_ENV', 'default')
+        # Detectar entorno de producción de varias maneras
+        if (os.environ.get('FLASK_ENV') == 'production' or 
+            os.environ.get('PORT') or  # Google Cloud Run siempre configura PORT
+            os.environ.get('GAE_ENV') or  # Google App Engine
+            os.environ.get('RAILWAY_ENVIRONMENT') or  # Railway
+            os.environ.get('HEROKU_APP_NAME')):  # Heroku
+            config_name = 'production'
+        else:
+            config_name = 'development'
     
     # Crear aplicación Flask
     app = Flask(__name__, 
@@ -38,20 +46,27 @@ def create_app(config_name=None):
     print(f"🔍 SECRET_KEY configurado: {bool(app.config.get('SECRET_KEY'))}")
     print(f"🔍 SESSION_PERMANENT: {app.config.get('SESSION_PERMANENT')}")
     print(f"🔍 PERMANENT_SESSION_LIFETIME: {app.config.get('PERMANENT_SESSION_LIFETIME')}")
+    print(f"🔍 ENVIRONMENT: {config_name}")
+    print(f"🔍 SESSION_COOKIE_SECURE: {app.config.get('SESSION_COOKIE_SECURE')}")
     
-    # Configurar Flask para que siempre envíe cookies de sesión
-    # Nota: SameSite=None requiere Secure en navegadores modernos; en dev usamos 'Lax' para evitar rechazo
-    app.config['SESSION_COOKIE_HTTPONLY'] = False  # Permitir acceso desde JS para debug
-    app.config['SESSION_COOKIE_SECURE'] = False    # No HTTPS en desarrollo
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Envío en navegación same-site (formularios POST)
+    # Solo sobrescribir configuración de cookies en desarrollo
+    if config_name == 'development':
+        # Configurar Flask para desarrollo (sin HTTPS)
+        app.config['SESSION_COOKIE_HTTPONLY'] = False  # Permitir acceso desde JS para debug
+        app.config['SESSION_COOKIE_SECURE'] = False    # No HTTPS en desarrollo
+        app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Envío en navegación same-site
     
     @app.before_request
     def before_request():
         """Preparar cada request para manejar sesiones correctamente"""
-        # LOG TODAS LAS PETICIONES
-        print(f"🌐 [{request.method}] {request.url} - IP: {request.remote_addr}")
-        print(f"   Headers: {dict(request.headers)}")
-        print(f"   Session antes: {dict(session)}")
+        # LOG TODAS LAS PETICIONES (reducido en producción)
+        if config_name == 'development':
+            print(f"🌐 [{request.method}] {request.url} - IP: {request.remote_addr}")
+            print(f"   Headers: {dict(request.headers)}")
+            print(f"   Session antes: {dict(session)}")
+        else:
+            # Solo log básico en producción
+            print(f"🌐 [{request.method}] {request.path} - Session: {bool(session.get('is_authenticated'))}")
         
         # Forzar inicialización de sesión
         session.permanent = True

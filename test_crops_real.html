@@ -1,0 +1,1787 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="HuertoRentable - Gestión inteligente de huertos rentables"
+    />
+    <meta name="theme-color" content="#198754" />
+
+    <!-- Bootstrap 5 CDN - diseño responsivo y accesible -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <!-- Fallback para Bootstrap Icons -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css"
+      rel="stylesheet"
+      integrity="sha512-dPXYcDub/aeb08c63jRq/k6GaKccl256JQy/AnOq7CAnEZ9FzSL9wSbcZkMp4R26qAlAi/E4WwVoRUx3i4p5Lsg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
+    <!-- PWA Manifest - hace la app instalable -->
+    <link
+      rel="manifest"
+      href="/static/../manifest.json"
+    />
+
+    <!-- Iconos PWA para diferentes dispositivos -->
+    <link
+      rel="apple-touch-icon"
+      href="/static/img/icon.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      href="/static/img/icon.png"
+    />
+
+    <!-- CSS personalizado con versión fija -->
+    <link
+      rel="stylesheet"
+      href="/static/css/styles.css?v=2.5"
+    />
+
+    <title>Gestión de Cultivos -
+HuertoRentable</title>
+  </head>
+  <body class="bg-light">
+    <!-- Navegación principal - siempre visible y accesible -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-success shadow-sm">
+      <div class="container">
+        <!-- Logo y nombre de la app -->
+        
+        <a class="navbar-brand fw-bold" href="/onboarding">
+          <i class="bi bi-flower2 me-2"></i>
+          HuertoRentable
+        </a>
+        
+
+        <!-- Botón hamburguesa para móviles -->
+        
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        
+
+        <!-- Enlaces de navegación -->
+        <div class="collapse navbar-collapse" id="navbarNav">
+          
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+              <a
+                class="nav-link "
+                href="/dashboard"
+              >
+                <i class="bi bi-house-door me-1 align-middle"></i
+                ><span class="align-middle">Inicio</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link active"
+                href="/crops/"
+              >
+                <i class="bi bi-tree me-1 align-middle"></i
+                ><span class="align-middle">Cultivos</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link "
+                href="/analytics/"
+              >
+                <i class="bi bi-graph-up me-1 align-middle"></i
+                ><span class="align-middle">Análisis</span>
+              </a>
+            </li>
+          </ul>
+
+          <!-- Enlaces de autenticación para usuarios no registrados -->
+          
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a
+                class="nav-link "
+                href="/auth/login"
+              >
+                <i class="bi bi-box-arrow-in-right me-1 align-middle"></i
+                ><span class="align-middle">Iniciar Sesión</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link "
+                href="/auth/register"
+              >
+                <i class="bi bi-person-plus me-1 align-middle"></i
+                ><span class="align-middle">Registrarse</span>
+              </a>
+            </li>
+          </ul>
+           
+        </div>
+      </div>
+    </nav>
+
+    <!-- Contenido principal -->
+    <main class="container mt-4 mb-5">
+      <!-- Mensajes flash para feedback al usuario -->
+        
+
+      <!-- Contenido específico de cada página -->
+      
+
+<!-- Banner de modo demo -->
+
+
+<div class="row">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="text-success">
+        <i class="bi bi-seedling me-2 align-middle"></i
+        ><span class="align-middle">Gestión de Cultivos</span>
+      </h1>
+      <button
+        class="btn btn-success"
+        data-bs-toggle="modal"
+        data-bs-target="#modalNuevoCultivo"
+      >
+        <i class="bi bi-plus-circle me-1 align-middle"></i
+        ><span class="align-middle">Nuevo Cultivo</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Lista de cultivos existentes -->
+<div class="row">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0">
+          <i class="bi bi-list-ul me-2 align-middle"></i
+          ><span class="align-middle"
+            >Cultivos Registrados (0)</span
+          >
+        </h5>
+      </div>
+      <div class="card-body">
+        
+        <!-- Estado vacío -->
+        <div class="text-center py-5">
+          <i class="bi bi-seedling text-muted" style="font-size: 4rem"></i>
+          <h4 class="text-muted mt-3">¡Empieza tu primer cultivo!</h4>
+          <p class="text-muted mb-4">
+            No tienes cultivos registrados aún. <br />
+            Haz clic en "Nuevo Cultivo" para comenzar.
+          </p>
+          <button
+            class="btn btn-success btn-lg"
+            data-bs-toggle="modal"
+            data-bs-target="#modalNuevoCultivo"
+          >
+            <i class="bi bi-plus-circle me-2"></i>
+            Crear Primer Cultivo
+          </button>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para nuevo cultivo -->
+<div class="modal fade" id="modalNuevoCultivo" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-plus-circle me-2"></i>
+          Nuevo Cultivo
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+
+      <form
+        id="formNuevoCultivo"
+        action="/crops/create"
+        method="POST"
+      >
+        
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="nombre" class="form-label">
+              <i class="bi bi-seedling me-1"></i>
+              Nombre del Cultivo
+            </label>
+            <div class="input-group">
+              <input
+                type="text"
+                class="form-control"
+                id="nombre"
+                name="nombre"
+                placeholder="ej: Tomates, Lechugas, Zanahorias..."
+                required
+              />
+              <button
+                type="button"
+                class="btn btn-outline-secondary rounded-circle"
+                id="colorPickerBtn"
+                style="
+                  background-color: #28a745;
+                  width: 50px;
+                  height: 50px;
+                  border: 2px solid #fff;
+                "
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                title="Seleccionar color"
+              ></button>
+              <div class="dropdown-menu p-3" id="colorPalette">
+                <div class="d-flex flex-wrap gap-2">
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#28a745"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #28a745;
+                      cursor: pointer;
+                    "
+                    title="Verde"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#dc3545"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #dc3545;
+                      cursor: pointer;
+                    "
+                    title="Rojo"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#0d6efd"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #0d6efd;
+                      cursor: pointer;
+                    "
+                    title="Azul"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#fd7e14"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #fd7e14;
+                      cursor: pointer;
+                    "
+                    title="Naranja"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#6f42c1"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #6f42c1;
+                      cursor: pointer;
+                    "
+                    title="Morado"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#20c997"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #20c997;
+                      cursor: pointer;
+                    "
+                    title="Turquesa"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#ffc107"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #ffc107;
+                      cursor: pointer;
+                    "
+                    title="Amarillo"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#e83e8c"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #e83e8c;
+                      cursor: pointer;
+                    "
+                    title="Rosa"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#6c757d"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #6c757d;
+                      cursor: pointer;
+                    "
+                    title="Gris"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#198754"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #198754;
+                      cursor: pointer;
+                    "
+                    title="Verde Oscuro"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#0dcaf0"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #0dcaf0;
+                      cursor: pointer;
+                    "
+                    title="Cian"
+                  ></div>
+                  <div
+                    class="color-option rounded-circle"
+                    data-color="#795548"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #795548;
+                      cursor: pointer;
+                    "
+                    title="Marrón"
+                  ></div>
+                </div>
+              </div>
+              <input
+                type="hidden"
+                id="color_cultivo"
+                name="color_cultivo"
+                value="#28a745"
+              />
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="precio" class="form-label">
+              <i class="bi bi-currency-euro me-1"></i>
+              Precio por Kilo (€)
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="precio"
+              name="precio"
+              step="0.01"
+              min="0"
+              placeholder="ej: 3.50"
+              required
+            />
+            <div class="form-text">Precio estimado de venta por kilogramo</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="numero_plantas" class="form-label">
+              <i class="bi bi-collection me-1"></i>
+              Número de Plantas
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="numero_plantas"
+              name="numero_plantas"
+              min="1"
+              placeholder="ej: 12"
+              required
+            />
+            <div class="form-text">
+              Cantidad de plantas sembradas en este cultivo
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="peso_promedio" class="form-label">
+              <i class="bi bi-calculator me-1"></i>
+              Peso Promedio por Unidad (g)
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="peso_promedio"
+              name="peso_promedio"
+              step="0.1"
+              min="0.1"
+              placeholder="ej: 150.0"
+              required
+            />
+            <div class="form-text">
+              Peso en gramos de cada unidad (tomate, lechuga, etc.) para
+              calcular automáticamente los kilos
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="fecha_siembra" class="form-label">
+              <i class="bi bi-calendar-event me-1"></i>
+              Fecha de Siembra
+            </label>
+            <input
+              type="date"
+              class="form-control"
+              id="fecha_siembra"
+              name="fecha_siembra"
+              required
+            />
+            <div class="form-text">
+              Fecha en la que se sembró o plantó el cultivo
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Cancelar
+          </button>
+          
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-plus-circle me-1"></i>
+            Crear Cultivo
+          </button>
+          
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para editar cultivo -->
+<div class="modal fade" id="modalEditarCultivo" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title">
+          <i class="bi bi-pencil me-2"></i>
+          Editar Cultivo
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <form id="formEditarCultivo" action="#" method="POST">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="editar_nombre" class="form-label">Nombre</label>
+            <div class="input-group">
+              <input
+                type="text"
+                class="form-control"
+                id="editar_nombre"
+                name="nombre"
+                required
+              />
+              <button
+                type="button"
+                class="btn btn-outline-secondary rounded-circle"
+                id="editColorPickerBtn"
+                style="
+                  background-color: #28a745;
+                  width: 50px;
+                  height: 50px;
+                  border: 2px solid #fff;
+                "
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                title="Cambiar color"
+              ></button>
+              <div class="dropdown-menu p-3" id="editColorPalette">
+                <div class="d-flex flex-wrap gap-2">
+                  <div
+                    class="edit-color-option rounded-circle"
+                    data-color="#28a745"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #28a745;
+                      cursor: pointer;
+                    "
+                    title="Verde"
+                  ></div>
+                  <div
+                    class="edit-color-option rounded-circle"
+                    data-color="#dc3545"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #dc3545;
+                      cursor: pointer;
+                    "
+                    title="Rojo"
+                  ></div>
+                  <div
+                    class="edit-color-option rounded-circle"
+                    data-color="#0d6efd"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #0d6efd;
+                      cursor: pointer;
+                    "
+                    title="Azul"
+                  ></div>
+                  <div
+                    class="edit-color-option rounded-circle"
+                    data-color="#fd7e14"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #fd7e14;
+                      cursor: pointer;
+                    "
+                    title="Naranja"
+                  ></div>
+                  <div
+                    class="edit-color-option rounded-circle"
+                    data-color="#6f42c1"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #6f42c1;
+                      cursor: pointer;
+                    "
+                    title="Morado"
+                  ></div>
+                  <div
+                    class="edit-color-option rounded-circle"
+                    data-color="#20c997"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #20c997;
+                      cursor: pointer;
+                    "
+                    title="Turquesa"
+                  ></div>
+                  <div
+                    class="edit-color-option rounded-circle"
+                    data-color="#ffc107"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #ffc107;
+                      cursor: pointer;
+                    "
+                    title="Amarillo"
+                  ></div>
+                  <div
+                    class="edit-color-option rounded-circle"
+                    data-color="#e83e8c"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #e83e8c;
+                      cursor: pointer;
+                    "
+                    title="Rosa"
+                  ></div>
+                  <div
+                    class="edit-color-option rounded-circle"
+                    data-color="#6c757d"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #6c757d;
+                      cursor: pointer;
+                    "
+                    title="Gris"
+                  ></div>
+                  <div
+                    class="edit-color-option rounded-circle"
+                    data-color="#198754"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #198754;
+                      cursor: pointer;
+                    "
+                    title="Verde Oscuro"
+                  ></div>
+                  <div
+                    class="edit-color-option rounded-circle"
+                    data-color="#0dcaf0"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #0dcaf0;
+                      cursor: pointer;
+                    "
+                    title="Cian"
+                  ></div>
+                  <div
+                    class="edit-color-option rounded-circle"
+                    data-color="#795548"
+                    style="
+                      width: 30px;
+                      height: 30px;
+                      background-color: #795548;
+                      cursor: pointer;
+                    "
+                    title="Marrón"
+                  ></div>
+                </div>
+              </div>
+              <input
+                type="hidden"
+                id="editar_color_cultivo"
+                name="color_cultivo"
+                value="#28a745"
+              />
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="editar_precio" class="form-label"
+              >Precio por Kilo (€)</label
+            >
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              class="form-control"
+              id="editar_precio"
+              name="precio"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label for="editar_numero_plantas" class="form-label"
+              >Número de Plantas</label
+            >
+            <input
+              type="number"
+              min="1"
+              class="form-control"
+              id="editar_numero_plantas"
+              name="numero_plantas"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label for="editar_peso_promedio" class="form-label">
+              <i class="bi bi-calculator me-1"></i>
+              Peso Promedio por Unidad (g)
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              min="0.1"
+              class="form-control"
+              id="editar_peso_promedio"
+              name="peso_promedio"
+              required
+            />
+            <div class="form-text">
+              Peso en gramos de cada unidad para calcular automáticamente los
+              kilos
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="editar_fecha_siembra" class="form-label">
+              <i class="bi bi-calendar-event me-1"></i>
+              Fecha de Siembra
+            </label>
+            <input
+              type="date"
+              class="form-control"
+              id="editar_fecha_siembra"
+              name="fecha_siembra"
+              required
+            />
+            <div class="form-text">
+              Fecha en la que se sembró o plantó el cultivo
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="btn btn-warning"
+            onclick="guardarEdicion(event)"
+          >
+            <i class="bi bi-check-circle me-1"></i>
+            Guardar Cambios
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para añadir producción -->
+<div class="modal fade" id="modalProduccion" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-basket me-2"></i>
+          Añadir Producción
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form id="formProduccion">
+          <input type="hidden" id="cultivoIdProduccion" />
+
+          <div class="mb-3">
+            <label class="form-label">Cultivo:</label>
+            <p class="fw-bold" id="cultivoNombreProduccion"></p>
+          </div>
+
+          <div class="mb-3">
+            <label for="fechaProduccion" class="form-label">
+              <i class="bi bi-calendar3 me-1"></i>
+              Fecha de Recolección
+            </label>
+            <input
+              type="date"
+              class="form-control"
+              id="fechaProduccion"
+              required
+            />
+          </div>
+
+          <div class="mb-3">
+            <label for="unidadesProduccion" class="form-label">
+              <i class="bi bi-123 me-1"></i>
+              Unidades Recolectadas
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="unidadesProduccion"
+              step="1"
+              min="1"
+              placeholder="ej: 15"
+              required
+            />
+            <div class="form-text">Número de piezas/frutos recolectados</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="kilosProduccion" class="form-label">
+              <i class="bi bi-basket me-1"></i>
+              Peso Total (kg)
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="kilosProduccion"
+              step="0.01"
+              min="0.01"
+              placeholder="ej: 2.50"
+              required
+            />
+            <div class="form-text">
+              Peso total de la recolección en kilogramos
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          onclick="guardarProduccion()"
+        >
+          <i class="bi bi-check-circle me-1"></i>
+          Guardar Producción
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para añadir abono -->
+<div class="modal fade" id="modalAbono" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-droplet me-2"></i>
+          Añadir Abono
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form id="formAbono">
+          <input type="hidden" id="cultivoIdAbono" />
+
+          <div class="mb-3">
+            <label class="form-label">Cultivo:</label>
+            <p class="fw-bold" id="cultivoNombreAbono"></p>
+          </div>
+
+          <div class="mb-3">
+            <label for="fechaAbono" class="form-label">
+              <i class="bi bi-calendar3 me-1"></i>
+              Fecha de Aplicación
+            </label>
+            <input type="date" class="form-control" id="fechaAbono" required />
+          </div>
+
+          <div class="mb-3">
+            <label for="descripcionAbono" class="form-label">
+              <i class="bi bi-droplet me-1"></i>
+              Descripción del Abono
+            </label>
+            <textarea
+              class="form-control"
+              id="descripcionAbono"
+              rows="3"
+              placeholder="ej: Compost orgánico, Fertilizante líquido NPK..."
+              required
+            ></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-info"
+          onclick="guardarAbono()"
+        >
+          <i class="bi bi-check-circle me-1"></i>
+          Guardar Abono
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para mostrar historial de abonos -->
+<div class="modal fade" id="modalHistorialAbonos" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-droplet me-2"></i>
+          Historial de Abonos - <span id="cultivoNombreHistorial"></span>
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <div id="listaAbonos">
+          <!-- Aquí se cargarán los abonos -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para finalizar cultivo -->
+<div class="modal fade" id="modalFinalizarCultivo" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" id="formFinalizarCultivo">
+        <div class="modal-header bg-warning text-dark">
+          <h5 class="modal-title">
+            <i class="bi bi-check-circle me-2"></i>
+            Finalizar Cultivo
+          </h5>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning">
+            <strong>¿Estás seguro?</strong><br />
+            Al finalizar el cultivo
+            <strong id="nombreCultivoFinalizar"></strong>:
+            <ul class="mt-2 mb-0">
+              <li>Se marcará como inactivo</li>
+              <li>Se calcularán las estadísticas finales</li>
+              <li>Ya no aparecerá en el dashboard activo</li>
+              <li>Se guardarán los datos históricos</li>
+            </ul>
+          </div>
+
+          <div class="mb-3">
+            <label for="fechaCosecha" class="form-label">
+              <i class="bi bi-calendar-check me-1"></i>
+              Fecha de cosecha (opcional)
+            </label>
+            <input
+              type="date"
+              class="form-control"
+              id="fechaCosecha"
+              name="fecha_cosecha"
+            />
+            <div class="form-text">
+              Si no especificas, se usará la fecha actual
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-warning">
+            <i class="bi bi-check-circle me-1"></i>
+            Finalizar Cultivo
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+    </main>
+
+    <!-- Footer con información útil -->
+    <footer class="bg-success text-white py-3 mt-auto">
+      <div class="container">
+        <div class="row">
+          <div class="col-md-8">
+            <p class="mb-0">
+              <i class="bi bi-flower2 me-2"></i>
+              HuertoRentable - Gestión inteligente de cultivos
+            </p>
+          </div>
+          <div class="col-md-4 text-md-end">
+            <small>
+              <span id="app-version">PWA v1.0</span> |
+              <span id="last-sync">Sincronizado</span>
+            </small>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Bootstrap 5 JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Firebase SDK - versión actualizada y consistente -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <!-- Chart.js para gráficas - solo se carga donde es necesario -->
+    
+
+    <!-- Configuración y servicios de Firebase -->
+    <script src="/static/js/firebase-config-final.js?v=3.0"></script>
+    <script src="/static/js/auth-service.js?v=1.0"></script>
+
+    <!-- JavaScript personalizado con versión fija -->
+    <script src="/static/js/app.js?v=2.3"></script>
+
+    <!-- Service Worker para PWA - funcionalidad offline -->
+    <script>
+      // TEMPORAL: Service Worker deshabilitado para debug
+      console.log("🔧 Service Worker deshabilitado para evitar cache issues");
+      /*
+      // Registrar Service Worker sin parámetros dinámicos
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker
+            .register("/service-worker.js")
+            .then(function (registration) {
+              console.log("✅ Service Worker registrado:", registration.scope);
+
+              // Verificar actualizaciones menos frecuentemente
+              registration.update();
+
+              // Detectar nuevo Service Worker
+              registration.addEventListener("updatefound", () => {
+                const newWorker = registration.installing;
+                newWorker.addEventListener("statechange", () => {
+                  if (
+                    newWorker.state === "installed" &&
+                    navigator.serviceWorker.controller
+                  ) {
+                    console.log(
+                      "🔄 Nueva versión del Service Worker disponible"
+                    );
+                    // El Service Worker enviará un mensaje para notificar la actualización
+                  }
+                });
+              });
+            })
+            .catch(function (error) {
+              console.log("❌ Error registrando Service Worker:", error);
+            });
+        });
+      }
+      */
+
+      // Detectar cuando la app se puede instalar
+      let deferredPrompt;
+      window.addEventListener("beforeinstallprompt", (e) => {
+        console.log("💾 App se puede instalar");
+        deferredPrompt = e;
+        // Mostrar botón de instalación personalizado si queremos
+      });
+
+      // Verificar que Bootstrap Icons se cargue correctamente
+      document.addEventListener("DOMContentLoaded", function () {
+        // Pequeño delay para que carguen los CSS
+        setTimeout(function () {
+          const testIcon = document.querySelector(".bi-tree");
+          if (testIcon) {
+            const computedStyle = window.getComputedStyle(testIcon, "::before");
+            if (!computedStyle.content || computedStyle.content === "none") {
+              console.warn(
+                "🔧 Bootstrap Icons no se cargó correctamente, aplicando fallback"
+              );
+              // Fallback: añadir texto simple
+              document.querySelectorAll(".bi-tree").forEach((icon) => {
+                if (!icon.textContent) {
+                  icon.textContent = "🌱";
+                  icon.style.fontFamily = "emoji";
+                }
+              });
+            }
+          }
+        }, 1000);
+      });
+    </script>
+
+    <!-- JavaScript específico de cada página -->
+    
+<script>
+  // Variables globales para el manejo de modales
+  let modalProduccion,
+    modalAbono,
+    modalNuevoCultivo,
+    modalHistorialAbonos,
+    modalEditarCultivo,
+    modalFinalizarCultivo;
+
+  document.addEventListener("DOMContentLoaded", function () {
+    // Inicializar modales
+    modalProduccion = new bootstrap.Modal(
+      document.getElementById("modalProduccion")
+    );
+    modalAbono = new bootstrap.Modal(document.getElementById("modalAbono"));
+    modalNuevoCultivo = new bootstrap.Modal(
+      document.getElementById("modalNuevoCultivo")
+    );
+    modalHistorialAbonos = new bootstrap.Modal(
+      document.getElementById("modalHistorialAbonos")
+    );
+    modalEditarCultivo = new bootstrap.Modal(
+      document.getElementById("modalEditarCultivo")
+    );
+    modalFinalizarCultivo = new bootstrap.Modal(
+      document.getElementById("modalFinalizarCultivo")
+    );
+
+    // Establecer fecha de hoy por defecto
+    const hoy = new Date().toISOString().split("T")[0];
+    document.getElementById("fechaProduccion").value = hoy;
+    document.getElementById("fechaAbono").value = hoy;
+    document.getElementById("fechaCosecha").value = hoy;
+
+    // Inicializar fechas en modales de cultivos
+    const fechaSiembraInput = document.getElementById("fecha_siembra");
+    if (fechaSiembraInput) {
+      fechaSiembraInput.value = hoy;
+    }
+
+    // Inicializar selector de colores para nuevo cultivo
+    initColorPicker();
+
+    // Generar color automático para nuevo cultivo
+    generateNextColor();
+
+    console.log("✅ Gestión de cultivos cargada");
+  });
+
+  // Array de colores disponibles
+  const availableColors = [
+    '#28a745', '#dc3545', '#0d6efd', '#fd7e14', '#6f42c1',
+    '#20c997', '#ffc107', '#e83e8c', '#6c757d', '#198754',
+    '#0dcaf0', '#795548'
+  ];
+
+  let usedColors = [];
+  let currentColorIndex = 0;
+
+  // Función para generar el siguiente color disponible
+  function generateNextColor() {
+    // Obtener colores ya usados de los cultivos existentes
+    const existingColors = Array.from(document.querySelectorAll('[data-color]'))
+      .map(el => el.getAttribute('data-color'))
+      .filter(color => color && color !== '#28a745'); // Excluir color por defecto
+
+    usedColors = [...new Set(existingColors)]; // Eliminar duplicados
+
+    // Encontrar primer color no usado
+    let nextColor = availableColors.find(color => !usedColors.includes(color));
+
+    // Si todos están usados, usar uno aleatorio
+    if (!nextColor) {
+      nextColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+    }
+
+    // Actualizar el selector de color del nuevo cultivo
+    const colorBtn = document.getElementById('colorPickerBtn');
+    const colorInput = document.getElementById('color_cultivo');
+    if (colorBtn && colorInput) {
+      colorBtn.style.backgroundColor = nextColor;
+      colorInput.value = nextColor;
+    }
+  }
+
+  // Función para inicializar el selector de colores
+  function initColorPicker() {
+    // Selector para nuevo cultivo
+    document.querySelectorAll('#colorPalette .color-option').forEach(option => {
+      option.addEventListener('click', function() {
+        const color = this.getAttribute('data-color');
+        const colorBtn = document.getElementById('colorPickerBtn');
+        const colorInput = document.getElementById('color_cultivo');
+
+        if (colorBtn && colorInput) {
+          colorBtn.style.backgroundColor = color;
+          colorInput.value = color;
+        }
+
+        // Cerrar dropdown
+        bootstrap.Dropdown.getInstance(document.getElementById('colorPickerBtn'))?.hide();
+      });
+    });
+
+    // Selector para editar cultivo
+    document.querySelectorAll('#editColorPalette .edit-color-option').forEach(option => {
+      option.addEventListener('click', function() {
+        const color = this.getAttribute('data-color');
+        const colorBtn = document.getElementById('editColorPickerBtn');
+        const colorInput = document.getElementById('editar_color_cultivo');
+
+        if (colorBtn && colorInput) {
+          colorBtn.style.backgroundColor = color;
+          colorInput.value = color;
+        }
+
+        // Cerrar dropdown
+        bootstrap.Dropdown.getInstance(document.getElementById('editColorPickerBtn'))?.hide();
+      });
+    });
+  }
+
+  // Función para mostrar modal de añadir producción
+  function agregarProduccion(cultivoId, cultivoNombre) {
+    document.getElementById("cultivoIdProduccion").value = cultivoId;
+    document.getElementById("cultivoNombreProduccion").textContent =
+      cultivoNombre;
+    document.getElementById("formProduccion").reset();
+
+    // Establecer fecha de hoy
+    const hoy = new Date().toISOString().split("T")[0];
+    document.getElementById("fechaProduccion").value = hoy;
+
+    modalProduccion.show();
+  }
+
+  // Función para mostrar modal de añadir abono
+  function agregarAbono(cultivoId, cultivoNombre) {
+    document.getElementById("cultivoIdAbono").value = cultivoId;
+    document.getElementById("cultivoNombreAbono").textContent = cultivoNombre;
+    document.getElementById("formAbono").reset();
+
+    // Establecer fecha de hoy
+    const hoy = new Date().toISOString().split("T")[0];
+    document.getElementById("fechaAbono").value = hoy;
+
+    modalAbono.show();
+  }
+
+  // Función para guardar producción mediante API
+  async function guardarProduccion() {
+    const cultivoId = document.getElementById("cultivoIdProduccion").value;
+    const unidades = parseInt(
+      document.getElementById("unidadesProduccion").value
+    );
+    const kilos = parseFloat(document.getElementById("kilosProduccion").value);
+
+    if (!unidades || unidades <= 0) {
+      alert("Por favor, ingresa un número válido de unidades recolectadas");
+      return;
+    }
+
+    if (!kilos || kilos <= 0) {
+      alert("Por favor, ingresa un peso válido en kilogramos");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/crops/${cultivoId}/production`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          unidades: String(unidades),
+          kilos: String(kilos),
+        }).toString(),
+      });
+
+      if (response.ok) {
+        mostrarAlerta("success", "✅ Producción añadida correctamente");
+        modalProduccion.hide();
+        setTimeout(() => location.reload(), 800);
+      } else {
+        const result = await response.json().catch(() => ({}));
+        mostrarAlerta(
+          "danger",
+          "❌ Error: " + (result.error || response.status)
+        );
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      mostrarAlerta("danger", "❌ Error de conexión");
+    }
+  }
+
+  // Función para guardar abono
+  async function guardarAbono() {
+    const cultivoId = document.getElementById("cultivoIdAbono").value;
+    const descripcion = document
+      .getElementById("descripcionAbono")
+      .value.trim();
+
+    if (!descripcion) {
+      alert("Por favor, ingresa una descripción para el abono");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/crops/${cultivoId}/abono`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ descripcion: descripcion }).toString(),
+      });
+
+      if (response.ok) {
+        mostrarAlerta("success", "✅ Abono añadido correctamente");
+        modalAbono.hide();
+        setTimeout(() => location.reload(), 800);
+      } else {
+        const result = await response.json().catch(() => ({}));
+        mostrarAlerta(
+          "danger",
+          "❌ Error: " + (result.error || response.status)
+        );
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      mostrarAlerta("danger", "❌ Error de conexión");
+    }
+  }
+
+  // Función para mostrar alertas dinámicas
+  function mostrarAlerta(tipo, mensaje) {
+    console.log(`🔔 Mostrando alerta ${tipo}:`, mensaje);
+    try {
+      const alertaDiv = document.createElement("div");
+      alertaDiv.className = `alert alert-${tipo} alert-dismissible fade show`;
+      alertaDiv.innerHTML = `
+          ${mensaje}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+
+      // Insertar al inicio del contenido principal
+      const mainContent = document.querySelector("main .container");
+      if (mainContent) {
+        mainContent.insertBefore(alertaDiv, mainContent.firstChild);
+        console.log("✅ Alerta insertada en el DOM");
+      } else {
+        console.error("❌ No se encontró el contenedor principal");
+      }
+
+      // Auto-remover después de 5 segundos
+      setTimeout(() => {
+        if (alertaDiv.parentNode) {
+          alertaDiv.remove();
+          console.log("🗑️ Alerta removida automáticamente");
+        }
+      }, 5000);
+    } catch (error) {
+      console.error("❌ Error en mostrarAlerta:", error);
+    }
+  }
+
+  // Funciones placeholder para futuras funcionalidades
+
+  // Función para mostrar historial de abonos
+  async function mostrarAbonos(cultivoId, cultivoNombre) {
+    try {
+      document.getElementById("cultivoNombreHistorial").textContent =
+        cultivoNombre;
+
+      const response = await fetch(`/crops/${cultivoId}/abonos`);
+
+      if (response.ok) {
+        const data = await response.json();
+        const abonos = data.abonos || [];
+
+        const listaAbonos = document.getElementById("listaAbonos");
+
+        if (abonos.length === 0) {
+          listaAbonos.innerHTML = `
+            <div class="text-center text-muted py-4">
+              <i class="bi bi-droplet display-4"></i>
+              <p class="mt-2">No hay abonos registrados para este cultivo</p>
+              <small>Utiliza el botón de abono en la tabla para añadir el primer abono</small>
+            </div>
+          `;
+        } else {
+          let html = '<div class="list-group">';
+          abonos.forEach((abono, index) => {
+            html += `
+              <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between align-items-start">
+                  <div class="flex-grow-1">
+                    <h6 class="mb-1">${abono.descripcion}</h6>
+                    <small class="text-muted">#${index + 1} - ${
+              abono.fecha_legible || "Fecha no disponible"
+            }</small>
+                  </div>
+                  <div class="btn-group" role="group">
+                    <button class="btn btn-sm btn-outline-warning"
+                            onclick="editarAbono('${cultivoId}', ${index}, '${
+              abono.descripcion
+            }')"
+                            title="Editar abono">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger"
+                            onclick="eliminarAbono('${cultivoId}', ${index}, '${
+              abono.descripcion
+            }')"
+                            title="Eliminar abono">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+          html += "</div>";
+          listaAbonos.innerHTML = html;
+        }
+
+        modalHistorialAbonos.show();
+      } else {
+        mostrarAlerta("danger", "❌ Error al cargar historial de abonos");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      mostrarAlerta("danger", "❌ Error de conexión");
+    }
+  }
+
+  // Función para editar un abono
+  async function editarAbono(cultivoId, abonoIndex, descripcionActual) {
+    const nuevaDescripcion = prompt(
+      "Editar descripción del abono:",
+      descripcionActual
+    );
+
+    if (nuevaDescripcion === null || nuevaDescripcion.trim() === "") {
+      return; // Usuario canceló o no ingresó nada
+    }
+
+    if (nuevaDescripcion.trim() === descripcionActual) {
+      return; // No hay cambios
+    }
+
+    try {
+      const response = await fetch(
+        `/crops/${cultivoId}/abono/${abonoIndex}/edit`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            descripcion: nuevaDescripcion.trim(),
+          }).toString(),
+        }
+      );
+
+      if (response.ok) {
+        mostrarAlerta("success", "✅ Abono editado correctamente");
+        // Recargar el historial de abonos
+        const cultivoNombre = document.getElementById(
+          "cultivoNombreHistorial"
+        ).textContent;
+        setTimeout(() => mostrarAbonos(cultivoId, cultivoNombre), 500);
+      } else {
+        const result = await response.json().catch(() => ({}));
+        mostrarAlerta(
+          "danger",
+          "❌ Error: " + (result.error || response.status)
+        );
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      mostrarAlerta("danger", "❌ Error de conexión");
+    }
+  }
+
+  // Función para eliminar un abono
+  async function eliminarAbono(cultivoId, abonoIndex, descripcion) {
+    if (!confirm(`¿Seguro que deseas eliminar el abono "${descripcion}"?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/crops/${cultivoId}/abono/${abonoIndex}/delete`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        }
+      );
+
+      if (response.ok) {
+        mostrarAlerta("success", "✅ Abono eliminado correctamente");
+        // Recargar el historial de abonos
+        const cultivoNombre = document.getElementById(
+          "cultivoNombreHistorial"
+        ).textContent;
+        setTimeout(() => mostrarAbonos(cultivoId, cultivoNombre), 500);
+      } else {
+        const result = await response.json().catch(() => ({}));
+        mostrarAlerta(
+          "danger",
+          "❌ Error: " + (result.error || response.status)
+        );
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      mostrarAlerta("danger", "❌ Error de conexión");
+    }
+  }
+
+  function editarCultivo(cultivoId, nombre, precio, plantas, peso, color, fecha) {
+    try {
+      console.log("Inicializando edición:", {
+        cultivoId,
+        nombre,
+        precio,
+        plantas,
+        peso,
+        color,
+        fecha,
+      });
+
+      // Verificar que el modal esté inicializado
+      if (!modalEditarCultivo) {
+        throw new Error("Modal de edición no inicializado");
+      }
+
+      // Setear acción del formulario y valores
+      const form = document.getElementById("formEditarCultivo");
+      if (!form) {
+        throw new Error("Formulario de edición no encontrado");
+      }
+
+      form.action = `/crops/${cultivoId}/edit`;
+
+      const nombreInput = document.getElementById("editar_nombre");
+      const precioInput = document.getElementById("editar_precio");
+      const plantasInput = document.getElementById("editar_numero_plantas");
+      const pesoInput = document.getElementById("editar_peso_promedio");
+      const colorInput = document.getElementById("editar_color_cultivo");
+      const colorBtn = document.getElementById("editColorPickerBtn");
+      const fechaInput = document.getElementById("editar_fecha_siembra");
+
+      if (!nombreInput || !precioInput || !plantasInput || !pesoInput || !colorInput || !fechaInput) {
+        throw new Error("Campos del formulario no encontrados");
+      }
+
+      nombreInput.value = nombre || "";
+      precioInput.value = precio || 0;
+      plantasInput.value = plantas || 1;
+      pesoInput.value = peso || 150;
+      colorInput.value = color || "#28a745";
+      if (colorBtn) {
+        colorBtn.style.backgroundColor = color || "#28a745";
+      }
+      fechaInput.value = fecha || "";
+
+      modalEditarCultivo.show();
+      console.log("✅ Modal de edición mostrado correctamente");
+    } catch (error) {
+      console.error("Error en editarCultivo:", error);
+      mostrarAlerta("danger", "❌ Error al abrir el editor: " + error.message);
+    }
+  }
+
+  function editarCultivoDesdeBoton(btn) {
+    try {
+      const id = btn.getAttribute("data-id");
+      const nombre = btn.getAttribute("data-nombre");
+      const precio = parseFloat(btn.getAttribute("data-precio") || "0");
+      const plantas = parseInt(btn.getAttribute("data-plantas") || "1");
+      const peso = parseFloat(btn.getAttribute("data-peso") || "150");
+      const color = btn.getAttribute("data-color") || "#28a745";
+      const fecha = btn.getAttribute("data-fecha") || "";
+
+      console.log("Editando cultivo:", { id, nombre, precio, plantas, peso, color, fecha });
+
+      if (!id) {
+        throw new Error("ID del cultivo no encontrado");
+      }
+
+      editarCultivo(id, nombre, precio, plantas, peso, color, fecha);
+    } catch (error) {
+      console.error("Error en editarCultivoDesdeBoton:", error);
+      mostrarAlerta("danger", "❌ Error al abrir el editor: " + error.message);
+    }
+  }
+
+  function guardarEdicion(event) {
+    // Enviar el formulario de edición
+    event.preventDefault();
+    const form = document.getElementById("formEditarCultivo");
+    form.submit();
+  }
+
+  function eliminarCultivo(cultivoId, nombre) {
+    if (!confirm(`¿Seguro que deseas eliminar el cultivo "${nombre}"?`)) {
+      return;
+    }
+    // Crear y enviar formulario POST para borrar
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = `/crops/${cultivoId}/delete`;
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+  // Función para cambiar color de cultivo desde la lista
+  function cambiarColorCultivo(cultivoId, colorActual) {
+    // Crear modal dinámico para selección de color
+    const modalHTML = `
+      <div class="modal fade" id="modalCambiarColor" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">
+                <i class="bi bi-palette me-2"></i>
+                Cambiar Color
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div class="d-flex flex-wrap gap-2 justify-content-center">
+                ${availableColors.map(color => `
+                  <div
+                    class="color-option-inline rounded-circle ${color === colorActual ? 'border border-3 border-dark' : ''}"
+                    data-color="${color}"
+                    style="width: 40px; height: 40px; background-color: ${color}; cursor: pointer;"
+                    title="Seleccionar color"
+                    onclick="aplicarNuevoColor('${cultivoId}', '${color}')"
+                  ></div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Eliminar modal previo si existe
+    const modalPrevio = document.getElementById('modalCambiarColor');
+    if (modalPrevio) {
+      modalPrevio.remove();
+    }
+
+    // Agregar modal al DOM
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('modalCambiarColor'));
+    modal.show();
+
+    // Limpiar modal al cerrarse
+    document.getElementById('modalCambiarColor').addEventListener('hidden.bs.modal', function() {
+      this.remove();
+    });
+  }
+
+  // Función para aplicar el nuevo color
+  function aplicarNuevoColor(cultivoId, nuevoColor) {
+    // Petición AJAX para actualizar el color en la base de datos
+    fetch(`/crops/${cultivoId}/color`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ color: nuevoColor })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Actualizar visualmente el círculo de color
+        const circuloColor = document.querySelector(`[onclick*="${cultivoId}"]`);
+        if (circuloColor) {
+          circuloColor.style.backgroundColor = nuevoColor;
+        }
+
+        // Actualizar también los círculos en las tarjetas del dashboard
+        const cultivoCards = document.querySelectorAll(`[data-color="${cultivoId}"]`);
+        cultivoCards.forEach(card => {
+          card.style.backgroundColor = nuevoColor;
+        });
+
+        console.log(`✅ Color del cultivo ${cultivoId} actualizado a ${nuevoColor}`);
+        mostrarAlerta('success', '✅ Color actualizado correctamente');
+      } else {
+        console.error('Error actualizando color:', data.error);
+        mostrarAlerta('danger', '❌ Error al actualizar el color: ' + data.error);
+      }
+    })
+    .catch(error => {
+      console.error('Error en la petición:', error);
+      mostrarAlerta('danger', '❌ Error de conexión al actualizar el color');
+    });
+
+    // Cerrar modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalCambiarColor'));
+    if (modal) {
+      modal.hide();
+    }
+  }
+
+  // Función para preparar modal de finalizar cultivo
+  function prepararFinalizarCultivo(boton) {
+    try {
+      const cultivoId = boton.getAttribute("data-cultivo-id");
+      const cultivoNombre = boton.getAttribute("data-cultivo-nombre");
+
+      if (!cultivoId || !cultivoNombre) {
+        throw new Error("Faltan datos del cultivo para finalizar");
+      }
+
+      // Establecer nombre del cultivo en el modal
+      document.getElementById("nombreCultivoFinalizar").textContent =
+        cultivoNombre;
+
+      // Configurar action del formulario
+      const form = document.getElementById("formFinalizarCultivo");
+      form.action = `/crops/${cultivoId}/finish`;
+
+      // Establecer fecha actual como valor por defecto
+      const hoy = new Date().toISOString().split("T")[0];
+      const fechaInput = document.getElementById("fechaCosecha");
+      fechaInput.max = hoy;
+      fechaInput.value = hoy;
+
+      console.log(
+        `Preparando finalización del cultivo: ${cultivoNombre} (ID: ${cultivoId})`
+      );
+    } catch (error) {
+      console.error("Error preparando modal de finalizar cultivo:", error);
+      mostrarAlerta(
+        "danger",
+        "❌ Error al preparar la finalización del cultivo: " + error.message
+      );
+    }
+  }
+
+  function mostrarMensajeModoDemo() {
+    // Cerrar el modal primero
+    modalNuevoCultivo.hide();
+
+    // Mostrar alerta informativa después de un pequeño delay
+    setTimeout(function () {
+      alert(
+        "🌱 Modo Demo\n\nNo puedes añadir cultivos reales en el modo demostración.\n\n✨ Para crear y gestionar tus propios cultivos, regístrate gratis y disfruta de todas las funcionalidades."
+      );
+    }, 300);
+  }
+
+  
+</script>
+
+  </body>
+</html>

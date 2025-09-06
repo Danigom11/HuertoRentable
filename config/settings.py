@@ -94,6 +94,13 @@ class ProductionConfig(Config):
     """Configuración para producción"""
     DEBUG = False
     FLASK_ENV = 'production'
+    
+    # Session configuration específica para producción (HTTPS)
+    SESSION_COOKIE_SECURE = True  # Requiere HTTPS en producción
+    SESSION_COOKIE_HTTPONLY = True  # Seguridad: no acceso desde JS
+    SESSION_COOKIE_SAMESITE = 'Lax'  # Compatible con navegación normal
+    SESSION_COOKIE_DOMAIN = None  # Auto-detectar dominio
+    SESSION_COOKIE_PATH = '/'
 
 class TestingConfig(Config):
     """Configuración para testing"""

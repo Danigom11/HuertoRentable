@@ -91,6 +91,7 @@ def ping():
 @main_bp.route('/debug/force-session')
 def force_session():
     """Forzar creación de sesión para debug"""
+    import time
     session.permanent = True
     session['debug'] = True
     session['user'] = {
@@ -103,12 +104,55 @@ def force_session():
     }
     session['user_uid'] = 'local_danigom11_gmail_com'
     session['is_authenticated'] = True
+    session['login_timestamp'] = int(time.time())  # IMPORTANTE: Para el middleware de auth
     session.modified = True
     
     return jsonify({
         'message': 'Sesión forzada creada para danigom11',
         'session': dict(session)
     })
+
+@main_bp.route('/debug/login-dev')
+def dev_login():
+    """Login directo para desarrollo - simula Firebase Auth"""
+    import time
+    from app.auth.auth_service import AuthService
+    
+    # Crear sesión completa con token como si fuera Firebase Auth
+    user_data = {
+        'uid': 'CnQVZjC0TPbVWeInNdnBAWpncyI3',
+        'email': 'danigom11@gmail.com',
+        'name': 'Dani',
+        'plan': 'gratuito'
+    }
+    
+    # Crear token personalizado
+    session_token = AuthService.create_custom_token(user_data)
+    
+    # Configurar sesión completa
+    session.permanent = True
+    session['token'] = session_token
+    session['user_uid'] = user_data['uid']
+    session['user'] = user_data
+    session['is_authenticated'] = True
+    session['login_timestamp'] = int(time.time())
+    session.modified = True
+    
+    # Crear respuesta con cookie de token
+    from flask import make_response, redirect, url_for
+    response = make_response(redirect(url_for('main.dashboard')))
+    
+    # Configurar cookie de token Firebase para que funcione con el middleware
+    response.set_cookie(
+        'firebase_id_token',
+        session_token,
+        max_age=24 * 60 * 60,  # 24 horas
+        httponly=False,  # Para que JavaScript pueda acceder si es necesario
+        secure=False,  # HTTP en desarrollo
+        samesite='Lax'
+    )
+    
+    return response
 
 @main_bp.route('/debug/test-crops')
 def debug_test_crops():

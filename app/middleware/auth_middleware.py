@@ -23,6 +23,34 @@ def require_auth(f):
         logger.debug(f"[Auth] URL: {request.url}")
         logger.debug(f"[Auth] Method: {request.method}")
         
+        # 🔧 DESARROLLO: Verificar token de desarrollo en URL
+        from flask import current_app
+        dev_token = request.args.get('dev_token')
+        logger.info(f"🔧 [DEV CHECK] dev_token: {dev_token}, ENV: {current_app.config.get('ENV')}")
+        
+        if dev_token and dev_token == 'dev_123_local' and current_app.config.get('ENV') == 'development':
+            # Crear sesión de desarrollo completa
+            session.permanent = True
+            session['is_authenticated'] = True
+            session['user_uid'] = 'local_danigom11_gmail_com'
+            session['debug'] = True
+            session['login_timestamp'] = int(__import__('time').time())
+            session['user'] = {
+                'uid': 'local_danigom11_gmail_com',
+                'email': 'danigom11@gmail.com',
+                'name': 'danigom11',
+                'plan': 'gratuito',
+                'is_local': True,
+                'registered_at': '2025-09-06T12:29:16.228278'
+            }
+            session.modified = True
+            
+            # Establecer usuario en contexto
+            g.current_user = session['user']
+            
+            logger.info(f"🔧 [DEV AUTH] Autenticación de desarrollo activada para usuario local")
+            return f(*args, **kwargs)
+        
         # PRIORITARIO: Verificar si ya hay sesión Flask válida
         if session.get('is_authenticated') and session.get('user_uid'):
             user_uid = session.get('user_uid')

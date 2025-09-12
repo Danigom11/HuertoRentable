@@ -267,8 +267,15 @@ class AuthService {
         });
 
         if (!response.ok) {
-          throw new Error("Error en autenticación del servidor");
+          const errorData = await response
+            .json()
+            .catch(() => ({ error: "Error de conexión o procesamiento." }));
+          throw new Error(
+            errorData.error || "Error en autenticación del servidor"
+          );
         }
+
+        const result = await response.json();
 
         // Cookies de respaldo
         try {
@@ -277,7 +284,7 @@ class AuthService {
             uid,
             email: user.email,
             name: user.displayName || email.split("@")[0],
-            plan: "gratuito",
+            plan: "gratuito", // Asumir gratuito, el backend puede sobreescribir
             authenticated: true,
           };
           this._setCookie("huerto_user_uid", uid, 86400);
@@ -297,12 +304,7 @@ class AuthService {
 
         const output = {
           success: true,
-          user: {
-            uid: user.uid,
-            email: user.email,
-            name: user.displayName || email.split("@")[0],
-            emailVerified: user.emailVerified,
-          },
+          user: result.user, // Usar el usuario devuelto por el backend
           redirect: "/dashboard?from=login&uid=" + user.uid,
         };
         return output;

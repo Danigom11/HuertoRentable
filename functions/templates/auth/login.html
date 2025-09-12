@@ -138,50 +138,60 @@ endblock %} {% block content %}
           return;
         }
 
+        // Preparar botón para restaurar en cualquier error
+        const submitBtn = document.querySelector('button[type="submit"]');
+        const originalText = submitBtn
+          ? submitBtn.innerHTML
+          : '<span class="align-middle">Iniciar Sesión</span>';
+
         try {
           // Mostrar estado de carga
-          const submitBtn = document.querySelector('button[type="submit"]');
-          const originalText = submitBtn.innerHTML;
-          submitBtn.innerHTML =
-            '<i class="bi bi-hourglass-split me-2"></i>Iniciando sesión...';
-          submitBtn.disabled = true;
+          if (submitBtn) {
+            submitBtn.innerHTML =
+              '<i class="bi bi-hourglass-split me-2"></i>Iniciando sesión...';
+            submitBtn.disabled = true;
+          }
 
           // Iniciar sesión usando el servicio de autenticación
           const result = await window.authService.login(email, password);
 
-          if (result.success) {
+          if (result && result.success) {
+            // Datos seguros
+            const u = (result && result.user) || {};
+            const name =
+              u.name || (u.email ? u.email.split("@")[0] : "Usuario");
+
             // Mostrar mensaje de éxito
-            if (result.isLocal) {
-              showAlert(
-                "success",
-                `¡Bienvenido/a de vuelta, ${result.user.name}! Accediendo con cuenta local.`
-              );
-            } else {
-              showAlert(
-                "success",
-                `¡Bienvenido/a de vuelta, ${result.user.name}! Accediendo con Firebase.`
-              );
-            }
+            showAlert(
+              "success",
+              result.isLocal
+                ? `¡Bienvenido/a de vuelta, ${name}! Accediendo con cuenta local.`
+                : `¡Bienvenido/a de vuelta, ${name}! Accediendo con Firebase.`
+            );
 
             // Redirigir al dashboard después de un momento
             setTimeout(() => {
-              window.location.href = "/dashboard";
-            }, 1500);
+              const redirectTo = (result && result.redirect) || "/dashboard";
+              window.location.href = redirectTo;
+            }, 1000);
           } else {
-            throw new Error(result.error);
+            throw new Error(
+              (result && result.error) || "No se pudo iniciar sesión"
+            );
           }
         } catch (error) {
           console.error("Error en login:", error);
           showAlert(
             "error",
-            error.message ||
+            (error && error.message) ||
               "Error al iniciar sesión. Verifica tu email y contraseña."
           );
 
           // Restaurar botón
-          const submitBtn = document.querySelector('button[type="submit"]');
-          submitBtn.innerHTML = originalText;
-          submitBtn.disabled = false;
+          if (submitBtn) {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+          }
         }
       });
     }

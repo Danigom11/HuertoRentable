@@ -194,6 +194,11 @@ function handleInstallPrompt(e) {
   showInstallButton();
 }
 
+// Escuchar evento personalizado desde base.html
+window.addEventListener("appInstallable", (e) => {
+  handleInstallPrompt(e.detail);
+});
+
 function handleAppInstalled() {
   console.log("✅ App instalada correctamente");
   deferredPrompt = null;

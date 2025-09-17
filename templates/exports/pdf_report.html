@@ -285,7 +285,7 @@
           {% for cultivo in cultivos %}
           <tr>
             <td><strong>{{ cultivo.nombre.title() }}</strong></td>
-            <td>{{ cultivo.fecha_siembra.strftime('%d/%m/%Y') }}</td>
+            <td>{{ cultivo.fecha_siembra|format_date('%d/%m/%Y') }}</td>
             <td class="text-center">
               {{ cultivo.get('plantas_sembradas', 0) }}
             </td>

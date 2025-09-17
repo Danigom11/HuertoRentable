@@ -221,8 +221,8 @@
                     <span>
                       <i class="bi bi-calendar3 me-1"></i>
                       {% if cultivo.fecha_siembra %} {{
-                      cultivo.fecha_siembra.strftime('%d/%m/%Y') }} {% else %}
-                      Sin fecha {% endif %}
+                      cultivo.fecha_siembra|format_date('%d/%m/%Y') }} {% else
+                      %} Sin fecha {% endif %}
                     </span>
                     <span>
                       <i class="bi bi-tag me-1"></i>
@@ -280,8 +280,8 @@
                 <div class="border-top pt-3 text-center">
                   <small class="text-muted">
                     <i class="bi bi-calendar-check me-1"></i>
-                    Cosechado el {{ cultivo.fecha_cosecha.strftime('%d/%m/%Y')
-                    }}
+                    Cosechado el {{
+                    cultivo.fecha_cosecha|format_date('%d/%m/%Y') }}
                   </small>
                 </div>
                 {% endif %}

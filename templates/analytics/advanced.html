@@ -259,7 +259,8 @@ endblock %} {% block content %}
                   </td>
                   <td>
                     <small
-                      >{{ cultivo.fecha_siembra.strftime('%d/%m/%Y') }}</small
+                      >{{ cultivo.fecha_siembra|format_date('%d/%m/%Y')
+                      }}</small
                     >
                   </td>
                   <td>

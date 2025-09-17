@@ -1,0 +1,39 @@
+# Archivos ignorados por gcloud builds submit
+# Basado en mejores prácticas para proyectos Python + Functions
+
+.gcloudignore
+.git
+.gitignore
+
+# Python/venv
+__pycache__/
+*.pyc
+.venv/
+*.pyo
+*.pyd
+
+# Node/Functions
+node_modules/
+functions/node_modules/
+functions/.cache/
+
+# IDE/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Artefactos locales y logs
+*.log
+*.tmp
+*.swp
+
+# Directorios no necesarios para ejecutar el backend en Cloud Run
+dist/
+public/
+docs/
+tests/
+scripts/
+e2e_out.txt
+# Importante: NO ignorar todas las plantillas HTML; se necesitan en runtime
+# Si quieres ignorar HTMLs de prueba sueltos, usa un patrón más específico como test-*.html

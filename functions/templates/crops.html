@@ -110,9 +110,8 @@ HuertoRentable{% endblock %} {% block content %}
                       {% if cultivo.fecha_cosecha %}
                       <br /><small class="text-muted">
                         <i class="bi bi-calendar-check"></i>
-                        Cosechado: {{ cultivo.fecha_cosecha.strftime('%d/%m/%Y')
-                        if cultivo.fecha_cosecha.strftime else
-                        cultivo.fecha_cosecha }}
+                        Cosechado: {{
+                        cultivo.fecha_cosecha|format_date('%d/%m/%Y') }}
                       </small>
                       {% endif %} {% endif %}
                     </div>
@@ -122,7 +121,7 @@ HuertoRentable{% endblock %} {% block content %}
                   {% if cultivo.fecha_siembra %} {% if
                   cultivo.fecha_siembra_legible %} {{
                   cultivo.fecha_siembra_legible }} {% else %} {{
-                  cultivo.fecha_siembra.strftime('%d/%m/%Y') }} {% endif %}
+                  cultivo.fecha_siembra|format_date('%d/%m/%Y') }} {% endif %}
                   <br />
                   <small class="text-muted">
                     {% if cultivo.dias_desde_siembra %} hace {{
@@ -218,7 +217,7 @@ HuertoRentable{% endblock %} {% block content %}
                       data-plantas="{{ cultivo.numero_plantas or 1 }}"
                       data-peso="{{ cultivo.peso_promedio or 150 }}"
                       data-color="{{ cultivo.color_cultivo or '#28a745' }}"
-                      data-fecha="{{ cultivo.fecha_siembra.strftime('%Y-%m-%d') if cultivo.fecha_siembra else '' }}"
+                      data-fecha="{{ cultivo.fecha_siembra|format_date('%Y-%m-%d') if cultivo.fecha_siembra else '' }}"
                       onclick="editarCultivoDesdeBoton(this)"
                       title="Editar cultivo"
                     >

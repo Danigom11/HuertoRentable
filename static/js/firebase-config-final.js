@@ -18,24 +18,57 @@ window.HuertoFirebase = {
   config: null,
   app: null,
   auth: null,
+  _readyPromise: null,
+  _initializing: false,
 
   /**
-   * Inicializa Firebase de forma segura
+   * Inicializa Firebase de forma segura y idempotente.
+   * Devuelve una Promesa que se resuelve cuando app y auth están listos.
    */
-  initialize: async function () {
+  initialize: function () {
+    if (this._readyPromise) {
+      return this._readyPromise;
+    }
+
+    this._readyPromise = this._doInitialize();
+    return this._readyPromise;
+  },
+
+  /**
+   * Espera explícitamente a que Firebase esté listo.
+   */
+  waitUntilReady: function () {
+    return this.initialize();
+  },
+
+  _doInitialize: async function () {
     try {
       console.log("HuertoFirebase: Iniciando configuración...");
 
-      // Verificar que Firebase SDK esté disponible
+      // Esperar a que el SDK de Firebase esté cargado
       if (typeof firebase === "undefined") {
-        console.error("HuertoFirebase: Firebase SDK no está cargado");
+        console.warn(
+          "HuertoFirebase: SDK aún no cargado, esperando al evento 'load'"
+        );
+        await new Promise((resolve) =>
+          window.addEventListener("load", resolve, { once: true })
+        );
+      }
+
+      if (typeof firebase === "undefined") {
+        console.error(
+          "HuertoFirebase: Firebase SDK no está cargado tras 'load'"
+        );
         return false;
       }
 
       // Cargar configuración dinámica del backend si no está aún
       if (!this.config) {
         try {
-          const res = await fetch("/config/firebase", { cache: "no-store" });
+          const res = await fetch("/config/firebase", {
+            cache: "no-store",
+            credentials: "same-origin",
+          });
           if (res.ok) {
             const cfg = await res.json();
             // Validar apiKey básica
@@ -65,7 +98,10 @@ window.HuertoFirebase = {
 
       // Inicializar app si no existe
       if (!this.app) {
-        this.app = firebase.initializeApp(this.config);
+        this.app =
+          firebase.apps && firebase.apps.length
+            ? firebase.app()
+            : firebase.initializeApp(this.config);
         console.log("HuertoFirebase: App inicializada exitosamente");
       }
 
@@ -92,13 +128,14 @@ window.HuertoFirebase = {
       appInitialized: !!this.app,
       authInitialized: !!this.auth,
       config: !!this.config,
+      hasReadyPromise: !!this._readyPromise,
     };
   },
 };
 
-// Auto-inicialización cuando el DOM esté listo
+// Auto-inicialización cuando el DOM esté listo (no bloqueante)
 document.addEventListener("DOMContentLoaded", function () {
-  console.log("HuertoFirebase: DOM listo, iniciando Firebase...");
+  console.log("HuertoFirebase: DOM listo, iniciando Firebase (lazy)...");
   window.HuertoFirebase.initialize();
 });
 

@@ -75,7 +75,7 @@
         ><span class="align-middle">Nuevo Cultivo</span>
       </button>
       <a
-        href="{{ url_for('crops.list_crops') }}"
+        href="{{ url_for('crops.list_crops', uid=(session.get('user_uid') or (session.get('user') and session.get('user').get('uid')) or request.cookies.get('huerto_user_uid'))) }}"
         class="btn btn-outline-success"
       >
         <i class="bi bi-pencil-square me-1 align-middle"></i

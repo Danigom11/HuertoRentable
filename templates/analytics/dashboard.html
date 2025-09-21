@@ -1,16 +1,6 @@
 {% extends "base.html" %} {% block title %}Informes - HuertoRentable{% endblock
 %} {% block content %}
-<!-- Banner de modo demo en analytics -->
-{% if demo_mode %}
-<div class="alert alert-info alert-dismissible fade show" role="alert">
-  <i class="bi bi-star-fill me-2"></i>
-  <strong>Informes Premium Demo</strong> - Explorando todas las funcionalidades
-  de análisis avanzado.
-  <a href="{{ url_for('auth.login') }}" class="alert-link">Inicia sesión</a>
-  para analizar tus datos reales.
-  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-{% endif %}
+<!-- Modo demo eliminado: esta vista requiere autenticación -->
 
 <div class="container-fluid">
   <!-- Header -->
@@ -458,8 +448,26 @@
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     // Obtener datos de la API
-    fetch('{{ url_for("analytics.api_chart_data") }}')
-      .then((response) => response.json())
+    fetch('{{ url_for("analytics.api_chart_data") }}?uid={{ user_uid }}', {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        if (response.status === 401) {
+          try {
+            const j = await response.json();
+            if (j && j.redirect) {
+              window.location.href = j.redirect;
+              return;
+            }
+          } catch (e) {
+            window.location.href = "/onboarding";
+            return;
+          }
+        }
+        return response.json();
+      })
       .then((data) => {
         // Gráfico de barras - Producción
         const ctx1 = document

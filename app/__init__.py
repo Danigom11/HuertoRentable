@@ -73,6 +73,76 @@ def create_app(config_name=None):
         # Crear una clave dummy para forzar creación de cookie
         if '_init' not in session:
             session['_init'] = True
+
+        # Reconstrucción GLOBAL temprana: si no hay sesión válida pero sí cookies/URL con UID,
+        # establecer una sesión mínima antes de que actúe @require_auth.
+        try:
+            has_valid_session = bool(session.get('is_authenticated') and session.get('user_uid'))
+            if not has_valid_session:
+                from_uid = request.args.get('uid') or request.args.get('user_uid')
+                cookie_uid = request.cookies.get('huerto_user_uid')
+                cookie_data = request.cookies.get('huerto_user_data')
+                chosen_uid = from_uid or cookie_uid
+                if chosen_uid:
+                    import json as _json
+                    base = None
+                    if cookie_data:
+                        try:
+                            base = _json.loads(cookie_data)
+                        except Exception:
+                            base = None
+                    session['user_uid'] = chosen_uid
+                    session['is_authenticated'] = True
+                    # Refrescar/inicializar timestamp
+                    try:
+                        import time as _t
+                        session['login_timestamp'] = int(_t.time())
+                    except Exception:
+                        pass
+                    session['user'] = {
+                        'uid': chosen_uid,
+                        'email': (base or {}).get('email'),
+                        'name': (base or {}).get('name') or ((base or {}).get('email') or 'Usuario'),
+                        'plan': (base or {}).get('plan', 'gratuito')
+                    }
+                    session.modified = True
+                    if config_name == 'development':
+                        try:
+                            print(f"[GLOBAL RECONSTRUCT] Sesión creada desde {'param' if from_uid else 'cookie'} para UID={chosen_uid}")
+                        except Exception:
+                            pass
+        except Exception as _e:
+            try:
+                print(f"[GLOBAL RECONSTRUCT] Error: {_e}")
+            except Exception:
+                pass
+
+        # Guardia GLOBAL anti-bucles para rutas protegidas principales
+        # Importante: no redirigir si hay indicios de autenticación que el middleware
+        # @require_auth pueda usar para reconstruir sesión (cookies/headers/parámetros).
+        try:
+            path = request.path or ''
+            # Tratar config/firebase como público para no contaminar diagnóstico
+            if path.startswith('/config/firebase'):
+                return None
+            is_protected = path.startswith('/crops') or (path.startswith('/analytics') and not path.startswith('/analytics/api'))
+            if is_protected:
+                # Solo registrar señales; no redirigir desde la guardia global
+                dev_token = request.args.get('dev_token')
+                has_session = bool(session.get('is_authenticated') and session.get('user_uid'))
+                has_auth_header = bool(request.headers.get('Authorization'))
+                has_firebase_cookie = 'firebase_id_token' in request.cookies
+                has_user_cookie = 'huerto_user_uid' in request.cookies or 'huerto_user_data' in request.cookies
+                has_uid_param = bool(request.args.get('uid') or request.args.get('user_uid'))
+                came_from_auth = request.args.get('from') in ("login", "register")
+                has_session_cookie = app.config.get('SESSION_COOKIE_NAME', 'session') in request.cookies
+                wants_json = 'application/json' in (request.headers.get('Accept', '') or '').lower()
+                print(f"[GLOBAL GUARD] path={path} endpoint={request.endpoint} dev_token={dev_token} has_session={has_session} auth_header={has_auth_header} firebase_cookie={has_firebase_cookie} user_cookie={has_user_cookie} uid_param={has_uid_param} from_auth={came_from_auth} session_cookie={has_session_cookie} wants_json={wants_json}")
+                # Dejar que @require_auth gestione cualquier decisión de auth/redirect
+                return None
+        except Exception as _e:
+            # No bloquear la request por errores en esta guarda
+            print(f"[GLOBAL GUARD] Error evaluando guardia: {_e}")
     
     @app.after_request
     def after_request(response):
@@ -86,10 +156,61 @@ def create_app(config_name=None):
             response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
             response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
         
-        # FORZAR envío de cookie de sesión en TODAS las respuestas
+        # FORZAR envío de cookie de sesión en TODAS las respuestas y refrescar timestamp
         session.permanent = True
+        if session.get('is_authenticated'):
+            try:
+                import time as _t
+                session['login_timestamp'] = int(_t.time())
+            except Exception:
+                pass
         session.modified = True
-        
+        # Escribir cookies de respaldo con el UID/datos del usuario para reconstrucción en API calls
+        try:
+            user_uid = session.get('user_uid')
+            if user_uid:
+                # Cookie con UID del usuario (no HttpOnly para que el frontend pueda leer si fuera necesario)
+                response.set_cookie(
+                    'huerto_user_uid',
+                    value=user_uid,
+                    secure=app.config.get('SESSION_COOKIE_SECURE', False),
+                    httponly=False,
+                    samesite=app.config.get('SESSION_COOKIE_SAMESITE', 'Lax'),
+                    path=app.config.get('SESSION_COOKIE_PATH', '/'),
+                    domain=app.config.get('SESSION_COOKIE_DOMAIN')
+                )
+                # Cookie compacta con datos básicos (para mejorar UX)
+                import json as _json
+                basic = session.get('user') or {
+                    'uid': user_uid,
+                    'email': session.get('user_email'),
+                    'name': session.get('user_email') or 'Usuario',
+                    'plan': session.get('user', {}).get('plan', 'gratuito') if isinstance(session.get('user'), dict) else 'gratuito'
+                }
+                try:
+                    basic_json = _json.dumps({
+                        'uid': basic.get('uid') or user_uid,
+                        'email': basic.get('email'),
+                        'name': basic.get('name'),
+                        'plan': basic.get('plan', 'gratuito')
+                    }, ensure_ascii=False)
+                except Exception:
+                    basic_json = _json.dumps({'uid': user_uid})
+                response.set_cookie(
+                    'huerto_user_data',
+                    value=basic_json,
+                    secure=app.config.get('SESSION_COOKIE_SECURE', False),
+                    httponly=False,
+                    samesite=app.config.get('SESSION_COOKIE_SAMESITE', 'Lax'),
+                    path=app.config.get('SESSION_COOKIE_PATH', '/'),
+                    domain=app.config.get('SESSION_COOKIE_DOMAIN')
+                )
+        except Exception as _e:
+            try:
+                print(f"[AFTER_REQUEST] No se pudieron establecer cookies de respaldo: {_e}")
+            except Exception:
+                pass
+
         # Debug mejorado
         has_session_data = len([k for k in session.keys() if not k.startswith('_')]) > 0
         print(f"🍪 Session data: {has_session_data}, Response: {response.status_code}")
@@ -219,6 +340,8 @@ def register_error_handlers(app):
 def setup_template_context(app):
     """Configurar variables globales para plantillas"""
     import time
+    import datetime as _dt
+    from flask import request
     
     # Registrar filtro personalizado para formato español de números
     @app.template_filter('spanish_format')
@@ -239,6 +362,37 @@ def setup_template_context(app):
             return formatted
         except (ValueError, TypeError):
             return str(value)
+
+    @app.template_filter('format_date')
+    def format_date(value, fmt='%d/%m/%Y'):
+        """
+        Formatea fechas de forma segura para plantillas.
+        - Acepta datetime, date, strings ISO y Timestamps de Firestore (con to_datetime()).
+        - Si no puede formatear, devuelve el valor original.
+        """
+        try:
+            if value is None or value == '':
+                return ''
+            # Firestore Timestamp
+            if hasattr(value, 'to_datetime') and callable(getattr(value, 'to_datetime')):
+                value = value.to_datetime()
+            # Strings ISO
+            if isinstance(value, str):
+                try:
+                    value = _dt.datetime.fromisoformat(value)
+                except Exception:
+                    # No es ISO, devolver tal cual
+                    return value
+            # date o datetime
+            if isinstance(value, (_dt.datetime, _dt.date)):
+                # date también soporta strftime
+                return value.strftime(fmt)
+            # Último recurso: intentar acceder a strftime si existe
+            if hasattr(value, 'strftime'):
+                return value.strftime(fmt)
+        except Exception:
+            pass
+        return value
     
     @app.context_processor
     def inject_config():
@@ -246,6 +400,77 @@ def setup_template_context(app):
             'PLAN_GRATUITO': app.config['PLAN_GRATUITO'], 
             'PLAN_PREMIUM': app.config['PLAN_PREMIUM'],
             'timestamp': int(time.time())  # Para versionado de assets
+        }
+
+    @app.context_processor
+    def inject_user_context():
+        """
+        Inyecta `user`, `is_authenticated` y `user_display_name` en todas las plantillas.
+        - Usa el usuario del middleware/sesión si existe
+        - Si no, intenta reconstruir desde la cookie `huerto_user_data`
+        """
+        # 1) Orígenes posibles del usuario
+        try:
+            from app.middleware.auth_middleware import get_current_user as _get_user
+            user_from_g = _get_user()
+        except Exception:
+            user_from_g = None
+        user_from_session = session.get('user') if 'user' in session else None
+
+        # 2) Leer cookie compacta si existe
+        cookie_dict = {}
+        try:
+            import json as _json
+            raw = request.cookies.get('huerto_user_data')
+            if raw:
+                data = _json.loads(raw)
+                if isinstance(data, dict):
+                    cookie_dict = data
+        except Exception:
+            cookie_dict = {}
+
+        # 3) Seleccionar base de usuario (prioridad: sesión → g → cookie)
+        u = user_from_session or user_from_g or (
+            {
+                'uid': cookie_dict.get('uid'),
+                'email': cookie_dict.get('email'),
+                'name': cookie_dict.get('name'),
+                'plan': cookie_dict.get('plan', 'gratuito')
+            } if cookie_dict else None
+        )
+
+        # 4) Enriquecer campos faltantes (nombre/email) desde sesión/cookie
+        if u:
+            if not u.get('name'):
+                u['name'] = (
+                    (user_from_session or {}).get('name')
+                    or cookie_dict.get('name')
+                    or (user_from_session or {}).get('email')
+                    or cookie_dict.get('email')
+                    or None
+                )
+            if not u.get('email'):
+                u['email'] = (
+                    (user_from_session or {}).get('email')
+                    or cookie_dict.get('email')
+                    or None
+                )
+
+        # 5) Construir nombre a mostrar con prioridad clara (no "Usuario" si hay email)
+        display_name = (
+            (user_from_session or {}).get('name')
+            or (user_from_session or {}).get('email')
+            or cookie_dict.get('name')
+            or cookie_dict.get('email')
+            or ((u or {}).get('name'))
+            or ((u or {}).get('email'))
+            or 'Usuario'
+        )
+
+        return {
+            'user': u,
+            'is_authenticated': bool(u),
+            'user_display_name': display_name,
         }
     
     @app.after_request

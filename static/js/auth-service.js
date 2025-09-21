@@ -23,12 +23,15 @@ class AuthService {
         return;
       }
 
-      console.log("📊 Estado de Firebase:", window.HuertoFirebase.getStatus());
+      console.log(
+        "📊 Estado de Firebase (pre):",
+        window.HuertoFirebase.getStatus()
+      );
 
-      // Intentar inicializar Firebase
-      const initialized = window.HuertoFirebase.initialize();
+      // Esperar a que Firebase esté completamente listo
+      const initialized = await window.HuertoFirebase.waitUntilReady();
 
-      if (initialized) {
+      if (initialized && typeof firebase !== "undefined" && firebase.auth) {
         this.isFirebaseReady = true;
         console.log("✅ Firebase Authentication listo");
 
@@ -63,9 +66,7 @@ class AuthService {
 
       if (this.isFirebaseReady) {
         // Asegurar que Firebase esté listo
-        if (!firebase.apps || !firebase.apps.length) {
-          await window.HuertoFirebase.initialize();
-        }
+        await window.HuertoFirebase.waitUntilReady();
         // Registro con Firebase
         console.log("🔥 Registrando usuario con Firebase");
 
@@ -249,9 +250,7 @@ class AuthService {
         // Login con Firebase
         console.log("🔥 Iniciando sesión con Firebase");
 
-        if (!firebase.apps || !firebase.apps.length) {
-          await window.HuertoFirebase.initialize();
-        }
+        await window.HuertoFirebase.waitUntilReady();
         const userCredential = await firebase
           .auth()
           .signInWithEmailAndPassword(email, password);

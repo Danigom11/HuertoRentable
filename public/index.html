@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="HuertoRentable - Gestión inteligente de huertos rentables"
+    />
+    <meta name="theme-color" content="#198754" />
+
+    <!-- Bootstrap 5 CDN - diseño responsivo y accesible -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <!-- Bootstrap Icons con hash correcto -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+
+    <!-- PWA Manifest - hace la app instalable -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Iconos PWA para diferentes dispositivos -->
+    <link rel="apple-touch-icon" href="/static/img/icon.png" />
+    <link rel="icon" type="image/png" href="/static/img/icon.png" />
+
+    <!-- CSS personalizado -->
+    <link rel="stylesheet" href="/static/css/styles.css?v=2.5" />
+
+    <!-- Firebase SDKs v8 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <title>HuertoRentable - Gestión de Huertos Rentables</title>
+  </head>
+  <body class="bg-light">
+    <!-- Navegación principal -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-success shadow-sm">
+      <div class="container">
+        <a class="navbar-brand fw-bold" href="/">
+          <i class="bi bi-flower2 me-2"></i>
+          HuertoRentable
+        </a>
+
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+              <a class="nav-link active" href="/">
+                <i class="bi bi-house-door me-1 align-middle"></i>
+                <span class="align-middle">Inicio</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link"
+                href="#cultivos"
+                onclick="showSection('cultivos')"
+              >
+                <i class="bi bi-tree me-1 align-middle"></i>
+                <span class="align-middle">Cultivos</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link"
+                href="#analytics"
+                onclick="showSection('analytics')"
+              >
+                <i class="bi bi-graph-up me-1 align-middle"></i>
+                <span class="align-middle">Análisis</span>
+              </a>
+            </li>
+          </ul>
+
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item" id="loginLink">
+              <a class="nav-link" href="#" onclick="showLogin()">
+                <i class="bi bi-box-arrow-in-right me-1 align-middle"></i>
+                <span class="align-middle">Iniciar Sesión</span>
+              </a>
+            </li>
+            <li class="nav-item" id="registerLink">
+              <a class="nav-link" href="#" onclick="showRegister()">
+                <i class="bi bi-person-plus me-1 align-middle"></i>
+                <span class="align-middle">Registrarse</span>
+              </a>
+            </li>
+            <li class="nav-item dropdown d-none" id="userDropdown">
+              <a
+                class="nav-link dropdown-toggle"
+                href="#"
+                id="navbarDropdown"
+                role="button"
+                data-bs-toggle="dropdown"
+              >
+                <i class="bi bi-person-circle me-1 align-middle"></i>
+                <span class="align-middle" id="userName">Usuario</span>
+              </a>
+              <ul class="dropdown-menu">
+                <li>
+                  <a class="dropdown-item" href="#" onclick="showProfile()">
+                    <i class="bi bi-person me-2 align-middle"></i>
+                    <span class="align-middle">Perfil</span>
+                  </a>
+                </li>
+                <li><hr class="dropdown-divider" /></li>
+                <li>
+                  <a class="dropdown-item" href="#" onclick="logout()">
+                    <i class="bi bi-box-arrow-right me-2 align-middle"></i>
+                    <span class="align-middle">Cerrar Sesión</span>
+                  </a>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Contenido principal -->
+    <main class="container mt-4 mb-5">
+      <!-- Mensajes de alerta -->
+      <div id="alertContainer"></div>
+
+      <!-- Sección Dashboard -->
+      <div id="dashboardSection">
+        <!-- Banner para usuarios no autenticados -->
+        <div
+          class="alert alert-secondary alert-dismissible fade show"
+          role="alert"
+          id="guestBanner"
+        >
+          <i class="bi bi-info-circle me-2"></i>
+          <strong>Sesión temporal</strong> -
+          <a href="#" onclick="showLogin()" class="alert-link">Inicia sesión</a>
+          o
+          <a href="#" onclick="showRegister()" class="alert-link">regístrate</a>
+          para guardar tus datos permanentemente.
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="alert"
+          ></button>
+        </div>
+
+        <!-- Header de inicio -->
+        <div class="row mb-4">
+          <div class="col-md-8">
+            <h1 class="display-6 text-success mb-2">
+              <i class="bi bi-house-gear me-2 align-middle"></i>
+              <span class="align-middle">Mi Huerto</span>
+            </h1>
+            <p class="lead text-muted">
+              Gestiona tus cultivos, registra cosechas y monitorea tu
+              rentabilidad
+            </p>
+          </div>
+          <div class="col-md-4 text-md-end">
+            <div class="d-grid gap-2 d-md-block">
+              <button
+                type="button"
+                class="btn btn-success me-2"
+                onclick="showNuevoCultivo()"
+              >
+                <i class="bi bi-plus-circle me-1 align-middle"></i>
+                <span class="align-middle">Nuevo Cultivo</span>
+              </button>
+              <button
+                onclick="showSection('cultivos')"
+                class="btn btn-outline-success"
+              >
+                <i class="bi bi-pencil-square me-1 align-middle"></i>
+                <span class="align-middle">Editar Cultivos</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarjetas de estadísticas generales -->
+        <div class="row mb-4">
+          <div class="col-lg-4 col-md-6 mb-3">
+            <div class="card bg-success text-white h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <h6 class="card-title text-white-50 mb-1">
+                      Cultivos Activos
+                    </h6>
+                    <h3 class="mb-0" id="activeCrops">0</h3>
+                  </div>
+                  <div class="align-self-center">
+                    <i class="bi bi-tree fs-2 opacity-75"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6 mb-3">
+            <div class="card bg-primary text-white h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <h6 class="card-title text-white-50 mb-1">Cosecha Total</h6>
+                    <h3 class="mb-0" id="totalHarvest">0 kg</h3>
+                  </div>
+                  <div class="align-self-center">
+                    <i class="bi bi-basket fs-2 opacity-75"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6 mb-3">
+            <div class="card bg-warning text-white h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <h6 class="card-title text-white-50 mb-1">
+                      Beneficio Total
+                    </h6>
+                    <h3 class="mb-0" id="totalBenefit">€0</h3>
+                  </div>
+                  <div class="align-self-center">
+                    <i class="bi bi-currency-euro fs-2 opacity-75"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista de cultivos recientes -->
+        <div class="row">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                  <i class="bi bi-clock-history me-2"></i>
+                  Cultivos Recientes
+                </h5>
+              </div>
+              <div class="card-body">
+                <div id="recentCrops">
+                  <div class="text-center text-muted py-4">
+                    <i class="bi bi-plus-circle-dotted fs-1"></i>
+                    <p class="mt-2">No hay cultivos registrados</p>
+                    <button
+                      class="btn btn-outline-success"
+                      onclick="showNuevoCultivo()"
+                    >
+                      Añadir primer cultivo
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sección Cultivos -->
+      <div id="cultivosSection" class="d-none">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h1 class="display-6 text-success">
+            <i class="bi bi-tree me-2"></i>
+            Mis Cultivos
+          </h1>
+          <button class="btn btn-success" onclick="showNuevoCultivo()">
+            <i class="bi bi-plus-circle me-1"></i>
+            Nuevo Cultivo
+          </button>
+        </div>
+
+        <div id="cultivosList">
+          <!-- Se llenarán dinámicamente con JavaScript -->
+        </div>
+      </div>
+
+      <!-- Sección Analytics -->
+      <div id="analyticsSection" class="d-none">
+        <h1 class="display-6 text-success mb-4">
+          <i class="bi bi-graph-up me-2"></i>
+          Análisis de Rentabilidad
+        </h1>
+
+        <div class="row">
+          <div class="col-lg-6 mb-4">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title mb-0">Producción por Cultivo</h5>
+              </div>
+              <div class="card-body">
+                <canvas id="productionChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6 mb-4">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title mb-0">Beneficios por Mes</h5>
+              </div>
+              <div class="card-body">
+                <canvas id="benefitsChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Login Modal -->
+      <div class="modal fade" id="loginModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Iniciar Sesión</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <form id="loginForm">
+                <div class="mb-3">
+                  <label for="loginEmail" class="form-label">Email</label>
+                  <input
+                    type="email"
+                    class="form-control"
+                    id="loginEmail"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="loginPassword" class="form-label"
+                    >Contraseña</label
+                  >
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="loginPassword"
+                    required
+                  />
+                </div>
+                <button type="submit" class="btn btn-success w-100">
+                  Iniciar Sesión
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Register Modal -->
+      <div class="modal fade" id="registerModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Registrarse</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <form id="registerForm">
+                <div class="mb-3">
+                  <label for="registerName" class="form-label">Nombre</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="registerName"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="registerEmail" class="form-label">Email</label>
+                  <input
+                    type="email"
+                    class="form-control"
+                    id="registerEmail"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="registerPassword" class="form-label"
+                    >Contraseña</label
+                  >
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="registerPassword"
+                    required
+                  />
+                </div>
+                <button type="submit" class="btn btn-success w-100">
+                  Registrarse
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nuevo Cultivo Modal -->
+      <div class="modal fade" id="nuevoCultivoModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Nuevo Cultivo</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <form id="nuevoCultivoForm">
+                <div class="mb-3">
+                  <label for="cultivoNombre" class="form-label"
+                    >Nombre del Cultivo</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="cultivoNombre"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="cultivoVariedad" class="form-label"
+                    >Variedad</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="cultivoVariedad"
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="cultivoFechaSiembra" class="form-label"
+                    >Fecha de Siembra</label
+                  >
+                  <input
+                    type="date"
+                    class="form-control"
+                    id="cultivoFechaSiembra"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="cultivoPrecio" class="form-label"
+                    >Precio por Kg (€)</label
+                  >
+                  <input
+                    type="number"
+                    step="0.01"
+                    class="form-control"
+                    id="cultivoPrecio"
+                    required
+                  />
+                </div>
+                <button type="submit" class="btn btn-success w-100">
+                  Crear Cultivo
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4 mt-auto">
+      <div class="container text-center">
+        <p class="mb-0">
+          <i class="bi bi-flower2 me-2"></i>
+          HuertoRentable - Tu huerto más inteligente
+        </p>
+      </div>
+    </footer>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js para gráficas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- App JavaScript -->
+    <script src="/static/js/app.js"></script>
+
+    <!-- Service Worker para PWA -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/service-worker.js");
+      }
+    </script>
+  </body>
+</html>

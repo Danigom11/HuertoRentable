@@ -183,7 +183,10 @@
           Añade cultivos y registra su producción para ver gráficas
           comparativas.
         </p>
-        <a href="{{ url_for('crops.list_crops') }}" class="btn btn-success">
+        <a
+          href="{{ url_for('crops.list_crops', uid=(session.get('user_uid') or (session.get('user') and session.get('user').get('uid')) or request.cookies.get('huerto_user_uid'))) }}"
+          class="btn btn-success"
+        >
           <i class="bi bi-seedling me-2"></i>
           Gestionar Cultivos
         </a>

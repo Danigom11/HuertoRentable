@@ -1,19 +1,8 @@
 {% extends "base.html" %} {% block title %}Inicio - HuertoRentable{% endblock %}
 {% block content %}
 
-<!-- Banner específico según el modo -->
-{% if is_demo_mode %}
-<div class="alert alert-info alert-dismissible fade show" role="alert">
-  <i class="bi bi-eye me-2"></i>
-  <strong>Modo Demo</strong> - Estás viendo datos de ejemplo para conocer todas
-  las funcionalidades.
-  <a href="{{ url_for('auth.plan_selection') }}" class="alert-link"
-    >Crear cuenta</a
-  >
-  para gestionar tus cultivos reales.
-  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-{% elif is_guest_mode %}
+<!-- Banner específico según el modo (demo eliminado) -->
+{% if is_guest_mode %}
 <div class="alert alert-warning alert-dismissible fade show" role="alert">
   <i class="bi bi-person me-2"></i>
   <strong>Modo Invitado</strong> - Tus datos se guardan localmente y pueden
@@ -75,7 +64,7 @@
         ><span class="align-middle">Nuevo Cultivo</span>
       </button>
       <a
-        href="{{ url_for('crops.list_crops') }}"
+        href="{{ url_for('crops.list_crops') }}?uid={{ user.uid }}"
         class="btn btn-outline-success"
       >
         <i class="bi bi-pencil-square me-1 align-middle"></i
@@ -374,7 +363,7 @@
                   </div>
                   <a
                     class="btn btn-outline-info btn-sm w-100 mt-2"
-                    href="{{ url_for('crops.crop_history', crop_id=cultivo.id, uid=(user.uid if user else request.args.get('uid') or request.cookies.get('huerto_user_uid')), demo='true' if is_demo_mode else None) }}"
+                    href="{{ url_for('crops.crop_history', crop_id=cultivo.id, uid=(user.uid if user else request.args.get('uid') or request.cookies.get('huerto_user_uid'))) }}"
                   >
                     <i class="bi bi-clock-history me-1"></i> Ver historial
                   </a>
@@ -410,7 +399,7 @@
           </a>
           {% else %}
           <a
-            href="{{ url_for('crops.list_crops') }}"
+            href="{{ url_for('crops.list_crops') }}?uid={{ user.uid }}"
             class="btn btn-success btn-lg"
           >
             <i class="bi bi-plus-circle me-2"></i>

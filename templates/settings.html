@@ -1,0 +1,22 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container py-4">
+  <h1 class="h3 mb-4">Ajustes de la cuenta</h1>
+  <div class="card">
+    <div class="card-body">
+      <p class="text-muted mb-3">
+        Esta es una página de ejemplo de ajustes. Aquí podrías permitir al
+        usuario:
+      </p>
+      <ul>
+        <li>Actualizar su nombre visible</li>
+        <li>Cambiar email (si tu flujo lo permite)</li>
+        <li>Gestionar su plan ({{ user.plan if user else 'gratuito' }})</li>
+      </ul>
+      <p class="mb-0">
+        Próximamente añadiremos formularios reales. Por ahora, verifica que el
+        menú “Usuario” muestra tu nombre y que este enlace funciona.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

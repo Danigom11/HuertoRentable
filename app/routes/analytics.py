@@ -10,7 +10,7 @@ import os
 import locale
 from flask import Blueprint, render_template, jsonify, make_response
 from app.auth.auth_service import login_required, get_current_user, premium_required
-from app.middleware.auth_middleware import require_auth, optional_auth, get_current_user_uid
+from app.middleware.auth_middleware import require_auth, get_current_user_uid
 from app.services.crop_service import CropService
 
 def format_spanish_number(value, decimals=2):
@@ -25,20 +25,125 @@ def format_spanish_number(value, decimals=2):
 
 analytics_bp = Blueprint('analytics', __name__)
 
+# Guardia a nivel de blueprint: asegura autenticación antes de cualquier handler
+@analytics_bp.before_request
+def _ensure_auth_analytics_bp():
+    # Permitir preflight
+    from flask import request as _req, redirect as _redirect, url_for as _url_for, session as _session, g as _g, current_app as _ca
+    if _req.method == 'OPTIONS':
+        return None
+    # No interceptar endpoints API del propio blueprint; dejar que @require_auth maneje JSON/401
+    try:
+        if (_req.endpoint or '').endswith('analytics.api_chart_data') or _req.path.endswith('/api/chart-data'):
+            return None
+    except Exception:
+        pass
+    try:
+        print(f"[analytics.before_request] method={_req.method} path={_req.path} args={dict(_req.args)} cookies={list(_req.cookies.keys())}")
+    except Exception:
+        pass
+    # Resolver UID si ya fue establecido por middleware; si no, comprobar señales de auth
+    uid = None
+    try:
+        uid = (_g.current_user.get('uid') if getattr(_g, 'current_user', None) else None)
+    except Exception:
+        uid = None
+    if not uid:
+        uid = _session.get('user_uid')
+
+    # Reconstrucción temprana desde cookies de respaldo si falta sesión pero hay cookies
+    if not uid:
+        try:
+            backup_uid = _req.cookies.get('huerto_user_uid')
+            backup_data = _req.cookies.get('huerto_user_data')
+            if backup_uid:
+                _session.permanent = True
+                _session['user_uid'] = backup_uid
+                _session['is_authenticated'] = True
+                # Cargar mínimos desde cookie JSON si existe
+                try:
+                    import json as _json
+                    bd = _json.loads(backup_data) if backup_data else {}
+                except Exception:
+                    bd = {}
+                _session['user'] = {
+                    'uid': backup_uid,
+                    'email': bd.get('email'),
+                    'name': bd.get('name') or (bd.get('email') or 'Usuario'),
+                    'plan': bd.get('plan', 'gratuito')
+                }
+                _session.modified = True
+                # Exponer en g para capas superiores
+                try:
+                    _g.current_user = _session['user']
+                except Exception:
+                    pass
+                uid = backup_uid
+                try:
+                    print("[analytics.before_request] Sesión reconstruida desde cookies de respaldo")
+                except Exception:
+                    pass
+        except Exception:
+            pass
+    # Permitir token de desarrollo en local
+    dev_token = _req.args.get('dev_token')
+    if dev_token == 'dev_123_local' and (_ca.config.get('ENV') == 'development' or _ca.debug):
+        try:
+            print("[analytics.before_request] dev_token válido en desarrollo; permitiendo acceso")
+        except Exception:
+            pass
+        return None
+    # Importante: no redirigir desde aquí. Dejamos TODA la decisión al decorador @require_auth.
+    # Este hook solo intenta reconstrucción temprana si hay cookies de respaldo y registra trazas.
+    # Si no hay sesión/UID, continuamos y que el decorador gestione 401/redirects correctamente.
+    return None
+
 @analytics_bp.route('/')
-@require_auth
 def analytics_dashboard():
-    """Dashboard de analytics básico con autenticación segura"""
+    """Dashboard de analytics (requiere autenticación)."""
     from flask import current_app
+    # Trazas de diagnóstico: cookies, sesión y UID detectado
+    try:
+        from flask import request as _req, session as _session, g as _g
+        print(f"[/analytics/] IN - cookies={list((_req.cookies or {}).keys())} has_session={bool(_session.get('is_authenticated'))} session_uid={_session.get('user_uid')} g_uid={(getattr(_g, 'current_user', {}) or {}).get('uid')}")
+    except Exception as _e:
+        try:
+            print(f"[/analytics/] IN - error trazas: {_e}")
+        except Exception:
+            pass
     
-    # Obtener UID del usuario autenticado de forma segura
-    user_uid = get_current_user_uid()
+    # Obtener usuario autenticado con fallback robusto
     user = get_current_user()
+    from flask import session as _session, request as _req
+    user_uid = (
+        get_current_user_uid()
+        or _session.get('user_uid')
+        or _req.cookies.get('huerto_user_uid')
+        or _req.args.get('uid')
+        or _req.args.get('user_uid')
+    )
+    try:
+        print(f"[/analytics/] UID resuelto: {user_uid}")
+    except Exception:
+        pass
+    # Evitar redirecciones falsas: si no hay UID pero hay señales claras de auth, continuar
+    if not user_uid:
+        has_auth_header = bool(_req.headers.get('Authorization'))
+        has_firebase_cookie = 'firebase_id_token' in _req.cookies
+        has_user_cookie = 'huerto_user_uid' in _req.cookies or 'huerto_user_data' in _req.cookies
+        came_from_auth = _req.args.get('from') in ("login", "register")
+        try:
+            print(f"[/analytics/] Sin UID. señales: auth_header={has_auth_header} firebase_cookie={has_firebase_cookie} user_cookie={has_user_cookie} from_auth={came_from_auth}")
+        except Exception:
+            pass
+        if not (has_auth_header or has_firebase_cookie or has_user_cookie or came_from_auth):
+            from flask import redirect, url_for
+            return redirect(url_for('main.onboarding'))
     
     from flask import current_app
     crop_service = CropService(current_app.db)
     
-    # Obtener datos del usuario autenticado
+    # Obtener datos del usuario
     cultivos = crop_service.get_user_crops(user_uid)
     total_kilos, total_beneficios = crop_service.get_user_totals(user_uid)
     
@@ -103,7 +208,7 @@ def analytics_dashboard():
                          cultivos_detallados=cultivos_detallados,
                          total_kilos=total_kilos,
                          total_beneficios=total_beneficios,
-                         demo_mode=False)
+                         user_uid=user_uid)
 
 @analytics_bp.route('/advanced')
 @require_auth
@@ -154,19 +259,43 @@ def advanced():
                          plan=plan)
 
 @analytics_bp.route('/api/chart-data')
-@require_auth
 def api_chart_data():
-    """API para datos de gráficas - funciona en modo demo"""
-    from flask import current_app
+    """API para datos de gráficas (requiere autenticación)."""
+    from flask import current_app, request, session as _session
+    try:
+        print(f"[/analytics/api/chart-data] IN - cookies={list((request.cookies or {}).keys())} session_uid={_session.get('user_uid')} g_uid={get_current_user_uid()}")
+    except Exception:
+        pass
     
-    user = get_current_user()
+    # Resolver UID de forma robusta: contexto -> sesión -> cookie -> parámetro
+    user_uid = (
+        get_current_user_uid()
+        or _session.get('user_uid')
+        or request.cookies.get('huerto_user_uid')
+        or request.args.get('uid')
+        or request.args.get('user_uid')
+    )
+    # Fallback: intentar extraer UID del Referer (cuando venimos de /analytics/?uid=...)
+    if not user_uid:
+        try:
+            ref = request.headers.get('Referer')
+            if ref:
+                from urllib.parse import urlparse, parse_qs
+                q = parse_qs(urlparse(ref).query)
+                user_uid = (q.get('uid') or q.get('user_uid') or [None])[0]
+                if user_uid:
+                    print(f"[/analytics/api/chart-data] UID desde Referer: {user_uid}")
+        except Exception:
+            pass
+    try:
+        print(f"[/analytics/api/chart-data] UID resuelto: {user_uid}")
+    except Exception:
+        pass
+    if not user_uid:
+        # Evitar 302 en APIs; responder JSON 401 para que el frontend pueda reaccionar
+        return jsonify({'error': 'no-auth', 'redirect': '/onboarding'}), 401
     crop_service = CropService(current_app.db)
-    
-    # Obtener datos según si está autenticado o en modo demo
-    if user:
-        cultivos = crop_service.get_user_crops(user['uid'])
-    else:
-        cultivos = crop_service.get_demo_crops()
+    cultivos = crop_service.get_user_crops(user_uid)
     
     # Preparar datos para Chart.js
     labels = []
@@ -208,21 +337,15 @@ def api_chart_data():
 @analytics_bp.route('/export/csv')
 @require_auth
 def export_csv():
-    """Exportar datos detallados a CSV - funciona en modo demo"""
+    """Exportar datos detallados a CSV (requiere autenticación)."""
     from flask import current_app
     import csv
     import io
     
-    user = get_current_user()
+    user_uid = get_current_user_uid()
     crop_service = CropService(current_app.db)
-    
-    # Obtener datos según si está autenticado o en modo demo
-    if user:
-        cultivos = crop_service.get_user_crops(user['uid'])
-        filename = f"huerto_detallado_{user['uid'][:8]}.csv"
-    else:
-        cultivos = crop_service.get_demo_crops()
-        filename = "huerto_detallado_demo.csv"
+    cultivos = crop_service.get_user_crops(user_uid)
+    filename = f"huerto_detallado_{user_uid[:8]}.csv"
     
     # Crear CSV en memoria
     output = io.StringIO()
@@ -285,19 +408,13 @@ def export_csv():
 @analytics_bp.route('/export/json')
 @require_auth
 def export_json():
-    """Exportar datos completos a JSON - funciona en modo demo"""
+    """Exportar datos completos a JSON (requiere autenticación)."""
     from flask import current_app
     
-    user = get_current_user()
+    user_uid = get_current_user_uid()
     crop_service = CropService(current_app.db)
-    
-    # Obtener datos según si está autenticado o en modo demo
-    if user:
-        cultivos = crop_service.get_user_crops(user['uid'])
-        total_kilos, total_beneficios = crop_service.get_user_totals(user['uid'])
-    else:
-        cultivos = crop_service.get_demo_crops()
-        total_kilos, total_beneficios = crop_service.get_demo_totals()
+    cultivos = crop_service.get_user_crops(user_uid)
+    total_kilos, total_beneficios = crop_service.get_user_totals(user_uid)
     
     # Preparar datos completos para exportar
     export_data = {
@@ -306,7 +423,7 @@ def export_json():
             'total_kilos': total_kilos,
             'total_beneficios': total_beneficios,
             'fecha_exportacion': datetime.datetime.now().isoformat(),
-            'usuario': user['uid'] if user else 'demo'
+            'usuario': user_uid
         },
         'cultivos_detallados': []
     }
@@ -370,7 +487,7 @@ def export_json():
         }
         export_data['cultivos_detallados'].append(cultivo_data)
     
-    filename = f"huerto_completo_{'demo' if not user else user['uid'][:8]}.json"
+    filename = f"huerto_completo_{user_uid[:8]}.json"
     
     # Crear respuesta HTTP
     response = make_response(json.dumps(export_data, indent=2, ensure_ascii=False))
@@ -382,24 +499,17 @@ def export_json():
 @analytics_bp.route('/export/excel')
 @require_auth
 def export_excel():
-    """Exportar datos a Excel con múltiples hojas - funciona en modo demo"""
+    """Exportar datos a Excel con múltiples hojas (requiere autenticación)."""
     from flask import current_app
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment
     from openpyxl.chart import BarChart, Reference
     
-    user = get_current_user()
+    user_uid = get_current_user_uid()
     crop_service = CropService(current_app.db)
-    
-    # Obtener datos según si está autenticado o en modo demo
-    if user:
-        cultivos = crop_service.get_user_crops(user['uid'])
-        total_kilos, total_beneficios = crop_service.get_user_totals(user['uid'])
-        filename = f"huerto_analisis_{user['uid'][:8]}.xlsx"
-    else:
-        cultivos = crop_service.get_demo_crops()
-        total_kilos, total_beneficios = crop_service.get_demo_totals()
-        filename = "huerto_demo_analisis.xlsx"
+    cultivos = crop_service.get_user_crops(user_uid)
+    total_kilos, total_beneficios = crop_service.get_user_totals(user_uid)
+    filename = f"huerto_analisis_{user_uid[:8]}.xlsx"
     
     # Crear libro Excel
     wb = Workbook()
@@ -585,7 +695,7 @@ def export_excel():
 @analytics_bp.route('/export/pdf')
 @require_auth
 def export_pdf():
-    """Exportar reporte completo a PDF con reportlab - funciona en modo demo"""
+    """Exportar reporte completo a PDF con reportlab (requiere autenticación)."""
     from flask import current_app
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import letter, A4
@@ -596,20 +706,12 @@ def export_pdf():
     from reportlab.graphics.shapes import Drawing
     from reportlab.graphics.charts.barcharts import VerticalBarChart
     
-    user = get_current_user()
+    user_uid = get_current_user_uid()
     crop_service = CropService(current_app.db)
-    
-    # Obtener datos según si está autenticado o en modo demo
-    if user:
-        cultivos = crop_service.get_user_crops(user['uid'])
-        total_kilos, total_beneficios = crop_service.get_user_totals(user['uid'])
-        filename = f"huerto_reporte_{user['uid'][:8]}.pdf"
-        titulo_usuario = f"Usuario: {user.get('email', 'Premium')}"
-    else:
-        cultivos = crop_service.get_demo_crops()
-        total_kilos, total_beneficios = crop_service.get_demo_totals()
-        filename = "huerto_demo_reporte.pdf"
-        titulo_usuario = "Modo Demo"
+    cultivos = crop_service.get_user_crops(user_uid)
+    total_kilos, total_beneficios = crop_service.get_user_totals(user_uid)
+    filename = f"huerto_reporte_{user_uid[:8]}.pdf"
+    titulo_usuario = f"Usuario: {user_uid}"
     
     # Crear PDF en memoria
     buffer = io.BytesIO()

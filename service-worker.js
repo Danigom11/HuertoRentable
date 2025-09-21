@@ -2,7 +2,7 @@
 // Proporciona funcionalidad offline y cacheo de recursos
 
 // Versión fija - solo cambiar cuando hay actualizaciones reales
-const CACHE_VERSION = "v2.2";
+const CACHE_VERSION = "v2.4";
 const CACHE_NAME = "huertorentable-" + CACHE_VERSION;
 const STATIC_CACHE = "huertorentable-static-" + CACHE_VERSION;
 const DYNAMIC_CACHE = "huertorentable-dynamic-" + CACHE_VERSION;
@@ -100,6 +100,12 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 // Evento de fetch - interceptar requests y aplicar estrategias de cache
 self.addEventListener("fetch", (event) => {
   const request = event.request;
@@ -117,6 +123,26 @@ self.addEventListener("fetch", (event) => {
     (url.hostname === "localhost" && url.port === "3000")
   ) {
     return;
+  }
+
+  const path = url.pathname || "";
+
+  // Solo interceptar assets estáticos (css/js/img/icon/manifest) dentro de /static o raíz conocida
+  const isStaticAsset =
+    path.startsWith("/static/") ||
+    path.endsWith(".css") ||
+    path.endsWith(".js") ||
+    path.endsWith(".png") ||
+    path.endsWith(".jpg") ||
+    path.endsWith(".jpeg") ||
+    path.endsWith(".svg") ||
+    path.endsWith(".ico") ||
+    path.endsWith(".webmanifest") ||
+    path === "/manifest.json";
+
+  // Bypass todo lo que no sea estático (HTML, APIs, auth, analytics, crops, etc.)
+  if (!isStaticAsset) {
+    return; // No interceptar; dejar pasar al navegador/red
   }
 
   event.respondWith(handleRequest(request));
@@ -160,7 +186,11 @@ async function networkFirstStrategy(request) {
     const networkResponse = await fetch(request);
 
     // Si es exitoso, cachear y devolver
-    if (networkResponse.ok) {
+    if (
+      networkResponse &&
+      networkResponse.ok &&
+      networkResponse.type !== "opaqueredirect"
+    ) {
       const cache = await caches.open(DYNAMIC_CACHE);
       cache.put(request, networkResponse.clone());
     }
@@ -192,7 +222,11 @@ async function cacheFirstStrategy(request) {
   try {
     const networkResponse = await fetch(request);
 
-    if (networkResponse.ok) {
+    if (
+      networkResponse &&
+      networkResponse.ok &&
+      networkResponse.type !== "opaqueredirect"
+    ) {
       const cache = await caches.open(STATIC_CACHE);
       cache.put(request, networkResponse.clone());
     }
@@ -236,9 +270,18 @@ async function staleWhileRevalidateStrategy(request) {
   // Fetch en paralelo para actualizar cache
   const fetchPromise = fetch(request)
     .then((networkResponse) => {
-      if (networkResponse.ok) {
-        const cache = caches.open(DYNAMIC_CACHE);
-        cache.then((c) => c.put(request, networkResponse.clone()));
+      try {
+        if (
+          networkResponse &&
+          networkResponse.ok &&
+          networkResponse.type !== "opaqueredirect"
+        ) {
+          const cache = caches.open(DYNAMIC_CACHE);
+          cache.then((c) => c.put(request, networkResponse.clone()));
+        }
+      } catch (e) {
+        // Evitar "Response body is already used" y problemas con redirecciones opacas
+        console.warn("[SW] No se cachea respuesta por tipo/estado:", e);
       }
       return networkResponse;
     })
@@ -255,7 +298,8 @@ async function staleWhileRevalidateStrategy(request) {
 // ================================
 
 function shouldUseNetworkFirst(pathname) {
-  return NETWORK_FIRST_URLS.some((pattern) => pathname.startsWith(pattern));
+  // Con la nueva política, no usamos Network First salvo que en el futuro lo reactivemos
+  return false;
 }
 
 function shouldUseCacheFirst(pathname) {
@@ -270,45 +314,7 @@ function shouldUseCacheFirst(pathname) {
 }
 
 async function getOfflineResponse(request) {
-  // Para navegación, devolver página offline
-  if (request.mode === "navigate") {
-    return (
-      (await caches.match("/")) ||
-      new Response(
-        `
-             <!DOCTYPE html>
-             <html lang="es">
-             <head>
-               <meta charset="UTF-8">
-               <meta name="viewport" content="width=device-width, initial-scale=1.0">
-               <title>Sin Conexión - HuertoRentable</title>
-               <style>
-                 body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f8f9fa; }
-                 .container { max-width: 400px; margin: 0 auto; }
-                 .icon { font-size: 4em; color: #198754; margin-bottom: 20px; }
-                 h1 { color: #198754; margin-bottom: 10px; }
-                 p { color: #6c757d; margin-bottom: 30px; }
-                 button { background: #198754; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; }
-                 button:hover { background: #157347; }
-               </style>
-             </head>
-             <body>
-               <div class="container">
-                 <div class="icon">🌱</div>
-                 <h1>Sin Conexión</h1>
-                 <p>HuertoRentable no está disponible sin conexión a internet. Verifica tu conexión e intenta nuevamente.</p>
-                 <button onclick="location.reload()">Reintentar</button>
-               </div>
-             </body>
-             </html>
-           `,
-        {
-          status: 200,
-          headers: { "Content-Type": "text/html; charset=utf-8" },
-        }
-      )
-    );
-  }
+  // Para navegación u otros, no respondemos (dejamos a la red/navegador) porque no interceptamos no-estáticos
 
   // Para otros recursos, respuesta básica
   return new Response("Recurso no disponible offline", {

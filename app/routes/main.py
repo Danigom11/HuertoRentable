@@ -42,7 +42,7 @@ def debug_clear_session():
     resp = make_response(jsonify({'message': 'Sesión limpiada'}))
     resp.set_cookie('huerto_user_uid', '', expires=0)
     resp.set_cookie('huerto_user_data', '', expires=0)
-    resp.set_cookie('huerto_session', '', expires=0)
+    resp.set_cookie('huerto_session_id', '', expires=0)
     return resp
 
 def should_show_upgrade_banner(plan, crop_count):
@@ -236,7 +236,6 @@ def test_registro_manual():
             <h3>1. Datos del Usuario</h3>
             <input type="email" id="email" placeholder="Email" value="test@huerto.com">
             <input type="password" id="password" placeholder="Password" value="password123">
-            <input type="text" id="name" placeholder="Nombre" value="Usuario Test">
             <br>
             <button onclick="testRegister()">Registrar Usuario</button>
             <button onclick="checkSession()">Ver Sesión</button>
@@ -248,7 +247,7 @@ def test_registro_manual():
         <script>
             // Configuración Firebase - Cargar desde el backend
             let firebaseConfig = {};
-            
+
             // Cargar configuración Firebase desde el servidor
             fetch('/config/firebase')
                 .then(response => response.json())
@@ -486,12 +485,6 @@ def home():
         print("✅ [HOME] Cookie de usuario detectada - ir a dashboard")
         return redirect(url_for('main.dashboard', **request.args))
     
-    # CAMBIO: Por defecto ir al onboarding para mejor UX
-    # Solo ir directo al dashboard si explícitamente han elegido demo
-    if session.get('demo_mode_chosen') or request.args.get('demo') == 'true':
-        print("✅ [HOME] Modo demo - ir a dashboard")
-        return redirect(url_for('main.dashboard', **request.args))
-    
     # Primera visita o sin elección → onboarding
     print("❌ [HOME] No hay usuario - ir a onboarding")
     return redirect(url_for('main.onboarding'))
@@ -602,13 +595,12 @@ def dashboard():
         # Alias y banderas para compatibilidad con la plantilla
         show_upgrade = should_show_upgrade_banner(user_plan, len(crops))
         is_guest_mode = (user_plan == 'invitado')
-        is_demo_mode = bool(session.get('demo_mode_chosen')) or request.args.get('demo') == 'true'
 
         return render_template('dashboard.html',
             # Datos de usuario/estado
             user=user,
             is_authenticated=True,
-            is_demo_mode=is_demo_mode,
+            is_demo_mode=False,
             is_guest_mode=is_guest_mode,
             show_upgrade_banner=show_upgrade,
             plan=user_plan,
@@ -802,15 +794,23 @@ def test_cultivo_simple():
 @main_bp.route('/profile')
 @require_auth
 def profile():
-    """Perfil de usuario y configuración"""
-    user_uid = get_current_user_uid()
-    user = get_current_user()
-    
+    """Perfil de usuario y configuración."""
     from flask import current_app
-    user_service = UserService()
-    user_data = user_service.get_user_by_uid(user_uid)
-    
-    return render_template('profile/main.html', user=user_data)
+    uid = get_current_user_uid()
+    user = get_current_user()
+    # Usar servicio con DB desde app
+    user_service = UserService(current_app.db)
+    user_data = user_service.get_user_by_uid(uid) or user or {}
+    # Asegurar nombre/email presentes para la vista
+    if user and not user_data.get('email'):
+        user_data['email'] = user.get('email')
+    if user and not user_data.get('name'):
+        user_data['name'] = user.get('name') or user.get('email')
+    # Renderizar plantilla; si no existe, usar fallback simple
+    try:
+        return render_template('profile/main.html', user=user_data)
+    except Exception:
+        return render_template('profile.html', user=user_data)
 
 @main_bp.route('/pricing')
 @optional_auth
@@ -823,6 +823,12 @@ def pricing():
         current_plan = user.get('plan', 'gratuito')
     
     return render_template('pricing/plans.html', current_plan=current_plan)
+
+@main_bp.route('/settings')
+@require_auth
+def settings():
+    """Página de ajustes de la cuenta (simple)."""
+    return render_template('settings.html')
 
 @main_bp.route('/api/user-status')
 def api_user_status():

@@ -94,7 +94,7 @@
             <li class="nav-item">
               <a
                 class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}"
-                href="{{ url_for('main.dashboard') }}"
+                href="{{ url_for('main.dashboard', uid=(session.get('user_uid') or (session.get('user') and session.get('user').get('uid')) or request.cookies.get('huerto_user_uid'))) }}"
               >
                 <i class="bi bi-house-door me-1 align-middle"></i
                 ><span class="align-middle">Inicio</span>
@@ -103,7 +103,7 @@
             <li class="nav-item">
               <a
                 class="nav-link {% if request.endpoint == 'crops.list_crops' %}active{% endif %}"
-                href="{{ url_for('crops.list_crops') }}"
+                href="{{ url_for('crops.list_crops', uid=(session.get('user_uid') or (session.get('user') and session.get('user').get('uid')) or request.cookies.get('huerto_user_uid'))) }}"
               >
                 <i class="bi bi-tree me-1 align-middle"></i
                 ><span class="align-middle">Cultivos</span>
@@ -112,7 +112,7 @@
             <li class="nav-item">
               <a
                 class="nav-link {% if request.endpoint == 'analytics.analytics_dashboard' %}active{% endif %}"
-                href="{{ url_for('analytics.analytics_dashboard') }}"
+                href="{{ url_for('analytics.analytics_dashboard', uid=(session.get('user_uid') or (session.get('user') and session.get('user').get('uid')) or request.cookies.get('huerto_user_uid'))) }}"
               >
                 <i class="bi bi-graph-up me-1 align-middle"></i
                 ><span class="align-middle">Análisis</span>
@@ -149,29 +149,35 @@
               <a
                 class="nav-link dropdown-toggle"
                 href="#"
-                id="navbarDropdown"
+                id="userMenu"
                 role="button"
                 data-bs-toggle="dropdown"
+                aria-expanded="false"
               >
-                <i class="bi bi-person-circle me-1 align-middle"></i
-                ><span class="align-middle"
-                  >{{ session.user.name or session.user.email or 'Usuario'
-                  }}</span
-                >
+                {{ user_display_name }}
               </a>
-              <ul class="dropdown-menu">
+              <ul
+                class="dropdown-menu dropdown-menu-end"
+                aria-labelledby="userMenu"
+              >
                 <li>
-                  <a class="dropdown-item" href="{{ url_for('main.profile') }}">
-                    <i class="bi bi-person me-2 align-middle"></i
-                    ><span class="align-middle">Perfil</span>
-                  </a>
+                  <a class="dropdown-item" href="{{ url_for('main.settings') }}"
+                    >Ajustes</a
+                  >
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{{ url_for('main.profile') }}"
+                    >Perfil</a
+                  >
                 </li>
                 <li><hr class="dropdown-divider" /></li>
                 <li>
-                  <a class="dropdown-item" href="#" onclick="logout()">
-                    <i class="bi bi-box-arrow-right me-2 align-middle"></i
-                    ><span class="align-middle">Cerrar Sesión</span>
-                  </a>
+                  <a
+                    class="dropdown-item text-danger"
+                    href="#"
+                    onclick="logout()"
+                    >Cerrar sesión</a
+                  >
                 </li>
               </ul>
             </li>

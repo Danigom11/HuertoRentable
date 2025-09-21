@@ -77,35 +77,8 @@ function checkAuthentication() {
   // TEMPORAL: Limpiar localStorage problemático
   localStorage.removeItem("huerto_auth");
   localStorage.removeItem("huerto_user");
-
-  // Deshabilitado para modo demo
-  console.log("🔧 Autenticación deshabilitada para modo demo");
-  return;
-
-  // Código original comentado
-  /*
-  const authStatus = localStorage.getItem("huerto_auth");
-  const currentPath = window.location.pathname;
-
-  // Si no está autenticado y no está en login, redirigir
-  if (!authStatus && currentPath !== "/auth/login" && currentPath !== "/") {
-    // En desarrollo, permitir acceso directo para testing
-    if (HuertoApp.config.isDevelopment) {
-      console.log("🔧 Modo desarrollo: saltando autenticación");
-      return;
-    }
-
-    console.log("🔐 Redirigiendo a login...");
-    window.location.href = "/auth/login";
-    return;
-  }
-
-  // Si está autenticado y está en login, redirigir a dashboard
-  if (authStatus && currentPath === "/auth/login") {
-    window.location.href = "/";
-    return;
-  }
-  */
+  // Con backend con autenticación obligatoria, el front no fuerza redirecciones.
+  // Solo limpiamos residuos locales. La protección real está en Flask.
 }
 
 function updateUIForUser() {
@@ -120,21 +93,10 @@ function updateUIForUser() {
     }
   });
 
-  // Mostrar badge de demo si corresponde
-  if (HuertoApp.user.esDemo) {
-    showDemoBadge();
-  }
+  // Modo demo eliminado: no mostrar badges especiales
 }
 
-function showDemoBadge() {
-  const navbar = document.querySelector(".navbar-nav");
-  if (navbar && !document.querySelector(".demo-badge")) {
-    const demoBadge = document.createElement("span");
-    demoBadge.className = "badge bg-warning demo-badge ms-2";
-    demoBadge.textContent = "DEMO";
-    navbar.appendChild(demoBadge);
-  }
-}
+// Modo demo eliminado: función showDemoBadge removida
 
 // ================================
 // GESTIÓN DE CONEXIÓN

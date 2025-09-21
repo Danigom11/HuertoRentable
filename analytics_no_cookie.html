@@ -1,0 +1,2963 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="HuertoRentable - Gestión inteligente de huertos rentables"
+    />
+    <meta name="theme-color" content="#198754" />
+
+    <!-- Bootstrap 5 CDN - diseño responsivo y accesible -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <!-- Bootstrap Icons con hash correcto -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+
+    <!-- PWA Manifest - hace la app instalable -->
+    <link
+      rel="manifest"
+      href="/static/../manifest.json"
+    />
+
+    <!-- Iconos PWA para diferentes dispositivos -->
+    <link
+      rel="apple-touch-icon"
+      href="/static/img/icon.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      href="/static/img/icon.png"
+    />
+
+    <!-- CSS personalizado con versión fija -->
+    <link
+      rel="stylesheet"
+      href="/static/css/styles.css?v=2.5"
+    />
+
+    <title>Informes - HuertoRentable</title>
+  </head>
+  <body class="bg-light">
+    <!-- Navegación principal - siempre visible y accesible -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-success shadow-sm">
+      <div class="container">
+        <!-- Logo y nombre de la app -->
+        
+        <a class="navbar-brand fw-bold" href="/onboarding">
+          <i class="bi bi-flower2 me-2"></i>
+          HuertoRentable
+        </a>
+        
+
+        <!-- Botón hamburguesa para móviles -->
+        
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        
+
+        <!-- Enlaces de navegación -->
+        <div class="collapse navbar-collapse" id="navbarNav">
+          
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+              <a
+                class="nav-link "
+                href="/dashboard"
+              >
+                <i class="bi bi-house-door me-1 align-middle"></i
+                ><span class="align-middle">Inicio</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link "
+                href="/crops/"
+              >
+                <i class="bi bi-tree me-1 align-middle"></i
+                ><span class="align-middle">Cultivos</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link active"
+                href="/analytics/"
+              >
+                <i class="bi bi-graph-up me-1 align-middle"></i
+                ><span class="align-middle">Análisis</span>
+              </a>
+            </li>
+          </ul>
+
+          <!-- Enlaces de autenticación para usuarios no registrados -->
+          
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a
+                class="nav-link "
+                href="/auth/login"
+              >
+                <i class="bi bi-box-arrow-in-right me-1 align-middle"></i
+                ><span class="align-middle">Iniciar Sesión</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link "
+                href="/auth/register"
+              >
+                <i class="bi bi-person-plus me-1 align-middle"></i
+                ><span class="align-middle">Registrarse</span>
+              </a>
+            </li>
+          </ul>
+           
+        </div>
+      </div>
+    </nav>
+
+    <!-- Contenido principal -->
+    <main class="container mt-4 mb-5">
+      <!-- Mensajes flash para feedback al usuario -->
+        
+
+      <!-- Contenido específico de cada página -->
+      
+<!-- Banner de modo demo en analytics -->
+
+<div class="alert alert-info alert-dismissible fade show" role="alert">
+  <i class="bi bi-star-fill me-2"></i>
+  <strong>Informes Premium Demo</strong> - Explorando todas las funcionalidades
+  de análisis avanzado.
+  <a href="/auth/login" class="alert-link">Inicia sesión</a>
+  para analizar tus datos reales.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h1 class="display-6 text-success mb-2">
+        <i class="bi bi-bar-chart me-2"></i>
+        Análisis del Huerto
+      </h1>
+      <p class="lead text-muted">
+        Análisis detallado de producción y rentabilidad
+      </p>
+    </div>
+  </div>
+
+  <!-- Tarjetas de resumen -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-dark text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title text-uppercase">Total Cultivos</h6>
+              <h2 class="mb-0">10</h2>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-seedling fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-success text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="card-title text-uppercase">Producción Total</h6>
+              <h2 class="mb-0">252,0 kg</h2>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-weight fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-warning text-white h-100">
+        <div class="card-body">
+          <div>
+            <h6 class="card-title text-uppercase">Beneficios Totales</h6>
+            <h2 class="mb-0">791 €</h2>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-info text-white h-100">
+        <div class="card-body">
+          <div>
+            <h6 class="card-title text-uppercase">Promedio/Cultivo</h6>
+            <h2 class="mb-0">
+              79 €
+            </h2>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráficas -->
+  <div class="row mb-4">
+    <div class="col-lg-8 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-bar-chart me-2"></i>
+            Producción por Cultivo
+          </h5>
+        </div>
+        <div class="card-body">
+          <canvas id="productionChart" height="120"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-pie-chart me-2"></i>
+            Distribución de Beneficios
+          </h5>
+        </div>
+        <div class="card-body">
+          <canvas id="benefitsChart" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla detallada -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div
+          class="card-header bg-light d-flex justify-content-between align-items-center"
+        >
+          <h5 class="card-title mb-0">
+            <i class="bi bi-table me-2"></i>
+            Análisis Detallado por Cultivo
+          </h5>
+          <div class="btn-group">
+            <a
+              href="/analytics/export/csv"
+              class="btn btn-sm btn-outline-success"
+            >
+              <i class="bi bi-file-earmark-excel me-1"></i>
+              Exportar CSV
+            </a>
+            <a
+              href="/analytics/export/json"
+              class="btn btn-sm btn-outline-primary"
+            >
+              <i class="bi bi-file-earmark-code me-1"></i>
+              Exportar JSON
+            </a>
+            <a
+              href="/analytics/export/excel"
+              class="btn btn-sm btn-outline-warning"
+            >
+              <i class="bi bi-file-earmark-spreadsheet me-1"></i>
+              Exportar Excel
+            </a>
+            <a
+              href="/analytics/export/pdf"
+              class="btn btn-sm btn-outline-danger"
+            >
+              <i class="bi bi-file-earmark-pdf me-1"></i>
+              Exportar PDF
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Cultivo</th>
+                  <th>Estado</th>
+                  <th>Plantas</th>
+                  <th>Días Cultivo</th>
+                  <th>Unidades Total</th>
+                  <th>Producción (kg)</th>
+                  <th>Peso/Unidad</th>
+                  <th>Precio/kg (€)</th>
+                  <th>Beneficio (€)</th>
+                  <th>Abonos</th>
+                  <th>Rentabilidad</th>
+                </tr>
+              </thead>
+              <tbody>
+                
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="dropdown me-2">
+                        <button
+                          class="btn p-0 rounded-circle border-0"
+                          style="width: 20px; height: 20px; background-color: #dc3545; border: 1px solid #dee2e6 !important;"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          title="Cambiar color del cultivo: tomates"
+                        ></button>
+                        <div
+                          class="dropdown-menu p-3"
+                          id="colorPaletteAnalytics1"
+                          data-bs-boundary="viewport"
+                        >
+                          <div class="d-flex flex-wrap gap-2">
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#28a745"
+                              data-cultivo-id="tomates"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #28a745;
+                                cursor: pointer;
+                              "
+                              title="Verde"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#dc3545"
+                              data-cultivo-id="tomates"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #dc3545;
+                                cursor: pointer;
+                              "
+                              title="Rojo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0d6efd"
+                              data-cultivo-id="tomates"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0d6efd;
+                                cursor: pointer;
+                              "
+                              title="Azul"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#fd7e14"
+                              data-cultivo-id="tomates"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #fd7e14;
+                                cursor: pointer;
+                              "
+                              title="Naranja"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6f42c1"
+                              data-cultivo-id="tomates"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6f42c1;
+                                cursor: pointer;
+                              "
+                              title="Morado"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#20c997"
+                              data-cultivo-id="tomates"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #20c997;
+                                cursor: pointer;
+                              "
+                              title="Turquesa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#ffc107"
+                              data-cultivo-id="tomates"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #ffc107;
+                                cursor: pointer;
+                              "
+                              title="Amarillo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#e83e8c"
+                              data-cultivo-id="tomates"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #e83e8c;
+                                cursor: pointer;
+                              "
+                              title="Rosa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6c757d"
+                              data-cultivo-id="tomates"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6c757d;
+                                cursor: pointer;
+                              "
+                              title="Gris"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#198754"
+                              data-cultivo-id="tomates"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #198754;
+                                cursor: pointer;
+                              "
+                              title="Verde Oscuro"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0dcaf0"
+                              data-cultivo-id="tomates"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0dcaf0;
+                                cursor: pointer;
+                              "
+                              title="Cian"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#795548"
+                              data-cultivo-id="tomates"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #795548;
+                                cursor: pointer;
+                              "
+                              title="Marrón"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                      <strong>tomates</strong>
+                    </div>
+                  </td>
+                  <td>
+                    
+                    <span class="badge bg-success">Activo</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-info rounded-pill">
+                      1
+                    </span>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">-</span>
+                    
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-success rounded-pill">
+                      42,3 kg
+                    </span>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">-</span>
+                    
+                  </td>
+                  <td>3,50 €</td>
+                  <td>
+                    <strong class="text-success">
+                      148,05 €
+                    </strong>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    
+                    <div class="progress" style="height: 20px">
+                      <div
+                        class="progress-bar bg-success"
+                        style="width: 18.715631123190693%"
+                      >
+                        18,7%
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="dropdown me-2">
+                        <button
+                          class="btn p-0 rounded-circle border-0"
+                          style="width: 20px; height: 20px; background-color: #28a745; border: 1px solid #dee2e6 !important;"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          title="Cambiar color del cultivo: lechugas"
+                        ></button>
+                        <div
+                          class="dropdown-menu p-3"
+                          id="colorPaletteAnalytics2"
+                          data-bs-boundary="viewport"
+                        >
+                          <div class="d-flex flex-wrap gap-2">
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#28a745"
+                              data-cultivo-id="lechugas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #28a745;
+                                cursor: pointer;
+                              "
+                              title="Verde"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#dc3545"
+                              data-cultivo-id="lechugas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #dc3545;
+                                cursor: pointer;
+                              "
+                              title="Rojo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0d6efd"
+                              data-cultivo-id="lechugas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0d6efd;
+                                cursor: pointer;
+                              "
+                              title="Azul"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#fd7e14"
+                              data-cultivo-id="lechugas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #fd7e14;
+                                cursor: pointer;
+                              "
+                              title="Naranja"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6f42c1"
+                              data-cultivo-id="lechugas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6f42c1;
+                                cursor: pointer;
+                              "
+                              title="Morado"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#20c997"
+                              data-cultivo-id="lechugas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #20c997;
+                                cursor: pointer;
+                              "
+                              title="Turquesa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#ffc107"
+                              data-cultivo-id="lechugas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #ffc107;
+                                cursor: pointer;
+                              "
+                              title="Amarillo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#e83e8c"
+                              data-cultivo-id="lechugas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #e83e8c;
+                                cursor: pointer;
+                              "
+                              title="Rosa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6c757d"
+                              data-cultivo-id="lechugas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6c757d;
+                                cursor: pointer;
+                              "
+                              title="Gris"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#198754"
+                              data-cultivo-id="lechugas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #198754;
+                                cursor: pointer;
+                              "
+                              title="Verde Oscuro"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0dcaf0"
+                              data-cultivo-id="lechugas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0dcaf0;
+                                cursor: pointer;
+                              "
+                              title="Cian"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#795548"
+                              data-cultivo-id="lechugas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #795548;
+                                cursor: pointer;
+                              "
+                              title="Marrón"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                      <strong>lechugas</strong>
+                    </div>
+                  </td>
+                  <td>
+                    
+                    <span class="badge bg-success">Activo</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-info rounded-pill">
+                      1
+                    </span>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">-</span>
+                    
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-success rounded-pill">
+                      38,0 kg
+                    </span>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">-</span>
+                    
+                  </td>
+                  <td>2,80 €</td>
+                  <td>
+                    <strong class="text-success">
+                      106,40 €
+                    </strong>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    
+                    <div class="progress" style="height: 20px">
+                      <div
+                        class="progress-bar bg-success"
+                        style="width: 13.450477213829718%"
+                      >
+                        13,5%
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="dropdown me-2">
+                        <button
+                          class="btn p-0 rounded-circle border-0"
+                          style="width: 20px; height: 20px; background-color: #fd7e14; border: 1px solid #dee2e6 !important;"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          title="Cambiar color del cultivo: zanahorias"
+                        ></button>
+                        <div
+                          class="dropdown-menu p-3"
+                          id="colorPaletteAnalytics3"
+                          data-bs-boundary="viewport"
+                        >
+                          <div class="d-flex flex-wrap gap-2">
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#28a745"
+                              data-cultivo-id="zanahorias"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #28a745;
+                                cursor: pointer;
+                              "
+                              title="Verde"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#dc3545"
+                              data-cultivo-id="zanahorias"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #dc3545;
+                                cursor: pointer;
+                              "
+                              title="Rojo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0d6efd"
+                              data-cultivo-id="zanahorias"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0d6efd;
+                                cursor: pointer;
+                              "
+                              title="Azul"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#fd7e14"
+                              data-cultivo-id="zanahorias"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #fd7e14;
+                                cursor: pointer;
+                              "
+                              title="Naranja"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6f42c1"
+                              data-cultivo-id="zanahorias"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6f42c1;
+                                cursor: pointer;
+                              "
+                              title="Morado"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#20c997"
+                              data-cultivo-id="zanahorias"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #20c997;
+                                cursor: pointer;
+                              "
+                              title="Turquesa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#ffc107"
+                              data-cultivo-id="zanahorias"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #ffc107;
+                                cursor: pointer;
+                              "
+                              title="Amarillo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#e83e8c"
+                              data-cultivo-id="zanahorias"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #e83e8c;
+                                cursor: pointer;
+                              "
+                              title="Rosa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6c757d"
+                              data-cultivo-id="zanahorias"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6c757d;
+                                cursor: pointer;
+                              "
+                              title="Gris"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#198754"
+                              data-cultivo-id="zanahorias"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #198754;
+                                cursor: pointer;
+                              "
+                              title="Verde Oscuro"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0dcaf0"
+                              data-cultivo-id="zanahorias"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0dcaf0;
+                                cursor: pointer;
+                              "
+                              title="Cian"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#795548"
+                              data-cultivo-id="zanahorias"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #795548;
+                                cursor: pointer;
+                              "
+                              title="Marrón"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                      <strong>zanahorias</strong>
+                    </div>
+                  </td>
+                  <td>
+                    
+                    <span class="badge bg-success">Activo</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-info rounded-pill">
+                      1
+                    </span>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">-</span>
+                    
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-success rounded-pill">
+                      52,4 kg
+                    </span>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">-</span>
+                    
+                  </td>
+                  <td>1,90 €</td>
+                  <td>
+                    <strong class="text-success">
+                      99,56 €
+                    </strong>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    
+                    <div class="progress" style="height: 20px">
+                      <div
+                        class="progress-bar bg-success"
+                        style="width: 12.58580367865495%"
+                      >
+                        12,6%
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="dropdown me-2">
+                        <button
+                          class="btn p-0 rounded-circle border-0"
+                          style="width: 20px; height: 20px; background-color: #ffc107; border: 1px solid #dee2e6 !important;"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          title="Cambiar color del cultivo: pimientos"
+                        ></button>
+                        <div
+                          class="dropdown-menu p-3"
+                          id="colorPaletteAnalytics4"
+                          data-bs-boundary="viewport"
+                        >
+                          <div class="d-flex flex-wrap gap-2">
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#28a745"
+                              data-cultivo-id="pimientos"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #28a745;
+                                cursor: pointer;
+                              "
+                              title="Verde"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#dc3545"
+                              data-cultivo-id="pimientos"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #dc3545;
+                                cursor: pointer;
+                              "
+                              title="Rojo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0d6efd"
+                              data-cultivo-id="pimientos"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0d6efd;
+                                cursor: pointer;
+                              "
+                              title="Azul"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#fd7e14"
+                              data-cultivo-id="pimientos"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #fd7e14;
+                                cursor: pointer;
+                              "
+                              title="Naranja"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6f42c1"
+                              data-cultivo-id="pimientos"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6f42c1;
+                                cursor: pointer;
+                              "
+                              title="Morado"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#20c997"
+                              data-cultivo-id="pimientos"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #20c997;
+                                cursor: pointer;
+                              "
+                              title="Turquesa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#ffc107"
+                              data-cultivo-id="pimientos"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #ffc107;
+                                cursor: pointer;
+                              "
+                              title="Amarillo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#e83e8c"
+                              data-cultivo-id="pimientos"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #e83e8c;
+                                cursor: pointer;
+                              "
+                              title="Rosa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6c757d"
+                              data-cultivo-id="pimientos"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6c757d;
+                                cursor: pointer;
+                              "
+                              title="Gris"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#198754"
+                              data-cultivo-id="pimientos"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #198754;
+                                cursor: pointer;
+                              "
+                              title="Verde Oscuro"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0dcaf0"
+                              data-cultivo-id="pimientos"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0dcaf0;
+                                cursor: pointer;
+                              "
+                              title="Cian"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#795548"
+                              data-cultivo-id="pimientos"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #795548;
+                                cursor: pointer;
+                              "
+                              title="Marrón"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                      <strong>pimientos</strong>
+                    </div>
+                  </td>
+                  <td>
+                    
+                    <span class="badge bg-success">Activo</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-info rounded-pill">
+                      1
+                    </span>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">-</span>
+                    
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-success rounded-pill">
+                      45,6 kg
+                    </span>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">-</span>
+                    
+                  </td>
+                  <td>4,20 €</td>
+                  <td>
+                    <strong class="text-success">
+                      191,52 €
+                    </strong>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    
+                    <div class="progress" style="height: 20px">
+                      <div
+                        class="progress-bar bg-success"
+                        style="width: 24.210858984893495%"
+                      >
+                        24,2%
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="dropdown me-2">
+                        <button
+                          class="btn p-0 rounded-circle border-0"
+                          style="width: 20px; height: 20px; background-color: #6f42c1; border: 1px solid #dee2e6 !important;"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          title="Cambiar color del cultivo: berenjenas"
+                        ></button>
+                        <div
+                          class="dropdown-menu p-3"
+                          id="colorPaletteAnalytics5"
+                          data-bs-boundary="viewport"
+                        >
+                          <div class="d-flex flex-wrap gap-2">
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#28a745"
+                              data-cultivo-id="berenjenas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #28a745;
+                                cursor: pointer;
+                              "
+                              title="Verde"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#dc3545"
+                              data-cultivo-id="berenjenas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #dc3545;
+                                cursor: pointer;
+                              "
+                              title="Rojo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0d6efd"
+                              data-cultivo-id="berenjenas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0d6efd;
+                                cursor: pointer;
+                              "
+                              title="Azul"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#fd7e14"
+                              data-cultivo-id="berenjenas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #fd7e14;
+                                cursor: pointer;
+                              "
+                              title="Naranja"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6f42c1"
+                              data-cultivo-id="berenjenas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6f42c1;
+                                cursor: pointer;
+                              "
+                              title="Morado"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#20c997"
+                              data-cultivo-id="berenjenas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #20c997;
+                                cursor: pointer;
+                              "
+                              title="Turquesa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#ffc107"
+                              data-cultivo-id="berenjenas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #ffc107;
+                                cursor: pointer;
+                              "
+                              title="Amarillo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#e83e8c"
+                              data-cultivo-id="berenjenas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #e83e8c;
+                                cursor: pointer;
+                              "
+                              title="Rosa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6c757d"
+                              data-cultivo-id="berenjenas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6c757d;
+                                cursor: pointer;
+                              "
+                              title="Gris"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#198754"
+                              data-cultivo-id="berenjenas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #198754;
+                                cursor: pointer;
+                              "
+                              title="Verde Oscuro"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0dcaf0"
+                              data-cultivo-id="berenjenas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0dcaf0;
+                                cursor: pointer;
+                              "
+                              title="Cian"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#795548"
+                              data-cultivo-id="berenjenas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #795548;
+                                cursor: pointer;
+                              "
+                              title="Marrón"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                      <strong>berenjenas</strong>
+                    </div>
+                  </td>
+                  <td>
+                    
+                    <span class="badge bg-success">Activo</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-info rounded-pill">
+                      1
+                    </span>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">-</span>
+                    
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-success rounded-pill">
+                      40,2 kg
+                    </span>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">-</span>
+                    
+                  </td>
+                  <td>3,80 €</td>
+                  <td>
+                    <strong class="text-success">
+                      152,76 €
+                    </strong>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    
+                    <div class="progress" style="height: 20px">
+                      <div
+                        class="progress-bar bg-success"
+                        style="width: 19.31104228556981%"
+                      >
+                        19,3%
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="dropdown me-2">
+                        <button
+                          class="btn p-0 rounded-circle border-0"
+                          style="width: 20px; height: 20px; background-color: #20c997; border: 1px solid #dee2e6 !important;"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          title="Cambiar color del cultivo: calabacines"
+                        ></button>
+                        <div
+                          class="dropdown-menu p-3"
+                          id="colorPaletteAnalytics6"
+                          data-bs-boundary="viewport"
+                        >
+                          <div class="d-flex flex-wrap gap-2">
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#28a745"
+                              data-cultivo-id="calabacines"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #28a745;
+                                cursor: pointer;
+                              "
+                              title="Verde"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#dc3545"
+                              data-cultivo-id="calabacines"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #dc3545;
+                                cursor: pointer;
+                              "
+                              title="Rojo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0d6efd"
+                              data-cultivo-id="calabacines"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0d6efd;
+                                cursor: pointer;
+                              "
+                              title="Azul"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#fd7e14"
+                              data-cultivo-id="calabacines"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #fd7e14;
+                                cursor: pointer;
+                              "
+                              title="Naranja"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6f42c1"
+                              data-cultivo-id="calabacines"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6f42c1;
+                                cursor: pointer;
+                              "
+                              title="Morado"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#20c997"
+                              data-cultivo-id="calabacines"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #20c997;
+                                cursor: pointer;
+                              "
+                              title="Turquesa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#ffc107"
+                              data-cultivo-id="calabacines"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #ffc107;
+                                cursor: pointer;
+                              "
+                              title="Amarillo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#e83e8c"
+                              data-cultivo-id="calabacines"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #e83e8c;
+                                cursor: pointer;
+                              "
+                              title="Rosa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6c757d"
+                              data-cultivo-id="calabacines"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6c757d;
+                                cursor: pointer;
+                              "
+                              title="Gris"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#198754"
+                              data-cultivo-id="calabacines"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #198754;
+                                cursor: pointer;
+                              "
+                              title="Verde Oscuro"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0dcaf0"
+                              data-cultivo-id="calabacines"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0dcaf0;
+                                cursor: pointer;
+                              "
+                              title="Cian"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#795548"
+                              data-cultivo-id="calabacines"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #795548;
+                                cursor: pointer;
+                              "
+                              title="Marrón"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                      <strong>calabacines</strong>
+                    </div>
+                  </td>
+                  <td>
+                    
+                    <span class="badge bg-success">Activo</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-info rounded-pill">
+                      1
+                    </span>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">-</span>
+                    
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-success rounded-pill">
+                      36,9 kg
+                    </span>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">-</span>
+                    
+                  </td>
+                  <td>2,50 €</td>
+                  <td>
+                    <strong class="text-success">
+                      92,25 €
+                    </strong>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    
+                    <div class="progress" style="height: 20px">
+                      <div
+                        class="progress-bar bg-success"
+                        style="width: 11.661715441501801%"
+                      >
+                        11,7%
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="dropdown me-2">
+                        <button
+                          class="btn p-0 rounded-circle border-0"
+                          style="width: 20px; height: 20px; background-color: #198754; border: 1px solid #dee2e6 !important;"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          title="Cambiar color del cultivo: espinacas"
+                        ></button>
+                        <div
+                          class="dropdown-menu p-3"
+                          id="colorPaletteAnalytics7"
+                          data-bs-boundary="viewport"
+                        >
+                          <div class="d-flex flex-wrap gap-2">
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#28a745"
+                              data-cultivo-id="espinacas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #28a745;
+                                cursor: pointer;
+                              "
+                              title="Verde"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#dc3545"
+                              data-cultivo-id="espinacas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #dc3545;
+                                cursor: pointer;
+                              "
+                              title="Rojo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0d6efd"
+                              data-cultivo-id="espinacas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0d6efd;
+                                cursor: pointer;
+                              "
+                              title="Azul"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#fd7e14"
+                              data-cultivo-id="espinacas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #fd7e14;
+                                cursor: pointer;
+                              "
+                              title="Naranja"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6f42c1"
+                              data-cultivo-id="espinacas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6f42c1;
+                                cursor: pointer;
+                              "
+                              title="Morado"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#20c997"
+                              data-cultivo-id="espinacas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #20c997;
+                                cursor: pointer;
+                              "
+                              title="Turquesa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#ffc107"
+                              data-cultivo-id="espinacas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #ffc107;
+                                cursor: pointer;
+                              "
+                              title="Amarillo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#e83e8c"
+                              data-cultivo-id="espinacas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #e83e8c;
+                                cursor: pointer;
+                              "
+                              title="Rosa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6c757d"
+                              data-cultivo-id="espinacas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6c757d;
+                                cursor: pointer;
+                              "
+                              title="Gris"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#198754"
+                              data-cultivo-id="espinacas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #198754;
+                                cursor: pointer;
+                              "
+                              title="Verde Oscuro"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0dcaf0"
+                              data-cultivo-id="espinacas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0dcaf0;
+                                cursor: pointer;
+                              "
+                              title="Cian"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#795548"
+                              data-cultivo-id="espinacas"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #795548;
+                                cursor: pointer;
+                              "
+                              title="Marrón"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                      <strong>espinacas</strong>
+                    </div>
+                  </td>
+                  <td>
+                    
+                    <span class="badge bg-success">Activo</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-info rounded-pill">
+                      1
+                    </span>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">-</span>
+                    
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-success rounded-pill">
+                      23,8 kg
+                    </span>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">-</span>
+                    
+                  </td>
+                  <td>4,50 €</td>
+                  <td>
+                    <strong class="text-success">
+                      107,10 €
+                    </strong>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    
+                    <div class="progress" style="height: 20px">
+                      <div
+                        class="progress-bar bg-success"
+                        style="width: 13.538967195499652%"
+                      >
+                        13,5%
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="dropdown me-2">
+                        <button
+                          class="btn p-0 rounded-circle border-0"
+                          style="width: 20px; height: 20px; background-color: #0dcaf0; border: 1px solid #dee2e6 !important;"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          title="Cambiar color del cultivo: apio"
+                        ></button>
+                        <div
+                          class="dropdown-menu p-3"
+                          id="colorPaletteAnalytics8"
+                          data-bs-boundary="viewport"
+                        >
+                          <div class="d-flex flex-wrap gap-2">
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#28a745"
+                              data-cultivo-id="apio"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #28a745;
+                                cursor: pointer;
+                              "
+                              title="Verde"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#dc3545"
+                              data-cultivo-id="apio"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #dc3545;
+                                cursor: pointer;
+                              "
+                              title="Rojo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0d6efd"
+                              data-cultivo-id="apio"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0d6efd;
+                                cursor: pointer;
+                              "
+                              title="Azul"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#fd7e14"
+                              data-cultivo-id="apio"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #fd7e14;
+                                cursor: pointer;
+                              "
+                              title="Naranja"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6f42c1"
+                              data-cultivo-id="apio"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6f42c1;
+                                cursor: pointer;
+                              "
+                              title="Morado"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#20c997"
+                              data-cultivo-id="apio"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #20c997;
+                                cursor: pointer;
+                              "
+                              title="Turquesa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#ffc107"
+                              data-cultivo-id="apio"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #ffc107;
+                                cursor: pointer;
+                              "
+                              title="Amarillo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#e83e8c"
+                              data-cultivo-id="apio"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #e83e8c;
+                                cursor: pointer;
+                              "
+                              title="Rosa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6c757d"
+                              data-cultivo-id="apio"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6c757d;
+                                cursor: pointer;
+                              "
+                              title="Gris"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#198754"
+                              data-cultivo-id="apio"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #198754;
+                                cursor: pointer;
+                              "
+                              title="Verde Oscuro"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0dcaf0"
+                              data-cultivo-id="apio"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0dcaf0;
+                                cursor: pointer;
+                              "
+                              title="Cian"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#795548"
+                              data-cultivo-id="apio"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #795548;
+                                cursor: pointer;
+                              "
+                              title="Marrón"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                      <strong>apio</strong>
+                    </div>
+                  </td>
+                  <td>
+                    
+                    <span class="badge bg-success">Activo</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-info rounded-pill">
+                      1
+                    </span>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">-</span>
+                    
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-success rounded-pill">
+                      11,0 kg
+                    </span>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">-</span>
+                    
+                  </td>
+                  <td>3,20 €</td>
+                  <td>
+                    <strong class="text-success">
+                      35,20 €
+                    </strong>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    
+                    <div class="progress" style="height: 20px">
+                      <div
+                        class="progress-bar bg-success"
+                        style="width: 4.449781935402313%"
+                      >
+                        4,4%
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="dropdown me-2">
+                        <button
+                          class="btn p-0 rounded-circle border-0"
+                          style="width: 20px; height: 20px; background-color: #25a745; border: 1px solid #dee2e6 !important;"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          title="Cambiar color del cultivo: brócoli"
+                        ></button>
+                        <div
+                          class="dropdown-menu p-3"
+                          id="colorPaletteAnalytics9"
+                          data-bs-boundary="viewport"
+                        >
+                          <div class="d-flex flex-wrap gap-2">
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#28a745"
+                              data-cultivo-id="brócoli"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #28a745;
+                                cursor: pointer;
+                              "
+                              title="Verde"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#dc3545"
+                              data-cultivo-id="brócoli"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #dc3545;
+                                cursor: pointer;
+                              "
+                              title="Rojo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0d6efd"
+                              data-cultivo-id="brócoli"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0d6efd;
+                                cursor: pointer;
+                              "
+                              title="Azul"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#fd7e14"
+                              data-cultivo-id="brócoli"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #fd7e14;
+                                cursor: pointer;
+                              "
+                              title="Naranja"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6f42c1"
+                              data-cultivo-id="brócoli"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6f42c1;
+                                cursor: pointer;
+                              "
+                              title="Morado"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#20c997"
+                              data-cultivo-id="brócoli"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #20c997;
+                                cursor: pointer;
+                              "
+                              title="Turquesa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#ffc107"
+                              data-cultivo-id="brócoli"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #ffc107;
+                                cursor: pointer;
+                              "
+                              title="Amarillo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#e83e8c"
+                              data-cultivo-id="brócoli"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #e83e8c;
+                                cursor: pointer;
+                              "
+                              title="Rosa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6c757d"
+                              data-cultivo-id="brócoli"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6c757d;
+                                cursor: pointer;
+                              "
+                              title="Gris"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#198754"
+                              data-cultivo-id="brócoli"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #198754;
+                                cursor: pointer;
+                              "
+                              title="Verde Oscuro"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0dcaf0"
+                              data-cultivo-id="brócoli"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0dcaf0;
+                                cursor: pointer;
+                              "
+                              title="Cian"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#795548"
+                              data-cultivo-id="brócoli"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #795548;
+                                cursor: pointer;
+                              "
+                              title="Marrón"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                      <strong>brócoli</strong>
+                    </div>
+                  </td>
+                  <td>
+                    
+                    <span class="badge bg-secondary">Finalizado</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-info rounded-pill">
+                      1
+                    </span>
+                  </td>
+                  <td>
+                     120
+                    días 
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-success rounded-pill">
+                      0,0 kg
+                    </span>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">-</span>
+                    
+                  </td>
+                  <td>5,20 €</td>
+                  <td>
+                    <strong class="text-success">
+                      0,00 €
+                    </strong>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    
+                    <div class="progress" style="height: 20px">
+                      <div
+                        class="progress-bar bg-success"
+                        style="width: 0.0%"
+                      >
+                        0,0%
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="dropdown me-2">
+                        <button
+                          class="btn p-0 rounded-circle border-0"
+                          style="width: 20px; height: 20px; background-color: #6c757d; border: 1px solid #dee2e6 !important;"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          title="Cambiar color del cultivo: coliflor"
+                        ></button>
+                        <div
+                          class="dropdown-menu p-3"
+                          id="colorPaletteAnalytics10"
+                          data-bs-boundary="viewport"
+                        >
+                          <div class="d-flex flex-wrap gap-2">
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#28a745"
+                              data-cultivo-id="coliflor"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #28a745;
+                                cursor: pointer;
+                              "
+                              title="Verde"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#dc3545"
+                              data-cultivo-id="coliflor"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #dc3545;
+                                cursor: pointer;
+                              "
+                              title="Rojo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0d6efd"
+                              data-cultivo-id="coliflor"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0d6efd;
+                                cursor: pointer;
+                              "
+                              title="Azul"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#fd7e14"
+                              data-cultivo-id="coliflor"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #fd7e14;
+                                cursor: pointer;
+                              "
+                              title="Naranja"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6f42c1"
+                              data-cultivo-id="coliflor"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6f42c1;
+                                cursor: pointer;
+                              "
+                              title="Morado"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#20c997"
+                              data-cultivo-id="coliflor"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #20c997;
+                                cursor: pointer;
+                              "
+                              title="Turquesa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#ffc107"
+                              data-cultivo-id="coliflor"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #ffc107;
+                                cursor: pointer;
+                              "
+                              title="Amarillo"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#e83e8c"
+                              data-cultivo-id="coliflor"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #e83e8c;
+                                cursor: pointer;
+                              "
+                              title="Rosa"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#6c757d"
+                              data-cultivo-id="coliflor"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #6c757d;
+                                cursor: pointer;
+                              "
+                              title="Gris"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#198754"
+                              data-cultivo-id="coliflor"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #198754;
+                                cursor: pointer;
+                              "
+                              title="Verde Oscuro"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#0dcaf0"
+                              data-cultivo-id="coliflor"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #0dcaf0;
+                                cursor: pointer;
+                              "
+                              title="Cian"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                            <div
+                              class="color-option rounded-circle"
+                              data-color="#795548"
+                              data-cultivo-id="coliflor"
+                              style="
+                                width: 30px;
+                                height: 30px;
+                                background-color: #795548;
+                                cursor: pointer;
+                              "
+                              title="Marrón"
+                              onclick="cambiarColorAnalytics(this)"
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                      <strong>coliflor</strong>
+                    </div>
+                  </td>
+                  <td>
+                    
+                    <span class="badge bg-secondary">Finalizado</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-info rounded-pill">
+                      1
+                    </span>
+                  </td>
+                  <td>
+                     120
+                    días 
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    <span class="badge bg-success rounded-pill">
+                      0,0 kg
+                    </span>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">-</span>
+                    
+                  </td>
+                  <td>4,80 €</td>
+                  <td>
+                    <strong class="text-success">
+                      0,00 €
+                    </strong>
+                  </td>
+                  <td>
+                    
+                    <span class="text-muted">0</span>
+                    
+                  </td>
+                  <td>
+                    
+                    <div class="progress" style="height: 20px">
+                      <div
+                        class="progress-bar bg-success"
+                        style="width: 0.0%"
+                      >
+                        0,0%
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Botones de acción -->
+  <div class="row mt-4">
+    <div class="col-12 text-center">
+      <a
+        href="/analytics/advanced"
+        class="btn btn-primary btn-lg me-3"
+      >
+        <i class="bi bi-graph-up-arrow me-2"></i>
+        Análisis Avanzados
+      </a>
+      <a
+        href="/dashboard"
+        class="btn btn-outline-secondary btn-lg"
+      >
+        <i class="bi bi-arrow-left me-2"></i>
+        Volver
+      </a>
+    </div>
+  </div>
+</div>
+
+    </main>
+
+    <!-- Footer con información útil -->
+    <footer class="bg-success text-white py-3 mt-auto">
+      <div class="container">
+        <div class="row">
+          <div class="col-md-8">
+            <p class="mb-0">
+              <i class="bi bi-flower2 me-2"></i>
+              HuertoRentable - Gestión inteligente de cultivos
+            </p>
+          </div>
+          <div class="col-md-4 text-md-end">
+            <small>
+              <span id="app-version">PWA v1.0</span> |
+              <span id="last-sync">Sincronizado</span>
+            </small>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Bootstrap 5 JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Firebase SDK - versión actualizada y consistente -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <!-- Chart.js para gráficas - solo se carga donde es necesario -->
+    
+
+    <!-- Configuración y servicios de Firebase -->
+    <script src="/static/js/firebase-config-final.js?v=3.0"></script>
+    <script src="/static/js/auth-service.js?v=1.1"></script>
+
+    <!-- JavaScript personalizado con versión actualizada -->
+    <script src="/static/js/app.js?v=2.4"></script>
+
+    <!-- Service Worker para PWA - funcionalidad offline -->
+    <script>
+      // TEMPORAL: Service Worker deshabilitado para debug
+      console.log("🔧 Service Worker deshabilitado para evitar cache issues");
+      /*
+      // Registrar Service Worker sin parámetros dinámicos
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker
+            .register("/service-worker.js")
+            .then(function (registration) {
+              console.log("✅ Service Worker registrado:", registration.scope);
+
+              // Verificar actualizaciones menos frecuentemente
+              registration.update();
+
+              // Detectar nuevo Service Worker
+              registration.addEventListener("updatefound", () => {
+                const newWorker = registration.installing;
+                newWorker.addEventListener("statechange", () => {
+                  if (
+                    newWorker.state === "installed" &&
+                    navigator.serviceWorker.controller
+                  ) {
+                    console.log(
+                      "🔄 Nueva versión del Service Worker disponible"
+                    );
+                    // El Service Worker enviará un mensaje para notificar la actualización
+                  }
+                });
+              });
+            })
+            .catch(function (error) {
+              console.log("❌ Error registrando Service Worker:", error);
+            });
+        });
+      }
+      */
+
+      // Detectar cuando la app se puede instalar - manejado en app.js
+      // let deferredPrompt; // Movido a app.js para evitar duplicación
+      window.addEventListener("beforeinstallprompt", (e) => {
+        console.log("💾 App se puede instalar");
+        // deferredPrompt = e; // Manejado en app.js
+        // Emitir evento personalizado para app.js
+        const installEvent = new CustomEvent("appInstallable", { detail: e });
+        window.dispatchEvent(installEvent);
+      });
+
+      // Verificar que Bootstrap Icons se cargue correctamente
+      document.addEventListener("DOMContentLoaded", function () {
+        // Pequeño delay para que carguen los CSS
+        setTimeout(function () {
+          const testIcon = document.querySelector(".bi-tree");
+          if (testIcon) {
+            const computedStyle = window.getComputedStyle(testIcon, "::before");
+            if (!computedStyle.content || computedStyle.content === "none") {
+              console.warn(
+                "🔧 Bootstrap Icons no se cargó correctamente, aplicando fallback"
+              );
+              // Fallback: añadir texto simple
+              document.querySelectorAll(".bi-tree").forEach((icon) => {
+                if (!icon.textContent) {
+                  icon.textContent = "🌱";
+                  icon.style.fontFamily = "emoji";
+                }
+              });
+            }
+          }
+        }, 1000);
+      });
+    </script>
+
+    <!-- JavaScript específico de cada página -->
+    
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Obtener datos de la API
+    fetch('/analytics/api/chart-data')
+      .then((response) => response.json())
+      .then((data) => {
+        // Gráfico de barras - Producción
+        const ctx1 = document
+          .getElementById("productionChart")
+          .getContext("2d");
+        new Chart(ctx1, {
+          type: "bar",
+          data: {
+            labels: data.labels,
+            datasets: [
+              {
+                label: "Kilogramos producidos",
+                data: data.datasets[0].data,
+                backgroundColor: data.colors || "rgba(25, 135, 84, 0.8)",
+                borderColor: data.colors || "rgba(25, 135, 84, 1)",
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: "Kilogramos",
+                },
+              },
+            },
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+          },
+        });
+
+        // Gráfico de dona - Beneficios
+        const ctx2 = document.getElementById("benefitsChart").getContext("2d");
+        new Chart(ctx2, {
+          type: "doughnut",
+          data: {
+            labels: data.labels,
+            datasets: [
+              {
+                data: data.datasets[1].data,
+                backgroundColor: data.colors || [
+                  "#ff6384",
+                  "#36a2eb",
+                  "#cc65fe",
+                  "#ffce56",
+                  "#4bc0c0",
+                  "#9966ff",
+                  "#ff9f40",
+                  "#ff6384",
+                  "#c9cbcf",
+                  "#4bc0c0",
+                ],
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+              },
+            },
+          },
+        });
+      })
+      .catch((error) => {
+        console.error("Error cargando datos de gráficas:", error);
+      });
+  });
+
+  // Función para cambiar color de cultivo en analytics (mismo sistema que dashboard/crops)
+  function cambiarColorAnalytics(elemento) {
+    const nuevoColor = elemento.getAttribute("data-color");
+    const cultivoId = elemento.getAttribute("data-cultivo-id");
+
+    // Hacer la petición AJAX para actualizar el color
+    fetch("/api/crops/update-color", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        cultivo_id: cultivoId,
+        color: nuevoColor,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          // Actualizar el color del botón
+          const botonColor = elemento
+            .closest(".dropdown")
+            .querySelector("button");
+          botonColor.style.backgroundColor = nuevoColor;
+
+          // Cerrar el dropdown
+          const dropdown = bootstrap.Dropdown.getInstance(botonColor);
+          if (dropdown) {
+            dropdown.hide();
+          }
+
+          // Recargar gráficas para reflejar el nuevo color
+          setTimeout(() => {
+            location.reload();
+          }, 300);
+        } else {
+          console.error("Error del servidor:", data.error);
+          alert(
+            "Error al actualizar el color: " +
+              (data.error || "Error desconocido")
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("Error de red:", error);
+        alert("Error de conexión al actualizar el color");
+      });
+  }
+</script>
+
+<style>
+  /* Solución para dropdowns en tablas responsive */
+  .table-responsive {
+    overflow: visible !important;
+  }
+
+  /* Asegurar que los dropdowns aparezcan por encima de la tabla */
+  .dropdown {
+    position: static;
+  }
+
+  .dropdown-menu {
+    position: absolute !important;
+    z-index: 1050 !important;
+    max-height: 300px;
+    overflow-y: auto;
+    min-width: 200px;
+  }
+
+  /* Para tablas, permitir que el contenido se muestre fuera */
+  .card-body {
+    overflow: visible !important;
+  }
+
+  /* Mejorar visualización de opciones de color */
+  .color-option:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+  }
+
+  /* Asegurar que la tabla no corte contenido */
+  .table {
+    overflow: visible !important;
+  }
+</style>
+
+  </body>
+</html>

@@ -1,16 +1,5 @@
 {% extends "base.html" %} {% block title %}Análisis Avanzados - HuertoRentable{%
 endblock %} {% block content %}
-<!-- Banner de modo demo en analytics avanzados -->
-{% if demo_mode %}
-<div class="alert alert-success alert-dismissible fade show" role="alert">
-  <i class="bi bi-star-fill me-2"></i>
-  <strong>Análisis Premium Avanzados - DEMO</strong> - Explorando todas las
-  funcionalidades profesionales de análisis.
-  <a href="{{ url_for('auth.login') }}" class="alert-link">Inicia sesión</a>
-  para analizar tus datos reales con estas herramientas.
-  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-{% endif %}
 
 <div class="container-fluid">
   <!-- Header -->
@@ -18,9 +7,7 @@ endblock %} {% block content %}
     <div class="col-12">
       <h1 class="display-6 text-success mb-2">
         <i class="bi bi-graph-up-arrow me-2"></i>
-        Análisis Avanzados {% if demo_mode %}
-        <span class="badge bg-warning">DEMO PREMIUM</span>
-        {% endif %}
+        Análisis Avanzados
       </h1>
       <p class="lead text-muted">
         Análisis profesional con predicciones, tendencias y insights avanzados

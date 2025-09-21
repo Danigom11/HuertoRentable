@@ -1,0 +1,9 @@
+HTTP/1.1 200 OK
+Server: Werkzeug/3.1.3 Python/3.13.3
+Date: Mon, 15 Sep 2025 11:26:20 GMT
+Content-Type: text/html; charset=utf-8
+Content-Length: 104159
+Vary: Cookie
+Set-Cookie: huerto_session=eyJfaW5pdCI6dHJ1ZSwiX3Blcm1hbmVudCI6dHJ1ZX0.aMf33A.eKYbJ9ZN1H_anbzQ2HGn9QI3-PQ; Expires=Tue, 16 Sep 2025 11:26:20 GMT; Path=/; SameSite=Lax
+Connection: close
+

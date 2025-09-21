@@ -23,7 +23,7 @@
       {
         "source": "**",
         "run": {
-          "serviceId": "huertorentable-flask",
+          "serviceId": "huertorentable",
           "region": "us-central1"
         }
       }

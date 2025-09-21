@@ -32,19 +32,15 @@ def status():
     })
 
 @api_bp.route('/crops', methods=['GET'])
-@optional_auth
+@require_auth
 def get_crops():
-    """Obtener cultivos del usuario - SEGURO (modo demo disponible)"""
+    """Obtener cultivos del usuario (requiere autenticación)."""
     from flask import current_app
     
-    user = get_current_user()
     user_uid = get_current_user_uid()
     crop_service = CropService(current_app.db)
     
-    if user_uid:
-        cultivos = crop_service.get_user_crops(user_uid)
-    else:
-        cultivos = crop_service.get_demo_crops()
+    cultivos = crop_service.get_user_crops(user_uid)
     
     return jsonify({
         'success': True,
@@ -130,20 +126,15 @@ def update_crop_color():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @api_bp.route('/user/totals')
-@optional_auth
+@require_auth
 def user_totals():
-    """Obtener totales del usuario - SEGURO (modo demo disponible)"""
+    """Obtener totales del usuario (requiere autenticación)."""
     from flask import current_app
     
-    user = get_current_user()
     user_uid = get_current_user_uid()
     crop_service = CropService(current_app.db)
     
-    if user_uid:
-        total_kilos, total_beneficios = crop_service.get_user_totals(user_uid)
-    else:
-        # Datos demo de ejemplo
-        total_kilos, total_beneficios = 2500.0, 12500.0
+    total_kilos, total_beneficios = crop_service.get_user_totals(user_uid)
     
     return jsonify({
         'total_kilos': total_kilos,

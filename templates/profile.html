@@ -1,0 +1,28 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container py-4">
+  <h1 class="h3 mb-4">Perfil de usuario</h1>
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="row g-3 align-items-center">
+        <div class="col-auto"><strong>UID</strong></div>
+        <div class="col-auto"><code>{{ user.uid if user else '' }}</code></div>
+      </div>
+      <div class="row g-3 align-items-center mt-1">
+        <div class="col-auto"><strong>Nombre</strong></div>
+        <div class="col-auto">{{ user.name or user.email }}</div>
+      </div>
+      <div class="row g-3 align-items-center mt-1">
+        <div class="col-auto"><strong>Email</strong></div>
+        <div class="col-auto">{{ user.email }}</div>
+      </div>
+      <div class="row g-3 align-items-center mt-1">
+        <div class="col-auto"><strong>Plan</strong></div>
+        <div class="col-auto">{{ user.plan or 'gratuito' }}</div>
+      </div>
+    </div>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('main.settings') }}"
+    >Ir a Ajustes</a
+  >
+</div>
+{% endblock %}

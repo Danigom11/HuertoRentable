@@ -98,7 +98,9 @@ class ProductionConfig(Config):
     # Session configuration específica para producción (HTTPS)
     SESSION_COOKIE_SECURE = True  # Requiere HTTPS en producción
     SESSION_COOKIE_HTTPONLY = True  # Seguridad: no acceso desde JS
-    SESSION_COOKIE_SAMESITE = 'Lax'  # Compatible con navegación normal
+    # En algunos navegadores/proxies (Firebase Hosting → Cloud Run) Lax puede no enviarse
+    # en ciertas navegaciones AJAX. Forzamos 'None' + Secure para máxima compatibilidad.
+    SESSION_COOKIE_SAMESITE = 'None'
     SESSION_COOKIE_DOMAIN = None  # Auto-detectar dominio
     SESSION_COOKIE_PATH = '/'
 

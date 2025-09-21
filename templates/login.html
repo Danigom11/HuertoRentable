@@ -50,18 +50,7 @@ endblock %} {% block content %}
 
         <hr class="my-4" />
 
-        <!-- Opción de demo para testing -->
-        <div class="text-center">
-          <p class="text-muted small mb-3">¿Solo quieres probar la app?</p>
-          <button
-            type="button"
-            class="btn btn-outline-success"
-            onclick="entrarDemo()"
-          >
-            <i class="bi bi-play-circle me-1"></i>
-            Entrar en Modo Demo
-          </button>
-        </div>
+        <!-- Modo demo eliminado -->
 
         <!-- Información educativa -->
         <div class="alert alert-info mt-4">
@@ -153,27 +142,7 @@ endblock %} {% block content %}
     }, 1500);
   }
 
-  function entrarDemo() {
-    // Entrada directa en modo demo
-    mostrarMensaje("info", "Entrando en modo demo...");
-
-    // Configurar datos de demo
-    localStorage.setItem("huerto_auth", "true");
-    localStorage.setItem(
-      "huerto_user",
-      JSON.stringify({
-        email: "demo@huertorentable.com",
-        nombre: "Usuario Demo",
-        esDemo: true,
-        fechaLogin: new Date().toISOString(),
-      })
-    );
-
-    // Redirigir después de un momento
-    setTimeout(() => {
-      window.location.href = '{{ url_for("dashboard") }}';
-    }, 1000);
-  }
+  // Modo demo eliminado
 
   function mostrarMensaje(tipo, mensaje) {
     // Remover mensajes anteriores

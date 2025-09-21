@@ -220,85 +220,6 @@ def debug_cultivo():
             'error': str(e),
             'traceback': traceback.format_exc()
         }), 500
-    """Endpoint para diagnosticar problemas de creación de cultivos"""
-    try:
-        from flask import current_app
-        from app.services.crop_service import CropService
-        from app.auth.auth_service import UserService
-        from app.services.plan_service import PlanService
-        
-        results = {}
-        
-        # Estado básico
-        results['firebase_connected'] = current_app.db is not None
-        results['timestamp'] = str(datetime.datetime.now())
-        
-        if not current_app.db:
-            results['error'] = 'No hay conexión a Firebase'
-            return jsonify(results)
-        
-        # Datos de prueba
-        test_uid = "debug_user_123"
-        crop_data = {
-            'nombre': 'tomates debug',
-            'precio': 3.50,
-            'numero_plantas': 10
-        }
-        
-        # Servicios
-        user_service = UserService(current_app.db)
-        crop_service = CropService(current_app.db)
-        plan_service = PlanService(current_app.db)
-        
-        # Test 1: Verificar usuario
-        user = user_service.get_user_by_uid(test_uid)
-        results['user_exists'] = user is not None
-        
-        if not user:
-            # Crear usuario de prueba
-            user_data = {
-                'uid': test_uid,
-                'email': 'debug@test.com',
-                'name': 'Debug User',
-                'plan': 'gratuito'
-            }
-            created = user_service.create_user(test_uid, user_data)
-            results['user_created'] = created
-        
-        # Test 2: Verificar plan
-        plan = user_service.get_user_plan(test_uid)
-        results['user_plan'] = plan
-        
-        # Test 3: Verificar límites
-        can_create = plan_service.check_plan_limits(test_uid, 'crops')
-        results['can_create_crops'] = can_create
-        
-        # Test 4: Obtener cultivos existentes
-        existing_crops = crop_service.get_user_crops(test_uid)
-        results['existing_crops_count'] = len(existing_crops)
-        
-        # Test 5: Intentar crear cultivo
-        try:
-            success = crop_service.create_crop(test_uid, crop_data)
-            results['crop_creation_success'] = success
-            
-            if success:
-                updated_crops = crop_service.get_user_crops(test_uid)
-                results['crops_after_creation'] = len(updated_crops)
-            
-        except Exception as e:
-            results['crop_creation_error'] = str(e)
-            import traceback
-            results['crop_creation_traceback'] = traceback.format_exc()
-        
-        return jsonify(results)
-        
-    except Exception as e:
-        import traceback
-        return jsonify({
-            'error': str(e),
-            'traceback': traceback.format_exc()
-        }), 500
 
 @auth_bp.route('/register-simple', methods=['GET'])
 def register_simple():
@@ -325,120 +246,76 @@ def sync_user():
     try:
         data = request.get_json()
         id_token = data.get('idToken')
-        
+
         if not id_token:
             return jsonify({'error': 'Token requerido'}), 400
-        
+
         # Verificar token de Firebase
         user_data = AuthService.verify_firebase_token(id_token)
         if not user_data:
             return jsonify({'error': 'Token inválido'}), 401
-        
+
         # Crear o actualizar usuario en Firestore
         from flask import current_app
         user_service = UserService(current_app.db)
-        
         existing_user = user_service.get_user_by_uid(user_data['uid'])
         if not existing_user:
-            # Crear nuevo usuario
-            print(f"🆕 Creando nuevo usuario en Firestore: {user_data['uid']}")
             user_service.create_user(user_data['uid'], user_data)
-        else:
-            # Usuario ya existe
-            print(f"✅ Usuario ya existe en Firestore: {user_data['uid']}")
-        
-        # FORZAR CREACIÓN DE SESIÓN AGRESIVA
+
+        # Crear sesión
+        session.clear()
         session.permanent = True
-        session.clear()  # Limpiar sesión anterior
-        
-        # Crear datos de usuario completos
-        user_session_data = {
+        session['user'] = {
             'uid': user_data['uid'],
             'email': user_data['email'],
             'name': user_data.get('name', user_data['email'].split('@')[0]),
             'plan': user_data.get('plan', 'gratuito'),
-            'created_at': user_data.get('created_at'),
-            'last_login': user_data.get('last_login')
         }
-        
-        # Establecer múltiples formas de identificación
-        session['user'] = user_session_data
-        session['is_authenticated'] = True
         session['user_uid'] = user_data['uid']
-        session['firebase_uid'] = user_data['uid']
-        session['auth_method'] = 'firebase'
+        session['is_authenticated'] = True
         session['login_timestamp'] = int(time.time())
-        session.permanent = True  # Asegurar que la sesión es permanente
-        
-        # Forzar modificación de sesión
         session.modified = True
-        
-        print(f"✅ [sync-user] Sesión creada para {user_data['uid']}")
-        print(f"🔍 [sync-user] Session data: {dict(session)}")
-        
-        # Crear respuesta con cookie adicional como backup
+
+        # Respuesta y cookies de respaldo
         response = make_response(jsonify({
             'success': True,
             'user': user_data,
             'created': not existing_user,
             'session_created': True,
-            'redirect_url': f'/dashboard?from=register&welcome=true&uid={user_data["uid"]}'
+            'redirect_url': f"/dashboard?from=register&welcome=true&uid={user_data['uid']}"
         }))
-        
-        # FORZAR cookies de sesión manualmente
-        import uuid
+
+        import uuid, json as _json
+        # Alinear cookies con entorno (igual que en /auth/login)
+        is_production = (
+                request.is_secure
+                or request.headers.get('X-Forwarded-Proto') == 'https'
+                or 'run.app' in request.host
+                or not request.host.startswith(('localhost', '127.0.0.1'))
+            )
+        cookie_secure = is_production
+        forwarded_host = request.headers.get('X-Forwarded-Host')
+        base_host = forwarded_host or request.host
+        host_only = base_host.split(':')[0]
+        cookie_domain = host_only if is_production else None
         session_id = str(uuid.uuid4())
-        
-        # Cookie de sesión Flask (forzar escritura)
-        response.set_cookie(
-            'huerto_session',
-            session_id,
-            max_age=86400,  # 24 horas
-            secure=False,   # False para desarrollo
-            httponly=False, # Permitir JS
-            samesite='Lax',
-            path='/'
-        )
-        
-        # Cookie adicional como backup
-        response.set_cookie(
-            'huerto_user_uid',
-            user_data['uid'],
-            max_age=86400,  # 24 horas
-            secure=False,   # False para desarrollo
-            httponly=False, # Permitir JS
-            samesite='Lax',
-            path='/'
-        )
-        
-        # Cookie con datos completos del usuario
-        import json
-        user_cookie_data = json.dumps({
+        response.set_cookie('huerto_session_id', session_id, max_age=86400, secure=cookie_secure, httponly=False, samesite=('None' if cookie_secure else 'Lax'), path='/', domain=cookie_domain)
+        response.set_cookie('huerto_user_uid', user_data['uid'], max_age=86400, secure=cookie_secure, httponly=False, samesite=('None' if cookie_secure else 'Lax'), path='/', domain=cookie_domain)
+        response.set_cookie('huerto_user_data', _json.dumps({
             'uid': user_data['uid'],
             'email': user_data['email'],
             'name': user_data.get('name', user_data['email'].split('@')[0]),
             'plan': user_data.get('plan', 'gratuito'),
             'authenticated': True
-        })
-        
-        response.set_cookie(
-            'huerto_user_data',
-            user_cookie_data,
-            max_age=86400,  # 24 horas
-            secure=False,   # False para desarrollo
-            httponly=False, # Permitir JS
-            samesite='Lax',
-            path='/'
-        )
-        
-        # También soportar flujo tradicional: si el cliente no espera JSON, redirigir
+        }), max_age=86400, secure=cookie_secure, httponly=False, samesite=('None' if cookie_secure else 'Lax'), path='/', domain=cookie_domain)
+
         if request.headers.get('Accept', '').startswith('text/html'):
             return redirect(f"/dashboard?from=register&welcome=true&uid={user_data['uid']}")
         return response
-        
+
     except Exception as e:
-        print(f"❌ Error sincronizando usuario: {e}")
         import traceback
+        print(f"❌ Error sincronizando usuario: {e}")
         traceback.print_exc()
         return jsonify({'error': 'Error interno del servidor'}), 500
 
@@ -455,33 +332,50 @@ def login():
     
     # POST: Procesar login
     try:
-        data = request.get_json()
+        # Decidir modo de respuesta según Accept/Content-Type
+        wants_html = request.headers.get('Accept', '').startswith('text/html') and not request.is_json
+        # Extraer idToken desde JSON o form-urlencoded de forma robusta
+        data = request.get_json(silent=True) or {}
         id_token = data.get('idToken')
-        
         if not id_token:
+            # Aceptar múltiples variantes de nombre de campo desde formularios
+            id_token = (
+                request.form.get('idToken')
+                or request.form.get('id_token')
+                or request.form.get('token')
+            )
+
+        if not id_token:
+            # Si esperaba HTML, redirigir a onboarding en vez de 400
+            if wants_html:
+                flash('Falta el token de inicio de sesión. Inténtalo de nuevo.', 'error')
+                return redirect(url_for('main.onboarding'))
             return jsonify({'error': 'Token requerido'}), 400
-        
+
         # Verificar token de Firebase
-        user_data = AuthService.verify_firebase_token(id_token)
+        try:
+            user_data = AuthService.verify_firebase_token(id_token)
+        except Exception as _e:
+            user_data = None
         if not user_data:
+            if wants_html:
+                flash('Token inválido. Por favor, inicia sesión de nuevo.', 'error')
+                return redirect(url_for('main.onboarding'))
             return jsonify({'error': 'Token inválido'}), 401
-        
+
         # Crear o actualizar usuario en Firestore
         from flask import current_app
         user_service = UserService(current_app.db)
-        
         existing_user = user_service.get_user_by_uid(user_data['uid'])
         if not existing_user:
-            # Crear nuevo usuario
             user_service.create_user(user_data['uid'], user_data)
         else:
-            # Actualizar último acceso
             user_service.update_last_access(user_data['uid'])
-        
+
         # Crear token de sesión personalizado
         session_token = AuthService.create_custom_token(user_data)
-        
-        # Guardar en sesión y hacer permanente
+
+        # Guardar en sesión
         session.permanent = True
         session['token'] = session_token
         session['user_uid'] = user_data['uid']
@@ -491,18 +385,11 @@ def login():
             'name': user_data.get('name', user_data['email'].split('@')[0]),
         }
         session['is_authenticated'] = True
-        # IMPORTANTE: Añadir timestamp para el middleware de autenticación
         session['login_timestamp'] = int(time.time())
+        session.modified = True
 
-        # Debug: Verificar que la sesión se guardó
-        print(f"🔍 [Login] Sesión creada: {dict(session)}")
-
-        # Limpiar flags de modos especiales para evitar entrar en demo/invitado
-        session.pop('demo_mode_chosen', None)
-        session.pop('guest_mode_active', None)
-        
-        # Preparar respuesta JSON y setear cookies de respaldo
-        response = make_response(jsonify({
+        # Preparar payload y respuesta base
+        payload = {
             'success': True,
             'token': session_token,
             'user': {
@@ -510,80 +397,82 @@ def login():
                 'email': user_data['email'],
                 'name': user_data.get('name', user_data['email'].split('@')[0])
             }
-        }))
-
-        import uuid, json as _json
-        from flask import request as _req
-        
-        # Detectar si estamos en HTTPS (producción) o HTTP (desarrollo)
-        is_production = (request.is_secure or 
-                        request.headers.get('X-Forwarded-Proto') == 'https' or
-                        'run.app' in request.host or
-                        not request.host.startswith(('localhost', '127.0.0.1')))
-        
-        print(f"🔍 [Login] Entorno detectado: {'PRODUCCIÓN (HTTPS)' if is_production else 'DESARROLLO (HTTP)'}")
-        
-        session_id = str(uuid.uuid4())
-        
-        # Configurar cookies con parámetros correctos según entorno
-        cookie_secure = is_production
-        cookie_samesite = 'Lax'  # Funciona tanto en HTTP como HTTPS
-        
-        response.set_cookie('huerto_session', session_id, 
-                          max_age=86400, secure=cookie_secure, 
-                          httponly=True, samesite=cookie_samesite, path='/')
-        response.set_cookie('huerto_user_uid', user_data['uid'], 
-                          max_age=86400, secure=cookie_secure, 
-                          httponly=True, samesite=cookie_samesite, path='/')
-        response.set_cookie('huerto_user_data', _json.dumps({
-            'uid': user_data['uid'],
-            'email': user_data['email'],
-            'name': user_data.get('name', user_data['email'].split('@')[0]),
-            'plan': 'gratuito',
-            'authenticated': True
-        }), max_age=86400, secure=cookie_secure, 
-           httponly=True, samesite=cookie_samesite, path='/')
-        
-        # Token Firebase
-        try:
-            id_token_val = data.get('idToken')
-            if id_token_val:
-                response.set_cookie('firebase_id_token', id_token_val,
-                                  max_age=3600, secure=cookie_secure,
-                                  httponly=True, samesite=cookie_samesite, path='/')
-                print(f"✅ [Login] Token Firebase guardado en cookie")
-        except Exception as e:
-            print(f"⚠️ [Login] Error guardando token Firebase: {e}")
-
-        session.permanent = True
-        session.modified = True
-
-        # SOLUCIÓN ANTI-BUCLE: Las cookies no viajan por el proxy Hosting→Cloud Run
-        # Hacer redirect directo del servidor tras establecer sesión
-        print(f"✅ [login] Sesión creada exitosamente en servidor, redirigiendo a dashboard")
-        
-        # Si es request AJAX/JSON, devolver JSON con redirect_url
+        }
+        redirect_url = f"/dashboard?from=login&uid={user_data['uid']}"
         if request.is_json or request.headers.get('Content-Type', '').startswith('application/json'):
-            return jsonify({
-                'success': True,
-                'token': session_token,
-                'user': {
-                    'uid': user_data['uid'],
-                    'email': user_data['email'],
-                    'name': user_data.get('name', user_data['email'].split('@')[0])
-                },
-                'redirect_url': f"/dashboard?from=login&uid={user_data['uid']}"
-            })
-        
-        # Si es request HTML normal, hacer redirect DIRECTO del servidor
-        return redirect(f"/dashboard?from=login&uid={user_data['uid']}")
+            response = make_response(jsonify(payload))
+        else:
+            response = redirect(redirect_url)
 
-        if request.headers.get('Accept', '').startswith('text/html'):
-            return redirect(f"/dashboard?from=login&uid={user_data['uid']}")
+        # Cookies de respaldo y token
+        # Importante: NO establecer Domain para que sean host-only y queden en web.app
+        import uuid, json as _json
+        from flask import current_app as _ca
+        # Usar configuración de la app para coherencia en producción/desarrollo
+        cookie_secure = bool(_ca.config.get('SESSION_COOKIE_SECURE', True))
+        cookie_samesite = _ca.config.get('SESSION_COOKIE_SAMESITE', 'None') or 'None'
+        cookie_path = _ca.config.get('SESSION_COOKIE_PATH', '/') or '/'
+        # Host-only cookies: domain = None
+        session_id = str(uuid.uuid4())
+        response.set_cookie(
+            'huerto_session_id', session_id,
+            max_age=86400,
+            secure=cookie_secure,
+            httponly=False,
+            samesite=cookie_samesite,
+            path=cookie_path,
+            domain=None
+        )
+        response.set_cookie(
+            'huerto_user_uid', user_data['uid'],
+            max_age=86400,
+            secure=cookie_secure,
+            httponly=False,
+            samesite=cookie_samesite,
+            path=cookie_path,
+            domain=None
+        )
+        response.set_cookie(
+            'huerto_user_data', _json.dumps({
+                'uid': user_data['uid'],
+                'email': user_data['email'],
+                'name': user_data.get('name', user_data['email'].split('@')[0]),
+                'plan': 'gratuito',
+                'authenticated': True
+            }),
+            max_age=86400,
+            secure=cookie_secure,
+            httponly=False,
+            samesite=cookie_samesite,
+            path=cookie_path,
+            domain=None
+        )
+        response.set_cookie(
+            'firebase_id_token', id_token,
+            max_age=3600,
+            secure=cookie_secure,
+            httponly=False,
+            samesite=cookie_samesite,
+            path=cookie_path,
+            domain=None
+        )
+
+        # Añadir redirect_url al JSON si aplica y responder
+        if request.is_json or request.headers.get('Content-Type', '').startswith('application/json'):
+            # Reemplazar contenido del response con redirect_url incluido
+            payload['redirect_url'] = redirect_url
+            response = make_response(jsonify(payload))
         return response
-        
+
     except Exception as e:
-        return jsonify({'error': f'Error en login: {str(e)}'}), 500
+        # Si se esperaba HTML, redirigir a onboarding con mensaje genérico
+        wants_html = request.headers.get('Accept', '').startswith('text/html') and not request.is_json
+        if wants_html:
+            from flask import redirect, url_for, flash
+            flash('No se pudo iniciar sesión. Inténtalo de nuevo.', 'error')
+            return redirect(url_for('main.onboarding'))
+        # Devolver error claro en JSON para evitar 500 silencioso
+        return jsonify({'error': 'Error en login', 'detail': str(e)}), 500
 
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
@@ -750,25 +639,40 @@ def register():
             'message': f'Cuenta creada con plan {selected_plan}',
             'redirect_url': f"/dashboard?from=register&welcome=true&uid={user_data['uid']}"
         }))
-
-    # Establecer cookies de respaldo para navegadores con problemas de sesión
+        # Establecer cookies de respaldo para navegadores con problemas de sesión
         import uuid, json as _json
+        # Alinear cookies con entorno (igual que en /auth/login)
+        is_production = (
+            request.is_secure
+            or request.headers.get('X-Forwarded-Proto') == 'https'
+            or 'run.app' in request.host
+            or not request.host.startswith(('localhost', '127.0.0.1'))
+        )
+        cookie_secure = is_production
+        # Establecer dominio explícito sólo en producción (evita problemas en localhost)
+        forwarded_host = request.headers.get('X-Forwarded-Host')
+        base_host = forwarded_host or request.host
+        host_only = base_host.split(':')[0]
+        cookie_domain = host_only if is_production else None
         session_id = str(uuid.uuid4())
-        response.set_cookie('huerto_session', session_id, max_age=86400, secure=False, httponly=False, samesite='Lax', path='/')
-        response.set_cookie('huerto_user_uid', user_data['uid'], max_age=86400, secure=False, httponly=False, samesite='Lax', path='/')
+        response.set_cookie('huerto_session_id', session_id, max_age=86400, secure=cookie_secure, httponly=False, samesite=('None' if cookie_secure else 'Lax'), path='/', domain=cookie_domain)
+        response.set_cookie('huerto_user_uid', user_data['uid'], max_age=86400, secure=cookie_secure, httponly=False, samesite=('None' if cookie_secure else 'Lax'), path='/', domain=cookie_domain)
         response.set_cookie('huerto_user_data', _json.dumps({
-                'uid': user_data['uid'],
-                'email': user_data['email'],
-                'name': user_data.get('name', user_data['email'].split('@')[0]),
-                'plan': selected_plan,
-                'authenticated': True
-        }), max_age=86400, secure=False, httponly=False, samesite='Lax', path='/')
+                    'uid': user_data['uid'],
+                    'email': user_data['email'],
+                    'name': user_data.get('name', user_data['email'].split('@')[0]),
+                    'plan': selected_plan,
+                    'authenticated': True
+            }), max_age=86400, secure=cookie_secure, httponly=False, samesite=('None' if cookie_secure else 'Lax'), path='/', domain=cookie_domain)
+
         # Si el frontend nos envió id_token, guardarlo también para reconstrucción
         try:
             id_token_val = data.get('idToken')
             if id_token_val:
                 from flask import request as _req
-                host = _req.host.split(':')[0]
+                forwarded_host = _req.headers.get('X-Forwarded-Host')
+                base_host = forwarded_host or _req.host
+                host = base_host.split(':')[0]
                 is_local = host in ('localhost', '127.0.0.1') or host.endswith('.local')
                 response.set_cookie(
                     'firebase_id_token',
@@ -777,36 +681,25 @@ def register():
                     secure=not is_local,
                     httponly=False,
                     samesite='Lax' if is_local else 'None',
-                    path='/'
+                    path='/',
+                    domain=None if is_local else host
                 )
         except Exception:
             pass
+
         session.permanent = True
         session.modified = True
 
         # SOLUCIÓN ANTI-BUCLE: Las cookies no viajan por el proxy Hosting→Cloud Run
         # En lugar de depender de cookies, hacer redirect directo del servidor
         print(f"✅ [register] Sesión creada exitosamente en servidor, redirigiendo a dashboard")
-        
-        # Si es request AJAX/JSON, devolver JSON con redirect_url
+
+        # Si es request AJAX/JSON, devolver JSON (con cookies ya seteadas)
         if request.is_json or request.headers.get('Content-Type', '').startswith('application/json'):
-            return jsonify({
-                'success': True,
-                'token': session_token,
-                'user': {
-                    'uid': user_data['uid'],
-                    'email': user_data['email'],
-                    'name': user_data.get('name', user_data['email'].split('@')[0]),
-                    'plan': selected_plan
-                },
-                'message': f'Cuenta creada con plan {selected_plan}',
-                'redirect_url': f"/dashboard?from=register&welcome=true&uid={user_data['uid']}"
-            })
-        
+            return response
+
         # Si es request HTML normal, hacer redirect DIRECTO del servidor (sin depender del frontend)
         return redirect(f"/dashboard?from=register&welcome=true&uid={user_data['uid']}")
-
-        return response
 
     except Exception as e:
         import traceback

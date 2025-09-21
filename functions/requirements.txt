@@ -1,8 +1,8 @@
 # Dependencias para Cloud Functions Python
 # Copiadas exactas de tu requirements.txt principal
 
-# Functions Framework para Cloud Functions
-functions-framework==3.*
+# Firebase Functions para Python
+firebase-functions>=0.1.0
 
 # Core Flask - EXACTO como tu app
 Flask==2.3.3

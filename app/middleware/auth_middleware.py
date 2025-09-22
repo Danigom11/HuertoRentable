@@ -304,6 +304,35 @@ def require_auth(f):
                 logger.info("[Auth] ✅ Sesión reconstruida por UID en endpoint de cultivos")
                 return f(*args, **kwargs)
 
+            # Reconstrucción por UID también en endpoints principales (settings/profile/dashboard)
+            if uid_param and ((request.endpoint or '').startswith('main.') or (request.blueprint == 'main')):
+                # Solo aplicar a un conjunto seguro de endpoints de UI
+                allowed_main = {'main.settings', 'main.profile', 'main.dashboard'}
+                if (request.endpoint in allowed_main) or (request.endpoint is None and (request.path or '').split('?')[0] in ['/settings', '/profile', '/', '/dashboard']):
+                    logger.info(f"[Auth] Reconstruyendo sesión por UID en ruta principal: {uid_param[:8]}...")
+                    try:
+                        from flask import current_app
+                        db = current_app.db
+                        user_doc = db.collection('usuarios').document(uid_param).get() if db else None
+                        user_data = user_doc.to_dict() if (user_doc and user_doc.exists) else {}
+                    except Exception as e:
+                        logger.warning(f"[Auth] No se pudieron recuperar datos de Firestore para UID {uid_param[:8]} (main): {e}")
+                        user_data = {}
+                    session.permanent = True
+                    session['user_uid'] = uid_param
+                    session['is_authenticated'] = True
+                    session['login_timestamp'] = int(__import__('time').time())
+                    session['user'] = {
+                        'uid': uid_param,
+                        'email': user_data.get('email', f'user-{uid_param[:8]}@huerto.com'),
+                        'name': user_data.get('name', f'Usuario {uid_param[:8]}'),
+                        'plan': user_data.get('plan', 'gratuito')
+                    }
+                    session.modified = True
+                    g.current_user = session['user']
+                    logger.info("[Auth] ✅ Sesión reconstruida por UID en endpoint principal")
+                    return f(*args, **kwargs)
+
             backup_uid = request.cookies.get('huerto_user_uid')
             backup_data = request.cookies.get('huerto_user_data')
             if backup_uid:

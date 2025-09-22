@@ -456,9 +456,51 @@ def setup_template_context(app):
                     or None
                 )
 
-        # 5) Construir nombre a mostrar con prioridad clara (no "Usuario" si hay email)
+        # 5) Si tenemos UID pero falta nombre (o es muy genérico), enriquecer desde Firestore
+        try:
+            from flask import current_app
+            needs_name = False
+            if u:
+                nombre_actual = (u or {}).get('name')
+                correo_actual = (u or {}).get('email')
+                # Consideramos que necesita enriquecimiento si no hay nombre, es "Usuario" o coincide exactamente con el email
+                needs_name = (not nombre_actual) or (str(nombre_actual).strip().lower() == 'usuario') or (correo_actual and nombre_actual == correo_actual)
+            if u and needs_name:
+                uid = (u.get('uid') or session.get('user_uid') or request.cookies.get('huerto_user_uid'))
+                db = getattr(current_app, 'db', None)
+                if uid and db:
+                    try:
+                        doc = db.collection('usuarios').document(uid).get()
+                        if doc and doc.exists:
+                            datos = doc.to_dict() or {}
+                            nombre = datos.get('name') or datos.get('displayName') or datos.get('nombre')
+                            correo = datos.get('email') or correo_actual
+                            if nombre or correo:
+                                # Actualizar estructura local y sesión para persistir en cookies en after_request
+                                u['name'] = nombre or (correo or nombre_actual)
+                                if correo:
+                                    u['email'] = correo
+                                # Persistir en sesión de forma segura
+                                session['user'] = {
+                                    'uid': uid,
+                                    'email': u.get('email'),
+                                    'name': u.get('name'),
+                                    'plan': (u.get('plan') or (session.get('user') or {}).get('plan') or 'gratuito')
+                                }
+                                session.modified = True
+                    except Exception as _e:
+                        try:
+                            print(f"[inject_user_context] Enriquecimiento Firestore falló: {_e}")
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+
+        # 6) Construir nombre a mostrar con prioridad clara (no "Usuario" si hay email)
         display_name = (
-            (user_from_session or {}).get('name')
+            (session.get('user') or {}).get('name')
+            or (session.get('user') or {}).get('email')
+            or (user_from_session or {}).get('name')
             or (user_from_session or {}).get('email')
             or cookie_dict.get('name')
             or cookie_dict.get('email')

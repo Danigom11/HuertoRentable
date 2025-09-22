@@ -69,7 +69,10 @@
           HuertoRentable
         </a>
         {% else %}
-        <a class="navbar-brand fw-bold" href="{{ url_for('main.dashboard', uid=(session.get('user_uid') or (session.get('user') and session.get('user').get('uid')) or request.cookies.get('huerto_user_uid'))) }}">
+        <a
+          class="navbar-brand fw-bold"
+          href="{{ url_for('main.dashboard', uid=(session.get('user_uid') or (session.get('user') and session.get('user').get('uid')) or request.cookies.get('huerto_user_uid'))) }}"
+        >
           <i class="bi bi-flower2 me-2"></i>
           HuertoRentable
         </a>
@@ -161,12 +164,16 @@
                 aria-labelledby="userMenu"
               >
                 <li>
-                  <a class="dropdown-item" href="{{ url_for('main.settings', uid=(session.get('user_uid') or (session.get('user') and session.get('user').get('uid')) or request.cookies.get('huerto_user_uid'))) }}"
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('main.settings', uid=(session.get('user_uid') or (session.get('user') and session.get('user').get('uid')) or request.cookies.get('huerto_user_uid'))) }}"
                     >Ajustes</a
                   >
                 </li>
                 <li>
-                  <a class="dropdown-item" href="{{ url_for('main.profile', uid=(session.get('user_uid') or (session.get('user') and session.get('user').get('uid')) or request.cookies.get('huerto_user_uid'))) }}"
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('main.profile', uid=(session.get('user_uid') or (session.get('user') and session.get('user').get('uid')) or request.cookies.get('huerto_user_uid'))) }}"
                     >Perfil</a
                   >
                 </li>
